@@ -136,9 +136,14 @@ function Navbar() {
                 )}
               </div>
             ) : (
-              <button className="btn-primary ml-4 hidden md:inline-flex">
-                Sign In
-              </button>
+              <div className="flex items-center space-x-2 ml-4">
+                <Link to="/login" className="btn-outline hidden md:inline-flex">
+                  Sign In
+                </Link>
+                <Link to="/signup" className="btn-primary hidden md:inline-flex">
+                  Sign Up
+                </Link>
+              </div>
             )}
 
             {/* Mobile menu button */}
@@ -205,9 +210,14 @@ function Navbar() {
             </Link>
           )}
           {!user && (
-            <button className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-primary-600">
-              Sign In
-            </button>
+            <div className="space-y-1">
+              <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700">
+                Sign In
+              </Link>
+              <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium text-primary-600">
+                Sign Up
+              </Link>
+            </div>
           )}
         </div>
       </motion.div>

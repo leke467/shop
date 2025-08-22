@@ -7,6 +7,8 @@ import ShopCard from '../components/home/ShopCard'
 import FeaturedProductCard from '../components/products/ProductCard'
 import HeroSection from '../components/home/HeroSection'
 import { useUser } from '../context/UserContext'
+import LoginPage from './LoginPage'
+import SignUpPage from './SignUpPage'
 
 function HomePage() {
   const [featured, setFeatured] = useState({
@@ -18,7 +20,7 @@ function HomePage() {
 
   useEffect(() => {
     // Set a test user as admin for demo purposes
-    login({ id: 'user-1', name: 'Test User' }, true)
+    // login({ id: 'user-1', name: 'Test User' }, true)
     
     // Simulate API fetch for featured items
     setFeatured({

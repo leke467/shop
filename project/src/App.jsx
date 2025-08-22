@@ -14,6 +14,8 @@ import ShopCreationPage from './pages/ShopCreationPage'
 import ShopDashboard from './pages/ShopDashboard'
 import AdminPanel from './pages/AdminPanel'
 import CartPage from './pages/CartPage'
+import LoginPage from './pages/LoginPage'
+import SignUpPage from './pages/SignUpPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Context
@@ -37,6 +39,8 @@ function App() {
                 <Route path="dashboard" element={<ShopDashboard />} />
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="cart" element={<CartPage />} />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="signup" element={<SignUpPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Shop, ShopCategory, ShopReview
 
+
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'email', 'created_at')
@@ -19,3 +20,5 @@ class ShopReviewAdmin(admin.ModelAdmin):
     list_display = ('shop', 'user', 'rating', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('shop__name', 'user__username')
+
+

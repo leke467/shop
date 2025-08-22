@@ -1,18 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+ 
 class Shop(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    description = models.TextField()
-    logo = models.ImageField(upload_to='shops/logos/')
-    banner = models.ImageField(upload_to='shops/banners/')
-    email = models.EmailField()
-    phone = models.CharField(max_length=20, blank=True)
-    address = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
+    description = models.TextField(null=True, blank=True)
+    logo = models.ImageField(upload_to='shops/logos/', null=True, blank=True)
+    banner = models.ImageField(upload_to='shops/banners/', null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+
     # Shop features
     enable_product_listings = models.BooleanField(default=True)
     enable_custom_orders = models.BooleanField(default=False)
@@ -26,10 +26,10 @@ class Shop(models.Model):
     secondary_color = models.CharField(max_length=7, default='#10B981')
     
     # Social links
-    facebook_url = models.URLField(blank=True)
-    instagram_url = models.URLField(blank=True)
-    twitter_url = models.URLField(blank=True)
-    
+    facebook_url = models.URLField(blank=True, null=True)
+    instagram_url = models.URLField(blank=True, null=True)
+    twitter_url = models.URLField(blank=True, null=True)
+
     def __str__(self):
         return self.name
 
@@ -52,3 +52,5 @@ class ShopReview(models.Model):
     
     def __str__(self):
         return f"{self.user.username}'s review of {self.shop.name}"
+    
+
