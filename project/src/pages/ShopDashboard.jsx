@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { mockProducts } from '../data/mockData'
+import { fetchMyShop, fetchShopProducts, createProduct, updateShop } from '../services/api'
 
 function ShopDashboard() {
   const [activeTab, setActiveTab] = useState('products')
+  const [shop, setShop] = useState(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [reviews, setReviews] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isAddingProduct, setIsAddingProduct] = useState(false)
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -19,23 +21,68 @@ function ShopDashboard() {
   })
 
   useEffect(() => {
-    // Simulate fetching shop's products
-    setProducts(mockProducts.slice(0, 3))
+    const loadDashboard = async () => {
+      try {
+        const myShop = await fetchMyShop()
+        setShop(myShop)
+        
+        if (myShop && myShop.id) {
+          const myProducts = await fetchShopProducts(myShop.id)
+          setProducts(myProducts)
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadDashboard()
   }, [])
 
-  const handleAddProduct = (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault()
-    // Add product logic here
-    setProducts([...products, { ...newProduct, id: `product-${Date.now()}` }])
-    setIsAddingProduct(false)
-    setNewProduct({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      image: '',
-      inventory: ''
-    })
+    if (!shop) return;
+    
+    try {
+      // Add shop ID to product data
+      const productPayload = { ...newProduct, shop: shop.id }
+      const addedProduct = await createProduct(productPayload)
+      setProducts([...products, addedProduct])
+      setIsAddingProduct(false)
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        image: '',
+        inventory: ''
+      })
+    } catch (error) {
+      console.error("Failed to create product:", error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (!shop) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 container-custom">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">No Shop Found</h1>
+          <p className="text-gray-600 mb-8">You haven't created a shop yet.</p>
+          <Link to="/create-shop" className="btn-primary">
+            Create a Shop
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

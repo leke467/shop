@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { mockShops, mockProducts, mockFeatureFlags } from '../data/mockData'
+import { fetchShopDetails, fetchShopProducts } from '../services/api'
 import ProductCard from '../components/products/ProductCard'
 import { useShop } from '../context/ShopContext'
 
@@ -18,23 +18,31 @@ function ShopPage() {
     // Scroll to top
     window.scrollTo(0, 0)
     
-    // Simulate API fetch
-    setTimeout(() => {
-      const foundShop = mockShops.find(s => s.id === shopId)
-      setShop(foundShop)
-      
-      if (foundShop) {
-        // Get products for this shop
-        const products = mockProducts.filter(p => p.shopId === shopId)
-        setShopProducts(products)
+    const loadData = async () => {
+      try {
+        const shopData = await fetchShopDetails(shopId);
+        setShop(shopData);
         
-        // Get feature flags for this shop
-        const shopFeatures = mockFeatureFlags[shopId] || {}
-        setFeatures(shopFeatures)
+        const productsData = await fetchShopProducts(shopId);
+        setShopProducts(productsData);
+        
+        // Use default features for now since feature flags aren't fully implemented in backend models
+        setFeatures({
+          productListings: shopData.enable_product_listings,
+          customOrders: shopData.enable_custom_orders,
+          reviews: shopData.enable_reviews,
+          contact: shopData.enable_contact,
+          shipping: shopData.enable_shipping,
+          socialLinks: shopData.enable_social_links
+        });
+      } catch (error) {
+        console.error("Failed to fetch shop data:", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false)
-    }, 500)
+    };
+
+    loadData();
   }, [shopId, getShopFeatures])
 
   if (isLoading) {
@@ -60,8 +68,8 @@ function ShopPage() {
   }
 
   // Set shop colors for branded experience
-  const primaryColor = shop.colors?.primary || '#3B82F6'
-  const secondaryColor = shop.colors?.secondary || '#10B981'
+  const primaryColor = shop.primary_color || '#3B82F6'
+  const secondaryColor = shop.secondary_color || '#10B981'
 
   // Style variables for shop branding
   const shopStyle = {
