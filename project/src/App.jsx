@@ -17,6 +17,7 @@ import CartPage from './pages/CartPage'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ForgotPassword from './pages/ForgotPassword'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
@@ -40,6 +41,7 @@ function App() {
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="cart" element={<CartPage />} />
                 <Route path="login" element={<LoginPage />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="signup" element={<SignUpPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>

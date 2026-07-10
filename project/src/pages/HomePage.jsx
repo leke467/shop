@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { mockCategories, mockShops, mockProducts } from '../data/mockData'
 import CategoryCard from '../components/home/CategoryCard'
 import ShopCard from '../components/home/ShopCard'
 import FeaturedProductCard from '../components/products/ProductCard'
 import HeroSection from '../components/home/HeroSection'
-import { useUser } from '../context/UserContext'
-import LoginPage from './LoginPage'
-import SignUpPage from './SignUpPage'
+import { fetchAllShops, fetchProducts } from '../services/api'
 
 function HomePage() {
   const [featured, setFeatured] = useState({
@@ -16,19 +13,49 @@ function HomePage() {
     shops: [],
     products: []
   })
-  const { login } = useUser()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Set a test user as admin for demo purposes
-    // login({ id: 'user-1', name: 'Test User' }, true)
-    
-    // Simulate API fetch for featured items
-    setFeatured({
-      categories: mockCategories.slice(0, 6),
-      shops: mockShops.slice(0, 3),
-      products: mockProducts.filter(product => product.rating >= 4.7).slice(0, 4)
-    })
-  }, [login])
+    const loadFeatured = async () => {
+      try {
+        const [shopsData, productsData] = await Promise.all([
+          fetchAllShops(),
+          fetchProducts()
+        ])
+
+        const categoryMap = {}
+        productsData.forEach((product) => {
+          (product.categories || []).forEach((category) => {
+            if (!categoryMap[category]) {
+              categoryMap[category] = {
+                id: category,
+                name: category,
+                image: product.image || 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                count: 0
+              }
+            }
+            categoryMap[category].count += 1
+          })
+        })
+
+        const categories = Object.values(categoryMap).slice(0, 6)
+
+        setFeatured({
+          categories,
+          shops: shopsData.slice(0, 3),
+          products: productsData
+            .filter((product) => product.rating >= 4.7)
+            .slice(0, 4)
+        })
+      } catch (error) {
+        console.error('Failed to load featured data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadFeatured()
+  }, [])
 
   const containerAnimation = {
     hidden: { opacity: 0 },

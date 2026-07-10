@@ -4,10 +4,9 @@ import { ACCESS_TOKEN } from "../constants";
 
 // Set this to true to use local backend, false for production
 const USE_LOCAL_BACKEND = true;
-const LOCAL_BASE_URL = "http://127.0.0.1:7000";
+const LOCAL_BASE_URL = "http://127.0.0.1:8000";
 const PROD_BASE_URL = "";
 const BASE_URL = USE_LOCAL_BACKEND ? LOCAL_BASE_URL : PROD_BASE_URL;
-
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -19,7 +18,7 @@ const api = axios.create({
 // Attach JWT token to every request if present
 api.interceptors.request.use(
   (config) => {
-  const token = localStorage.getItem(ACCESS_TOKEN);
+    const token = localStorage.getItem(ACCESS_TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,7 +33,67 @@ export const signupUser = async (userData) => {
 };
 
 export const loginUser = async (userData) => {
-  const response = await api.post("/users/login", userData);
+  const response = await api.post("/token/", userData);
+  return response.data;
+};
+
+export const fetchAllShops = async () => {
+  const response = await api.get('/shops/');
+  return response.data;
+};
+
+export const fetchShopDetails = async (shopId) => {
+  const response = await api.get(`/shops/${shopId}/`);
+  return response.data;
+};
+
+export const fetchShopProducts = async (shopId) => {
+  const response = await api.get(`/products/?shop=${shopId}`);
+  return response.data;
+};
+
+export const fetchProducts = async () => {
+  const response = await api.get('/products/');
+  return response.data;
+};
+
+export const fetchProductDetails = async (productId) => {
+  const response = await api.get(`/products/${productId}/`);
+  return response.data;
+};
+
+export const fetchMyShop = async () => {
+  const response = await api.get(`/shops/mine/`);
+  return response.data;
+};
+
+export const createShop = async (shopData) => {
+  const response = await api.post(`/shops/create/`, shopData);
+  return response.data;
+};
+
+export const updateShop = async (shopId, data) => {
+  const response = await api.patch(`/shops/update/${shopId}/`, data);
+  return response.data;
+};
+
+export const forgotPassword = async (email) => {
+  const response = await api.post('/users/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async ({ uid, token, new_password }) => {
+  const response = await api.post('/users/reset-password', { uid, token, new_password });
+  return response.data;
+};
+
+export const adminChangePassword = async (userId, new_password) => {
+  const response = await api.post(`/users/${userId}/change-password`, { new_password });
+  return response.data;
+};
+
+export const createProduct = async (productData) => {
+  const response = await api.post(`/products/`, productData);
   return response.data;
 };
 

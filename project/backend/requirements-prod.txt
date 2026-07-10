@@ -1,0 +1,19 @@
+# ==========================================================================
+# Production-only serving dependencies
+# Install with:  pip install -r requirements-prod.txt
+# ==========================================================================
+-r requirements.txt
+
+# --- WSGI/ASGI servers ---
+gunicorn==23.0.0
+uvicorn[standard]==0.34.0
+
+# --- Static file serving ---
+whitenoise==6.8.2
+
+# --- Object storage (S3-compatible) for media/CDN offload ---
+django-storages==1.14.4
+boto3==1.35.90
+
+# --- Observability ---
+sentry-sdk==2.19.2

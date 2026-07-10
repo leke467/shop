@@ -10,6 +10,7 @@ function SignUpPage() {
   const navigate = useNavigate()
   const { login } = useUser()
   const [formData, setFormData] = useState({
+    username: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -38,6 +39,10 @@ function SignUpPage() {
 
   const validateForm = () => {
     const newErrors = {}
+
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required'
+    }
 
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required'
@@ -183,7 +188,7 @@ const handleSubmit = async (e) => {
                     className={`input ${errors.username ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
                     placeholder="Username"
                   />
-                  {errors.email && (
+                  {errors.username && (
                     <p className="mt-1 text-sm text-error-600">{errors.username}</p>
                   )}
                 </div>

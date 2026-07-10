@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
-import { useShop } from '../context/ShopContext'
+import { useNavigate, Link } from 'react-router-dom'
+import { useUser } from '../context/UserContext'
+import { createShop } from '../services/api'
 
 function ShopCreationPage() {
   const navigate = useNavigate()
-  const { createShop } = useShop()
+  const { user } = useUser()
   
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
@@ -81,14 +82,42 @@ function ShopCreationPage() {
     setStep(prev => prev - 1)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    // Create the shop
-    const shopId = createShop(formData)
-    
-    // Navigate to the new shop page
-    navigate(`/shop/${shopId}`)
+
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      logo: formData.logo,
+      banner: formData.banner,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      categories: formData.categories,
+      primary_color: formData.colors.primary,
+      secondary_color: formData.colors.secondary,
+      enable_product_listings: formData.features.productListings,
+      enable_custom_orders: formData.features.customOrders,
+      enable_reviews: formData.features.reviews,
+      enable_contact: formData.features.contact,
+      enable_shipping: formData.features.shipping,
+      enable_social_links: formData.features.socialLinks,
+      facebook_url: formData.socialLinks.facebook,
+      instagram_url: formData.socialLinks.instagram,
+      twitter_url: formData.socialLinks.twitter,
+    }
+
+    try {
+      const result = await createShop(payload)
+      navigate(`/shop/${result.id}`)
+    } catch (error) {
+      console.error('Failed to create shop:', error)
+    }
   }
 
   const isStepValid = () => {

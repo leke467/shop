@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { mockProducts, mockShops } from '../data/mockData'
 import { useCart } from '../context/CartContext'
+import { fetchProductDetails, fetchShopDetails } from '../services/api'
 
 function ProductPage() {
   const { productId } = useParams()
@@ -14,27 +14,28 @@ function ProductPage() {
   const { addToCart } = useCart()
 
   useEffect(() => {
-    // Scroll to top
     window.scrollTo(0, 0)
-    
-    // Reset states
     setQuantity(1)
     setIsLoading(true)
-    
-    // Simulate API fetch
-    setTimeout(() => {
-      const foundProduct = mockProducts.find(p => p.id === productId)
-      setProduct(foundProduct)
-      
-      if (foundProduct) {
-        setSelectedImage(foundProduct.image)
-        
-        const foundShop = mockShops.find(s => s.id === foundProduct.shopId)
-        setShop(foundShop)
+
+    const loadProduct = async () => {
+      try {
+        const productData = await fetchProductDetails(productId)
+        setProduct(productData)
+        setSelectedImage(productData.gallery?.[0] || productData.image)
+
+        if (productData?.shopId) {
+          const shopData = await fetchShopDetails(productData.shopId)
+          setShop(shopData)
+        }
+      } catch (error) {
+        console.error('Failed to load product:', error)
+      } finally {
+        setIsLoading(false)
       }
-      
-      setIsLoading(false)
-    }, 500)
+    }
+
+    loadProduct()
   }, [productId])
 
   const handleAddToCart = () => {

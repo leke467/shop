@@ -1,15 +1,50 @@
+# ==========================================================================
+# Base runtime dependencies — required to RUN the application (dev & prod)
+# --------------------------------------------------------------------------
+# Pins are exact for reproducibility. For a fully locked prod build, generate
+# a hash-locked file with `pip-compile` (pip-tools) from this source.
+# ==========================================================================
+
+# --- Core framework ---
 Django==5.0.1
-django-cors-headers==4.3.1
 djangorestframework==3.14.0
-Pillow==10.2.0
+djangorestframework-simplejwt==5.5.1
+PyJWT==2.13.0
+django-cors-headers==4.3.1
+
+# --- Configuration ---
 python-dotenv==1.0.1
-asgiref
-Django
-django-cors-headers
-djangorestframework
-djangorestframework-simplejwt
-PyJWT
-pytz
-sqlparse
-psycopg2-binary
-python-dotenv
+
+# --- Database drivers ---
+# PostgreSQL (production)
+psycopg2-binary==2.9.12
+# Microsoft SQL Server (local development)
+mssql-django==1.7.3
+pyodbc==5.3.0
+
+# --- Caching / message broker client ---
+redis==5.2.1
+django-redis==5.4.0
+
+# --- Asynchronous task processing ---
+celery==5.4.0
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+
+# --- API tooling: filtering, schema/docs ---
+django-filter==24.3
+drf-spectacular==0.27.2
+
+# --- Category taxonomy (tree structures) ---
+django-mptt==0.16.0
+
+# --- Images ---
+Pillow==10.2.0
+
+# --- Payments ---
+stripe==11.1.0
+# Paystack has no maintained official SDK; we call its REST API via requests.
+requests==2.32.3
+
+# --- Password hashing (stronger default) ---
+argon2-cffi==23.1.0

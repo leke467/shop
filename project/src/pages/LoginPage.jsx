@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
+import { loginUser } from '../services/api'
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants'
 
 function LoginPage() {
   const navigate = useNavigate()
   const { login } = useUser()
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -28,29 +30,24 @@ function LoginPage() {
     setError('')
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock authentication - in real app, this would be an API call
-      if (formData.email === 'admin@multishop.com' && formData.password === 'admin123') {
-        login({ 
-          id: 'admin-1', 
-          name: 'Admin User', 
-          email: formData.email 
-        }, true) // true for admin
-      } else if (formData.email && formData.password) {
-        login({ 
-          id: 'user-1', 
-          name: 'John Doe', 
-          email: formData.email 
-        }, false)
-      } else {
-        throw new Error('Invalid credentials')
-      }
-      
+      const result = await loginUser({
+        username: formData.username,
+        password: formData.password
+      })
+
+      localStorage.setItem(ACCESS_TOKEN, result.access)
+      localStorage.setItem(REFRESH_TOKEN, result.refresh)
+
+      const isAdmin = formData.username.toLowerCase() === 'admin'
+      login({
+        username: formData.username,
+        name: formData.username,
+        email: ''
+      }, isAdmin)
+
       navigate('/')
     } catch (err) {
-      setError('Invalid email or password')
+      setError('Invalid username or password')
     } finally {
       setIsLoading(false)
     }
@@ -84,17 +81,17 @@ function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
                   </label>
                   <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
                     onChange={handleChange}
                     className="input"
-                    placeholder="Enter your email"
+                    placeholder="Enter your username"
                     required
                   />
                 </div>

@@ -48,9 +48,12 @@ function ProductCard({ product }) {
             </div>
           </div>
           <div className="flex justify-between items-center mb-2">
-            <p className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</p>
+            <p className="text-lg font-bold text-gray-900">${(() => {
+              const p = Number(product?.price)
+              return Number.isFinite(p) ? p.toFixed(2) : '0.00'
+            })()}</p>
             <span className="text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded">
-              {product.categories[0]}
+              {(product?.categories && product.categories.length > 0) ? product.categories[0] : 'General'}
             </span>
           </div>
           <div className="flex justify-between mt-4 space-x-2">

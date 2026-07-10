@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { mockProducts, mockCategories } from '../data/mockData'
 import ProductCard from '../components/products/ProductCard'
 import { useSearchParams } from 'react-router-dom'
+import { fetchProducts } from '../services/api'
 
 function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialCategory = searchParams.get('category') || 'All'
   
   const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [priceRange, setPriceRange] = useState([0, 200])
@@ -17,11 +18,25 @@ function ExplorePage() {
   const [searchText, setSearchText] = useState('')
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setProducts(mockProducts)
-      setIsLoading(false)
-    }, 500)
+    const loadProducts = async () => {
+      try {
+        const productsData = await fetchProducts()
+        setProducts(productsData)
+
+        const categorySet = new Set()
+        productsData.forEach((product) => {
+          (product.categories || []).forEach((category) => categorySet.add(category))
+        })
+
+        setCategories(['All', ...Array.from(categorySet).slice(0, 10)])
+      } catch (error) {
+        console.error('Failed to load products:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadProducts()
   }, [])
 
   useEffect(() => {
@@ -174,18 +189,17 @@ function ExplorePage() {
                     All Categories
                   </button>
                 </li>
-                {mockCategories.map((category) => (
-                  <li key={category.id}>
+                {categories.map((category) => (
+                  <li key={category}>
                     <button
-                      onClick={() => handleCategoryChange(category.name)}
+                      onClick={() => handleCategoryChange(category)}
                       className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                        selectedCategory === category.name
+                        selectedCategory === category
                           ? 'bg-primary-50 text-primary-700 font-medium'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      {category.name}
-                      <span className="ml-1 text-xs text-gray-500">({category.count})</span>
+                      {category}
                     </button>
                   </li>
                 ))}

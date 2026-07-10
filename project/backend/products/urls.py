@@ -1,5 +1,18 @@
 from django.urls import path
 
+from .views import (
+    CategoryListView,
+    ProductDetailView,
+    ProductListView,
+    ProductReviewListCreateView,
+    ShopProductListView,
+)
+
 urlpatterns = [
-    # Add your product-related endpoints here
+    path("", ProductListView.as_view(), name="product-list"),
+    path("categories/", CategoryListView.as_view(), name="category-list"),
+    path("<uuid:public_id>/", ProductDetailView.as_view(), name="product-detail"),
+    path("<uuid:public_id>/reviews/", ProductReviewListCreateView.as_view(), name="product-reviews"),
+    # Shop-scoped: /api/shops/<slug>/products/  (included from shops urls or root)
+    path("shop/<slug:slug>/", ShopProductListView.as_view(), name="shop-product-list"),
 ]

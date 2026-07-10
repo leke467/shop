@@ -7,17 +7,31 @@ export function useUser() {
 }
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null')
+    } catch {
+      return null
+    }
+  })
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('isAdmin') === 'true'
+  })
 
   const login = (userData, admin = false) => {
     setUser(userData)
     setIsAdmin(admin)
+    localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('isAdmin', admin ? 'true' : 'false')
   }
 
   const logout = () => {
     setUser(null)
     setIsAdmin(false)
+    localStorage.removeItem('user')
+    localStorage.removeItem('isAdmin')
+    localStorage.removeItem('access')
+    localStorage.removeItem('refresh')
   }
 
   const checkAdmin = () => {

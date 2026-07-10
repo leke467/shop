@@ -1,25 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { mockShops, mockFeatureFlags } from '../data/mockData'
+import { fetchShopDetails } from '../services/api'
+import { adminChangePassword } from '../services/api'
 import { useShop } from '../context/ShopContext'
 import { useUser } from '../context/UserContext'
 
 function AdminPanel() {
-  const { updateShopFeatures } = useShop()
+  const { updateShopFeatures, shops, features, loading } = useShop()
   const { isAdmin } = useUser()
-  const [shops, setShops] = useState([])
-  const [features, setFeatures] = useState({})
   const [selectedShop, setSelectedShop] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setShops(mockShops)
-      setFeatures(mockFeatureFlags)
-      setIsLoading(false)
-    }, 500)
-  }, [])
 
   // Redirect non-admin users
   if (!isAdmin) {
@@ -41,19 +30,94 @@ function AdminPanel() {
     )
   }
 
-  const handleToggleFeature = (shopId, feature) => {
-    const updatedFeatures = {
-      ...features,
-      [shopId]: {
-        ...features[shopId],
-        [feature]: !features[shopId][feature]
-      }
+  const handleToggleFeature = async (shopId, feature) => {
+    const prev = features[shopId] || {}
+    const toggled = !prev[feature]
+
+    try {
+      await updateShopFeatures(shopId, { [feature]: toggled })
+    } catch (err) {
+      console.error('Failed to update feature on server:', err)
+      alert('Failed to save setting. Please try again.')
     }
-    setFeatures(updatedFeatures)
-    updateShopFeatures(shopId, { [feature]: !features[shopId][feature] })
   }
 
-  if (isLoading) {
+  const handleSendMessage = (shop) => {
+    if (!shop) return
+    if (shop.email) {
+      const subject = encodeURIComponent(`Message about ${shop.name}`)
+      window.location.href = `mailto:${shop.email}?subject=${subject}`
+      return
+    }
+    const message = prompt('Owner has no email on file. Enter a message to copy to clipboard:')
+    if (message) {
+      try {
+        navigator.clipboard.writeText(message)
+        alert('Message copied to clipboard. Share it with the owner manually.')
+      } catch (err) {
+        alert('Could not copy to clipboard. Here is your message:\n\n' + message)
+      }
+    }
+  }
+
+  const handleDownloadShopData = async (shop) => {
+    if (!shop) return
+    try {
+      const full = await fetchShopDetails(shop.id)
+      const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${shop.name.replace(/\s+/g, '_')}_shop_${shop.id}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Download failed', err)
+      alert('Failed to download shop data.')
+    }
+  }
+
+  const handleSuspendShop = async (shop) => {
+    if (!shop) return
+    const ok = confirm(`Suspend shop '${shop.name}'? This will disable public features.`)
+    if (!ok) return
+    try {
+      await updateShopFeatures(shop.id, {
+        productListings: false,
+        customOrders: false,
+        reviews: false,
+        contact: false,
+        shipping: false,
+        socialLinks: false
+      })
+      alert('Shop suspended (features disabled).')
+    } catch (err) {
+      console.error('Suspend failed', err)
+      alert('Failed to suspend shop.')
+    }
+  }
+
+  const handleChangePassword = async (shop) => {
+    if (!shop) return
+    const newPass = prompt(`Enter new password for owner of '${shop.name}':`)
+    if (!newPass) return
+    const confirmPass = prompt('Confirm new password:')
+    if (newPass !== confirmPass) {
+      alert('Passwords do not match.')
+      return
+    }
+    try {
+      await adminChangePassword(shop.ownerId, newPass)
+      alert('Password updated for owner.')
+    } catch (err) {
+      console.error('Change password failed', err)
+      alert('Failed to change password.')
+    }
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen pt-24 pb-16 flex justify-center items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -224,13 +288,28 @@ function AdminPanel() {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="font-semibold text-lg mb-4">Actions</h3>
                         <div className="space-y-3">
-                          <button className="w-full btn-primary">
+                          <button
+                            onClick={() => handleSendMessage(selectedShop)}
+                            className="w-full btn-primary"
+                          >
                             Send Message to Owner
                           </button>
-                          <button className="w-full btn-outline">
+                          <button
+                            onClick={() => handleDownloadShopData(selectedShop)}
+                            className="w-full btn-outline"
+                          >
                             Download Shop Data
                           </button>
-                          <button className="w-full btn bg-error-600 text-white hover:bg-error-700">
+                          <button
+                            onClick={() => handleChangePassword(selectedShop)}
+                            className="w-full btn-outline"
+                          >
+                            Change Owner Password
+                          </button>
+                          <button
+                            onClick={() => handleSuspendShop(selectedShop)}
+                            className="w-full btn bg-error-600 text-white hover:bg-error-700"
+                          >
                             Suspend Shop
                           </button>
                         </div>
