@@ -152,11 +152,11 @@ function Hero({ onSearch }) {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-4 text-lg focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-white placeholder-gray-400 px-3 py-3 md:px-4 md:py-4 text-base md:text-lg focus:outline-none"
               />
               <button
                 type="submit"
-                className="mr-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold text-sm hover:shadow-lg transition-all duration-300"
+                className="mr-2 px-4 py-2 md:px-6 md:py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold text-xs md:text-sm hover:shadow-lg transition-all duration-300 flex-shrink-0"
               >
                 Search
               </button>
