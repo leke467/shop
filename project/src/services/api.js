@@ -1,191 +1,202 @@
-import axios from "axios";
-import { ACCESS_TOKEN } from "../constants";
+/**
+ * API client with HttpOnly cookie auth + automatic token refresh.
+ *
+ * All auth tokens live in HttpOnly cookies (set by the backend), so we
+ * never touch localStorage for tokens. The interceptor handles 401s by
+ * calling /token/refresh/ (which reads the refresh cookie) then retrying.
+ */
+import axios from 'axios'
 
-
-// Set this to true to use local backend, false for production
-const USE_LOCAL_BACKEND = true;
-const LOCAL_BASE_URL = "http://127.0.0.1:8000";
-const PROD_BASE_URL = "";
-const BASE_URL = USE_LOCAL_BACKEND ? LOCAL_BASE_URL : PROD_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+  withCredentials: true, // Send HttpOnly cookies on every request
+  headers: { 'Content-Type': 'application/json' },
+})
 
-// Attach JWT token to every request if present
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem(ACCESS_TOKEN);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// Track refresh state to avoid infinite loops
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) prom.reject(error)
+    else prom.resolve(token)
+  })
+  failedQueue = []
+}
+
+// Response interceptor: auto-refresh on 401
+api.interceptors.response.use(
+  res => res,
+  async error => {
+    const original = error.config
+    if (error.response?.status === 401 && !original._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then(() => api(original))
+      }
+
+      original._retry = true
+      isRefreshing = true
+
+      try {
+        await api.post('/users/token/refresh/')
+        processQueue(null)
+        return api(original)
+      } catch (err) {
+        processQueue(err)
+        // Redirect to login if refresh fails
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+        return Promise.reject(err)
+      } finally {
+        isRefreshing = false
+      }
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+    return Promise.reject(error)
+  }
+)
 
-export const signupUser = async (userData) => {
-  const response = await api.post("/users/register", userData);
-  return response.data;
-};
+// ── Auth ─────────────────────────────────────────────────────
+export const authAPI = {
+  login: (email, password) =>
+    api.post('/users/login/', { email, password }).then(r => r.data),
+  register: (data) =>
+    api.post('/users/register/', data).then(r => r.data),
+  logout: () =>
+    api.post('/users/logout/').then(r => r.data),
+  profile: () =>
+    api.get('/users/profile/').then(r => r.data),
+  updateProfile: (data) =>
+    api.patch('/users/profile/', data).then(r => r.data),
+  forgotPassword: (email) =>
+    api.post('/users/forgot-password/', { email }).then(r => r.data),
+  resetPassword: (data) =>
+    api.post('/users/reset-password/', data).then(r => r.data),
+}
 
-export const loginUser = async (userData) => {
-  const response = await api.post("/token/", userData);
-  return response.data;
-};
+// ── Shops ────────────────────────────────────────────────────
+export const shopAPI = {
+  list: (params) =>
+    api.get('/shops/', { params }).then(r => r.data),
+  detail: (slug) =>
+    api.get(`/shops/${slug}/`).then(r => r.data),
+  mine: () =>
+    api.get('/shops/mine/').then(r => r.data),
+  create: (data) =>
+    api.post('/shops/create/', data).then(r => r.data),
+  update: (slug, data) =>
+    api.patch(`/shops/${slug}/update/`, data).then(r => r.data),
+  delete: (slug) =>
+    api.delete(`/shops/${slug}/delete/`).then(r => r.data),
 
-export const fetchAllShops = async () => {
-  const response = await api.get('/shops/');
-  return response.data;
-};
+  // Theme
+  getTheme: (slug) =>
+    api.get(`/shops/${slug}/theme/`).then(r => r.data),
+  updateTheme: (slug, data) =>
+    api.patch(`/shops/${slug}/theme/`, data).then(r => r.data),
+  resetTheme: (slug) =>
+    api.post(`/shops/${slug}/theme/reset/`).then(r => r.data),
 
-export const fetchShopDetails = async (shopId) => {
-  const response = await api.get(`/shops/${shopId}/`);
-  return response.data;
-};
+  // Branding
+  uploadBranding: (slug, formData) =>
+    api.post(`/shops/${slug}/branding/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
 
-export const fetchShopProducts = async (shopId) => {
-  const response = await api.get(`/products/?shop=${shopId}`);
-  return response.data;
-};
+  // Layouts
+  layouts: (slug) =>
+    api.get(`/shops/${slug}/layouts/`).then(r => r.data),
 
-export const fetchProducts = async () => {
-  const response = await api.get('/products/');
-  return response.data;
-};
+  // Reviews
+  reviews: (slug) =>
+    api.get(`/shops/${slug}/reviews/`).then(r => r.data),
+  addReview: (slug, data) =>
+    api.post(`/shops/${slug}/reviews/`, data).then(r => r.data),
+}
 
-export const fetchProductDetails = async (productId) => {
-  const response = await api.get(`/products/${productId}/`);
-  return response.data;
-};
+// ── Products ─────────────────────────────────────────────────
+export const productAPI = {
+  list: (params) =>
+    api.get('/products/', { params }).then(r => r.data),
+  detail: (slug) =>
+    api.get(`/products/${slug}/`).then(r => r.data),
+  create: (data) =>
+    api.post('/products/', data).then(r => r.data),
+  update: (slug, data) =>
+    api.patch(`/products/${slug}/`, data).then(r => r.data),
+  delete: (slug) =>
+    api.delete(`/products/${slug}/`).then(r => r.data),
+  reviews: (slug) =>
+    api.get(`/products/${slug}/reviews/`).then(r => r.data),
+}
 
-export const fetchMyShop = async () => {
-  const response = await api.get(`/shops/mine/`);
-  return response.data;
-};
+// ── Search ───────────────────────────────────────────────────
+export const searchAPI = {
+  search: (params) =>
+    api.get('/search/', { params }).then(r => r.data),
+  categories: () =>
+    api.get('/search/categories/').then(r => r.data),
+}
 
-export const createShop = async (shopData) => {
-  const response = await api.post(`/shops/create/`, shopData);
-  return response.data;
-};
+// ── Personalization ──────────────────────────────────────────
+export const personalAPI = {
+  feed: () =>
+    api.get('/personalization/feed/').then(r => r.data),
+  trackEvent: (data) =>
+    api.post('/personalization/events/', data).then(r => r.data),
+  favourites: () =>
+    api.get('/personalization/favourites/').then(r => r.data),
+  addFavourite: (data) =>
+    api.post('/personalization/favourites/', data).then(r => r.data),
+  removeFavourite: (id) =>
+    api.delete(`/personalization/favourites/${id}/`).then(r => r.data),
+}
 
-export const updateShop = async (shopId, data) => {
-  const response = await api.patch(`/shops/update/${shopId}/`, data);
-  return response.data;
-};
+// ── Orders & Checkout ────────────────────────────────────────
+export const orderAPI = {
+  list: () =>
+    api.get('/orders/').then(r => r.data),
+  detail: (id) =>
+    api.get(`/orders/${id}/`).then(r => r.data),
+  cart: () =>
+    api.get('/orders/cart/').then(r => r.data),
+  addToCart: (data) =>
+    api.post('/orders/cart/items/', data).then(r => r.data),
+  updateCartItem: (id, data) =>
+    api.patch(`/orders/cart/items/${id}/`, data).then(r => r.data),
+  removeCartItem: (id) =>
+    api.delete(`/orders/cart/items/${id}/`).then(r => r.data),
+  checkout: (data) =>
+    api.post('/payments/checkout/', data).then(r => r.data),
+}
 
-export const forgotPassword = async (email) => {
-  const response = await api.post('/users/forgot-password', { email });
-  return response.data;
-};
+// ── Image helper ─────────────────────────────────────────────
+export const getImageUrl = (path) => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `${BASE_URL}${path}`
+}
 
-export const resetPassword = async ({ uid, token, new_password }) => {
-  const response = await api.post('/users/reset-password', { uid, token, new_password });
-  return response.data;
-};
+export default api
 
-export const adminChangePassword = async (userId, new_password) => {
-  const response = await api.post(`/users/${userId}/change-password`, { new_password });
-  return response.data;
-};
-
-export const createProduct = async (productData) => {
-  const response = await api.post(`/products/`, productData);
-  return response.data;
-};
-
-export default api;
-
-
-// export const getImageUrl = (path) => {
-//   if (!path) return "";
-//   if (path.startsWith("http")) return path;
-//   return `${BASE_URL}${path}`;
-// };
-
-// export const fetchSiteSettings = async () => {
-//   const response = await api.get("/site-settings/");
-//   const data = response.data[0];
-//   if (data.logo) {
-//     data.logo = getImageUrl(data.logo);
-//   }
-//   return data;
-// };
-
-// export const fetchProducts = async () => {
-//   const response = await api.get("/products/");
-//   return response.data.map((product) => ({
-//     ...product,
-//     image: getImageUrl(product.image),
-//   }));
-// };
-
-// export const fetchCategories = async () => {
-//   const response = await api.get("/categories/");
-//   return response.data;
-// };
-
-// export const fetchReviews = async () => {
-//   const response = await api.get("/reviews/");
-//   return response.data.map((review) => ({
-//     ...review,
-//     image: getImageUrl(review.image),
-//   }));
-// };
-
-// export const submitReview = async (reviewData) => {
-//   const formData = new FormData();
-//   Object.keys(reviewData).forEach((key) => {
-//     formData.append(key, reviewData[key]);
-//   });
-//   const response = await api.post("/reviews/", formData, {
-//     headers: {
-//       "Content-Type": "multipart/form-data",
-//     },
-//   });
-//   return response.data;
-// };
-
-// export const fetchTeamMembers = async () => {
-//   const response = await api.get("/team-members/");
-//   return response.data.map((member) => ({
-//     ...member,
-//     image: getImageUrl(member.image),
-//   }));
-// };
-
-// export const fetchMilestones = async () => {
-//   const response = await api.get("/milestones/");
-//   return response.data;
-// };
-
-// export const fetchValues = async () => {
-//   const response = await api.get("/values/");
-//   return response.data;
-// };
-
-// export const fetchFAQs = async () => {
-//   const response = await api.get("/faqs/");
-//   return response.data;
-// };
-
-// export const submitContactForm = async (formData) => {
-//   // Ensure WhatsApp number is included in the payload
-//   const response = await api.post("/contact/", formData);
-//   return response.data;
-// };
-
-// export const createOrder = async (orderData) => {
-//   const response = await api.post("/orders/", orderData);
-//   return response.data;
-// };
-
-// export const submitOrder = async (orderData) => {
-//   // Send order to the correct endpoint for checkout
-//   const response = await api.post("/orders/checkout/", orderData);
-//   return response.data;
-// };
-
+// ── Backward-compatible exports (used by pages not yet rewritten) ────
+export const fetchAllShops = () => shopAPI.list()
+export const fetchShopDetails = (slug) => shopAPI.detail(slug)
+export const fetchShopProducts = (slug) => productAPI.list({ shop: slug })
+export const fetchProducts = () => productAPI.list()
+export const fetchProductDetails = (slug) => productAPI.detail(slug)
+export const fetchMyShop = () => shopAPI.mine()
+export const createShop = (data) => shopAPI.create(data)
+export const updateShop = (slug, data) => shopAPI.update(slug, data)
+export const createProduct = (data) => productAPI.create(data)
+export const forgotPassword = (email) => authAPI.forgotPassword(email)
+export const resetPassword = (data) => authAPI.resetPassword(data)
+export const adminChangePassword = (userId, pw) =>
+  api.post(`/users/${userId}/change-password/`, { new_password: pw }).then(r => r.data)
+export const loginUser = (data) => authAPI.login(data.email, data.password)
+export const signupUser = (data) => authAPI.register(data)

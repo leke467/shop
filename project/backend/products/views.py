@@ -73,7 +73,6 @@ class ShopProductListView(generics.ListCreateAPIView):
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Public detail (GET) / owner-only edit (PUT/PATCH/DELETE)."""
-    lookup_field = "public_id"
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -90,6 +89,28 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
             "variants__inventory", "images"
         )
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup = self.kwargs.get("lookup")
+        
+        import uuid
+        try:
+            val = uuid.UUID(lookup)
+            obj = queryset.filter(public_id=val).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        except ValueError:
+            pass
+
+        obj = queryset.filter(slug=lookup).first()
+        if not obj:
+            from django.http import Http404
+            raise Http404("No product matches the given query.")
+
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
 # ---------------------------------------------------------------------------
 # Reviews
@@ -104,6 +125,10 @@ class ProductReviewListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        return ProductReview.objects.filter(
-            product__public_id=self.kwargs["public_id"]
-        )
+        lookup = self.kwargs.get("lookup")
+        import uuid
+        try:
+            val = uuid.UUID(lookup)
+            return ProductReview.objects.filter(product__public_id=val)
+        except ValueError:
+            return ProductReview.objects.filter(product__slug=lookup)

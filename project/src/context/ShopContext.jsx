@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { mockFeatureFlags } from '../data/mockData'
-import { fetchAllShops, createShop as apiCreateShop, updateShop as apiUpdateShop } from '../services/api'
+import { shopAPI } from '../services/api'
 
 const ShopContext = createContext()
 
@@ -10,114 +9,39 @@ export function useShop() {
 
 export function ShopProvider({ children }) {
   const [shops, setShops] = useState([])
-  const [features, setFeatures] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
-    const load = async () => {
-      try {
-        const shopsData = await fetchAllShops()
-        if (!mounted) return
-        setShops(shopsData)
-        // Initialize feature flags from shop model fields
-        const mapShopToFeatures = (shop) => ({
-          productListings: shop.enable_product_listings,
-          customOrders: shop.enable_custom_orders,
-          reviews: shop.enable_reviews,
-          contact: shop.enable_contact,
-          shipping: shop.enable_shipping,
-          socialLinks: shop.enable_social_links
-        })
-
-        const initialFeatures = shopsData.reduce((acc, s) => {
-          acc[s.id] = mapShopToFeatures(s)
-          return acc
-        }, {})
-        setFeatures(initialFeatures)
-      } catch (err) {
-        console.error('Failed to load shops:', err)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    load()
+    shopAPI.list({ page_size: 50 })
+      .then(data => {
+        if (mounted) setShops(data?.results || data || [])
+      })
+      .catch(() => {})
+      .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
   }, [])
 
   const createShop = async (shopData) => {
-    try {
-      const created = await apiCreateShop(shopData)
-      setShops(prev => [created, ...prev])
-      return created
-    } catch (err) {
-      console.error('createShop failed:', err)
-      throw err
-    }
+    const created = await shopAPI.create(shopData)
+    setShops(prev => [created, ...prev])
+    return created
   }
 
-  const updateShopFeatures = async (shopId, updatedFeatures) => {
-    // Optimistically update local UI
-    setFeatures(prev => ({
-      ...prev,
-      [shopId]: {
-        ...prev[shopId],
-        ...updatedFeatures
-      }
-    }))
-
-    try {
-      // Map frontend feature keys to backend model field names
-      const featureKeyMap = {
-        productListings: 'enable_product_listings',
-        customOrders: 'enable_custom_orders',
-        reviews: 'enable_reviews',
-        contact: 'enable_contact',
-        shipping: 'enable_shipping',
-        socialLinks: 'enable_social_links'
-      }
-
-      const payload = {}
-      Object.keys(updatedFeatures).forEach(k => {
-        const mapped = featureKeyMap[k] || k
-        payload[mapped] = updatedFeatures[k]
-      })
-
-      const persisted = await apiUpdateShop(shopId, payload)
-      // Update local shop record with any returned fields
-      setShops(prev => prev.map(s => s.id === shopId ? { ...s, ...persisted } : s))
-      return persisted
-    } catch (err) {
-      console.error('Failed to persist shop features:', err)
-      // On error, revert the optimistic change by toggling back
-      setFeatures(prev => ({
-        ...prev,
-        [shopId]: Object.keys(updatedFeatures).reduce((acc, key) => {
-          acc[key] = !updatedFeatures[key]
-          return acc
-        }, { ...prev[shopId] })
-      }))
-      throw err
-    }
+  const updateShop = async (slug, data) => {
+    const updated = await shopAPI.update(slug, data)
+    setShops(prev => prev.map(s => s.slug === slug ? { ...s, ...updated } : s))
+    return updated
   }
 
-  const getShopById = (shopId) => {
-    return shops.find(shop => shop.id === shopId) || null
-  }
-
-  const getShopFeatures = (shopId) => {
-    return features[shopId] || {}
-  }
+  const getShopBySlug = (slug) => shops.find(s => s.slug === slug) || null
 
   const value = {
     shops,
-    features,
     loading,
     createShop,
-    updateShopFeatures,
-    getShopById,
-    getShopFeatures
+    updateShop,
+    getShopBySlug,
   }
 
   return (

@@ -287,6 +287,23 @@ CELERY_TASK_SOFT_TIME_LIMIT = 240
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TIMEZONE = "UTC"
 
+# Periodic tasks — can also be managed via Django admin (DatabaseScheduler).
+CELERY_BEAT_SCHEDULE = {
+    "refresh-recommendations-every-6h": {
+        "task": "personalization.tasks.refresh_all_recommendations",
+        "schedule": 6 * 3600,  # every 6 hours
+    },
+    "cleanup-old-events-daily": {
+        "task": "personalization.tasks.cleanup_old_events",
+        "schedule": 86400,  # once per day
+        "kwargs": {"days": 90},
+    },
+    "process-unprocessed-images-30m": {
+        "task": "products.tasks.process_all_unprocessed_images",
+        "schedule": 1800,  # every 30 minutes
+    },
+}
+
 
 # ---------------------------------------------------------------------------
 # CORS / CSRF
@@ -312,9 +329,9 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 # Static & media
 # ---------------------------------------------------------------------------
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Maximum in-memory upload size before streaming to a temp file (2.5 MB default).

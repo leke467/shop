@@ -1,249 +1,267 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import ProductCard from '../components/products/ProductCard'
-import { useSearchParams } from 'react-router-dom'
-import { fetchProducts } from '../services/api'
+import { useState, useEffect, useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { searchAPI, getImageUrl } from '../services/api'
 
-function ExplorePage() {
+function ProductCard({ product }) {
+  const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
+  return (
+    <Link to={`/product/${product.slug || product.public_id}`}>
+      <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300" whileHover={{ y: -4 }}>
+        <div className="aspect-square bg-gray-100 relative overflow-hidden">
+          {img ? (
+            <img src={getImageUrl(typeof img === 'string' ? img : (img.medium || img.image))} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            </div>
+          )}
+          <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
+            <span className="font-bold text-gray-900">${Number(product.base_price || 0).toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{product.name}</h3>
+          <p className="text-sm text-gray-500 mt-1">{product.shop_name || ''}</p>
+        </div>
+      </motion.div>
+    </Link>
+  )
+}
+
+function ShopCard({ shop }) {
+  return (
+    <Link to={`/shop/${shop.slug}`}>
+      <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300" whileHover={{ y: -4 }}>
+        <div className="h-28 bg-gradient-to-br from-primary-400 to-secondary-500 relative">
+          {shop.banner && <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />}
+        </div>
+        <div className="p-4 pt-2">
+          <h3 className="font-bold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{shop.name}</h3>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-1">{shop.tagline || ''}</p>
+          <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
+            <span>⭐ {Number(shop.rating_average || 0).toFixed(1)}</span>
+            <span>{shop.product_count || 0} products</span>
+          </div>
+        </div>
+      </motion.div>
+    </Link>
+  )
+}
+
+export default function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialCategory = searchParams.get('category') || 'All'
-  
-  const [products, setProducts] = useState([])
+  const [query, setQuery] = useState(searchParams.get('q') || '')
+  const [type, setType] = useState(searchParams.get('type') || 'all')
+  const [category, setCategory] = useState(searchParams.get('category') || '')
+  const [sort, setSort] = useState(searchParams.get('sort') || 'newest')
+  const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '')
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '')
+  const [results, setResults] = useState({ products: null, shops: null, facets: null })
   const [categories, setCategories] = useState([])
-  const [filteredProducts, setFilteredProducts] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory)
-  const [priceRange, setPriceRange] = useState([0, 200])
-  const [sortOption, setSortOption] = useState('featured')
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchText, setSearchText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Load categories once
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const productsData = await fetchProducts()
-        setProducts(productsData)
-
-        const categorySet = new Set()
-        productsData.forEach((product) => {
-          (product.categories || []).forEach((category) => categorySet.add(category))
-        })
-
-        setCategories(['All', ...Array.from(categorySet).slice(0, 10)])
-      } catch (error) {
-        console.error('Failed to load products:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadProducts()
+    searchAPI.categories().then(setCategories).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    if (products.length > 0) {
-      let filtered = [...products]
+  // Search effect
+  const doSearch = useCallback(() => {
+    setLoading(true)
+    const params = { q: query, type, sort, page_size: 24 }
+    if (category) params.category = category
+    if (minPrice) params.min_price = minPrice
+    if (maxPrice) params.max_price = maxPrice
 
-      // Filter by category
-      if (selectedCategory !== 'All') {
-        filtered = filtered.filter(product => 
-          product.categories.includes(selectedCategory)
-        )
-      }
+    searchAPI.search(params)
+      .then(data => setResults(data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [query, type, category, sort, minPrice, maxPrice])
 
-      // Filter by price range
-      filtered = filtered.filter(product => 
-        product.price >= priceRange[0] && product.price <= priceRange[1]
-      )
+  useEffect(() => { doSearch() }, [doSearch])
 
-      // Filter by search text
-      if (searchText) {
-        const search = searchText.toLowerCase()
-        filtered = filtered.filter(product => 
-          product.name.toLowerCase().includes(search) || 
-          product.description.toLowerCase().includes(search) ||
-          product.shopName.toLowerCase().includes(search)
-        )
-      }
-
-      // Sort products
-      switch (sortOption) {
-        case 'price-low':
-          filtered.sort((a, b) => a.price - b.price)
-          break
-        case 'price-high':
-          filtered.sort((a, b) => b.price - a.price)
-          break
-        case 'newest':
-          filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          break
-        case 'rating':
-          filtered.sort((a, b) => b.rating - a.rating)
-          break
-        case 'featured':
-        default:
-          // Keep default order for featured
-          break
-      }
-
-      setFilteredProducts(filtered)
-    }
-  }, [products, selectedCategory, priceRange, sortOption, searchText])
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category)
-    setSearchParams({ category })
+  const handleSearch = (e) => {
+    e.preventDefault()
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (type !== 'all') params.set('type', type)
+    setSearchParams(params)
+    doSearch()
   }
 
-  const handlePriceChange = (e) => {
-    const value = parseInt(e.target.value)
-    setPriceRange([0, value])
-  }
+  const sortOptions = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'price_asc', label: 'Price: Low → High' },
+    { value: 'price_desc', label: 'Price: High → Low' },
+    { value: 'rating', label: 'Top Rated' },
+    { value: 'popular', label: 'Most Popular' },
+  ]
 
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value)
-  }
-
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value)
-  }
+  const productList = results.products?.results || []
+  const shopList = results.shops?.results || []
+  const facets = results.facets
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="container-custom">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Explore All Products</h1>
-          <p className="text-gray-600">Discover unique products from all our shops in one place</p>
-        </div>
-
-        {/* Search and filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search bar */}
-            <div className="w-full md:w-1/3">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchText}
-                  onChange={handleSearchChange}
-                  className="input pr-10"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Price Range Slider */}
-            <div className="w-full md:w-1/3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price Range: Up to ${priceRange[1]}
-              </label>
+    <div className="bg-gray-50 min-h-screen">
+      {/* Search header */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <form onSubmit={handleSearch} className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
-                type="range"
-                min="0"
-                max="200"
-                value={priceRange[1]}
-                onChange={handlePriceChange}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                id="explore-search"
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all"
               />
             </div>
-
-            {/* Sort Options */}
-            <div className="w-full md:w-1/3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sort By
-              </label>
-              <select
-                value={sortOption}
-                onChange={handleSortChange}
-                className="input"
-              >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="newest">Newest</option>
-                <option value="rating">Best Rating</option>
-              </select>
+            {/* Type toggle */}
+            <div className="hidden sm:flex items-center bg-gray-100 rounded-xl p-1">
+              {['all', 'products', 'shops'].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setType(t)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    type === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
             </div>
-          </div>
+            {/* Filter toggle (mobile) */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="lg:hidden p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </button>
+          </form>
         </div>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Categories sidebar */}
-          <div className="w-full lg:w-1/4 xl:w-1/5">
-            <div className="bg-white rounded-xl shadow-md p-4 sticky top-24">
-              <h3 className="font-semibold mb-4">Categories</h3>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={() => handleCategoryChange('All')}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                      selectedCategory === 'All'
-                        ? 'bg-primary-50 text-primary-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+        {/* Sidebar filters */}
+        <aside className={`${filtersOpen ? 'block' : 'hidden'} lg:block w-64 flex-shrink-0`}>
+          <div className="sticky top-24 space-y-6">
+            {/* Sort */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-3">Sort by</h3>
+              <div className="space-y-2">
+                {sortOptions.map(s => (
+                  <label key={s.value} className="flex items-center gap-2 cursor-pointer group">
+                    <input type="radio" name="sort" value={s.value} checked={sort === s.value} onChange={() => setSort(s.value)}
+                      className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
+                    <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{s.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Categories */}
+            {facets?.categories?.length > 0 && (
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  <button onClick={() => setCategory('')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${!category ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
                     All Categories
                   </button>
-                </li>
-                {categories.map((category) => (
-                  <li key={category}>
-                    <button
-                      onClick={() => handleCategoryChange(category)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                        selectedCategory === category
-                          ? 'bg-primary-50 text-primary-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {category}
+                  {facets.categories.map(c => (
+                    <button key={c.id} onClick={() => setCategory(String(c.id))}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between ${
+                        category === String(c.id) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                      }`}>
+                      <span>{c.name}</span>
+                      <span className="text-xs text-gray-400">{c.count}</span>
                     </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Products grid */}
-          <div className="w-full lg:w-3/4 xl:w-4/5">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div>
-                <p className="text-gray-600 mb-4">{filteredProducts.length} products found</p>
-                
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                >
-                  {filteredProducts.map(product => (
-                    <ProductCard key={product.id} product={product} />
                   ))}
-                </motion.div>
-              </div>
-            ) : (
-              <div className="flex justify-center items-center h-64">
-                <div className="text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
-                  <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
                 </div>
               </div>
             )}
+
+            {/* Price range */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-3">Price range</h3>
+              <div className="flex items-center gap-2">
+                <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                <span className="text-gray-400">—</span>
+                <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+              </div>
+            </div>
           </div>
-        </div>
+        </aside>
+
+        {/* Results */}
+        <main className="flex-1 min-w-0">
+          {/* Result count */}
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-sm text-gray-500">
+              {loading ? 'Searching…' : (
+                <>
+                  {(results.products?.count || 0) + (results.shops?.count || 0)} results
+                  {query && <> for "<span className="font-medium text-gray-900">{query}</span>"</>}
+                </>
+              )}
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+                  <div className="aspect-square bg-gray-200" />
+                  <div className="p-4 space-y-2"><div className="h-4 bg-gray-200 rounded w-3/4" /><div className="h-3 bg-gray-200 rounded w-1/2" /></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-12">
+              {/* Shops */}
+              {shopList.length > 0 && (type === 'all' || type === 'shops') && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({results.shops?.count || shopList.length})</span></h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {shopList.map(s => <ShopCard key={s.slug || s.public_id} shop={s} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Products */}
+              {productList.length > 0 && (type === 'all' || type === 'products') && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🛒 Products <span className="text-sm font-normal text-gray-400">({results.products?.count || productList.length})</span></h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                    {productList.map(p => <ProductCard key={p.slug || p.public_id} product={p} />)}
+                  </div>
+                </div>
+              )}
+
+              {productList.length === 0 && shopList.length === 0 && (
+                <div className="text-center py-20">
+                  <div className="text-6xl mb-4">🔍</div>
+                  <h3 className="text-xl font-bold text-gray-900">No results found</h3>
+                  <p className="text-gray-500 mt-2">Try different keywords or browse all categories</p>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   )
 }
-
-export default ExplorePage

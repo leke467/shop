@@ -1,4 +1,11 @@
-import { createContext, useContext, useState } from 'react'
+/**
+ * Auth context — cookie-based JWT.
+ * 
+ * Tokens live in HttpOnly cookies (managed by the backend).
+ * This context only stores the user profile object and auth state.
+ */
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { authAPI } from '../services/api'
 
 const UserContext = createContext()
 
@@ -7,43 +14,51 @@ export function useUser() {
 }
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || 'null')
-    } catch {
-      return null
-    }
-  })
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('isAdmin') === 'true'
-  })
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = (userData, admin = false) => {
-    setUser(userData)
-    setIsAdmin(admin)
-    localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('isAdmin', admin ? 'true' : 'false')
-  }
+  // On mount, try to fetch the profile (cookie-based — no localStorage needed)
+  useEffect(() => {
+    authAPI.profile()
+      .then(data => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const logout = () => {
+  const login = useCallback(async (email, password) => {
+    const data = await authAPI.login(email, password)
+    setUser(data.user)
+    return data
+  }, [])
+
+  const register = useCallback(async (formData) => {
+    const data = await authAPI.register(formData)
+    setUser(data.user)
+    return data
+  }, [])
+
+  const logout = useCallback(async () => {
+    try { await authAPI.logout() } catch { /* ignore */ }
     setUser(null)
-    setIsAdmin(false)
-    localStorage.removeItem('user')
-    localStorage.removeItem('isAdmin')
-    localStorage.removeItem('access')
-    localStorage.removeItem('refresh')
-  }
+  }, [])
 
-  const checkAdmin = () => {
-    return isAdmin
-  }
+  const refreshProfile = useCallback(async () => {
+    try {
+      const data = await authAPI.profile()
+      setUser(data)
+    } catch { setUser(null) }
+  }, [])
 
   const value = {
     user,
-    isAdmin,
+    loading,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
+    isSeller: user?.role === 'seller' || user?.role === 'admin',
     login,
+    register,
     logout,
-    checkAdmin
+    refreshProfile,
   }
 
   return (

@@ -2,334 +2,310 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
-import { signupUser } from '../services/api'
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants'
 
-
-function SignUpPage() {
+export default function SignUpPage() {
+  const { register } = useUser()
   const navigate = useNavigate()
-  const { login } = useUser()
-  const [formData, setFormData] = useState({
-    username: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    agreeToTerms: false
+  const [step, setStep] = useState(1)
+  const [form, setForm] = useState({
+    email: '', password: '', password2: '',
+    first_name: '', last_name: '', role: 'buyer',
   })
-  const [isLoading, setIsLoading] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    })
-    
-    // Clear specific error when user starts typing
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ''
-      })
+  const update = (field, value) => setForm(f => ({ ...f, [field]: value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (form.password !== form.password2) {
+      setError('Passwords do not match')
+      return
+    }
+    if (form.password.length < 10) {
+      setError('Password must be at least 10 characters')
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      await register(form)
+      navigate('/')
+    } catch (err) {
+      const data = err.response?.data
+      const msg = data?.detail || data?.email?.[0] || data?.password?.[0] || 'Registration failed'
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg))
+    } finally {
+      setLoading(false)
     }
   }
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required'
-    }
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required'
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required'
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid'
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required'
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters'
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
-    }
-
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = 'You must agree to the terms and conditions'
-    }
-
-    return newErrors
-  }
-
-  
-const handleSubmit = async (e) => {
-  e.preventDefault()
-  const newErrors = validateForm()
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors)
-    return
-  }
-
-  setIsLoading(true)
-  setErrors({})
-
-  try {
-    // Call backend signup API
-    const result = await signupUser({
-      username: formData.username,      // Add this field to your form
-      email: formData.email,
-      password: formData.password,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-    })
-
-    // Save tokens to localStorage
-    localStorage.setItem(ACCESS_TOKEN, result.access)
-    localStorage.setItem(REFRESH_TOKEN, result.refresh)
-
-    // Optionally, fetch user profile here and call login()
-    login({ name: `${formData.firstName} ${formData.lastName}`, email: formData.email }, false)
-    navigate('/')
-  } catch (err) {
-    setErrors({ general: err.response?.data?.detail || 'Signup failed. Please try again.' })
-  } finally {
-    setIsLoading(false)
-  }
-}
+  const roles = [
+    { value: 'buyer', label: 'Shopper', desc: 'Browse and buy from amazing shops', icon: '🛍️' },
+    { value: 'seller', label: 'Shop Owner', desc: 'Create your own shop and sell products', icon: '🏪' },
+  ]
 
   return (
-    <div className="min-h-screen pt-24 pb-16 bg-gradient-to-br from-secondary-50 to-accent-50">
-      <div className="container-custom">
-        <div className="max-w-md mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden"
-          >
-            <div className="px-6 py-8">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold gradient-text mb-2">Create Account</h1>
-                <p className="text-gray-600">Join our marketplace community</p>
+    <div className="min-h-screen flex">
+      {/* Left — Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+        <motion.div
+          className="w-full max-w-md"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-accent-600 text-white text-2xl font-bold mb-4 shadow-lg shadow-primary-500/30">
+              M
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900">Create account</h2>
+            <p className="mt-2 text-gray-500">Join thousands of buyers and sellers</p>
+          </div>
+
+          {/* Step indicators */}
+          <div className="flex items-center gap-2 mb-8 px-4">
+            {[1, 2].map(s => (
+              <div key={s} className="flex-1 flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                  step >= s
+                    ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-400'
+                }`}>
+                  {step > s ? '✓' : s}
+                </div>
+                {s < 2 && <div className={`flex-1 h-0.5 rounded transition-all duration-500 ${step > 1 ? 'bg-primary-500' : 'bg-gray-200'}`} />}
               </div>
+            ))}
+          </div>
 
-              {errors.general && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mb-4 p-3 bg-error-50 border border-error-200 rounded-md"
-                >
-                  <p className="text-error-700 text-sm">{errors.general}</p>
-                </motion.div>
-              )}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-error-50 border border-error-200 text-error-700 text-sm"
+            >
+              {error}
+            </motion.div>
+          )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      className={`input ${errors.firstName ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
-                      placeholder="John"
-                    />
-                    {errors.firstName && (
-                      <p className="mt-1 text-sm text-error-600">{errors.firstName}</p>
-                    )}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-5"
+              >
+                {/* Role selection */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">I want to…</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {roles.map(r => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        onClick={() => update('role', r.value)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                          form.role === r.value
+                            ? 'border-primary-500 bg-primary-50 shadow-md shadow-primary-500/10'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="text-2xl">{r.icon}</span>
+                        <h4 className="font-semibold text-gray-900 mt-2">{r.label}</h4>
+                        <p className="text-xs text-gray-500 mt-1">{r.desc}</p>
+                      </button>
+                    ))}
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">First name</label>
                     <input
-                      type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      className={`input ${errors.lastName ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
+                      id="signup-first-name"
+                      required
+                      value={form.first_name}
+                      onChange={e => update('first_name', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all"
+                      placeholder="Jane"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Last name</label>
+                    <input
+                      id="signup-last-name"
+                      required
+                      value={form.last_name}
+                      onChange={e => update('last_name', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all"
                       placeholder="Doe"
                     />
-                    {errors.lastName && (
-                      <p className="mt-1 text-sm text-error-600">{errors.lastName}</p>
-                    )}
                   </div>
-                </div>
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                    User Name
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className={`input ${errors.username ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
-                    placeholder="Username"
-                  />
-                  {errors.username && (
-                    <p className="mt-1 text-sm text-error-600">{errors.username}</p>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`input ${errors.email ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
-                    placeholder="john@example.com"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-error-600">{errors.email}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`input ${errors.password ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
-                    placeholder="Create a strong password"
-                  />
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-error-600">{errors.password}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className={`input ${errors.confirmPassword ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''}`}
-                    placeholder="Confirm your password"
-                  />
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-error-600">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="flex items-start">
-                    <input
-                      type="checkbox"
-                      name="agreeToTerms"
-                      checked={formData.agreeToTerms}
-                      onChange={handleChange}
-                      className={`form-checkbox h-4 w-4 text-primary-600 rounded mt-1 ${errors.agreeToTerms ? 'border-error-300' : ''}`}
-                    />
-                    <span className="ml-2 text-sm text-gray-600">
-                      I agree to the{' '}
-                      <Link to="/terms" className="text-primary-600 hover:text-primary-700">
-                        Terms and Conditions
-                      </Link>{' '}
-                      and{' '}
-                      <Link to="/privacy" className="text-primary-600 hover:text-primary-700">
-                        Privacy Policy
-                      </Link>
-                    </span>
-                  </label>
-                  {errors.agreeToTerms && (
-                    <p className="mt-1 text-sm text-error-600">{errors.agreeToTerms}</p>
-                  )}
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary w-full relative"
+                  type="button"
+                  onClick={() => {
+                    if (!form.first_name || !form.last_name) {
+                      setError('Please fill in your name')
+                      return
+                    }
+                    setError('')
+                    setStep(2)
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/30 hover:shadow-xl transition-all duration-300"
                 >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                      Creating account...
-                    </div>
-                  ) : (
-                    'Create Account'
-                  )}
+                  Continue
                 </button>
-              </form>
+              </motion.div>
+            )}
 
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+            {step === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-5"
+              >
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                  <input
+                    id="signup-email"
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={e => update('email', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                  <input
+                    id="signup-password"
+                    type="password"
+                    required
+                    minLength={10}
+                    value={form.password}
+                    onChange={e => update('password', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all"
+                    placeholder="Min 10 characters"
+                  />
+                  {/* Strength bar */}
+                  <div className="mt-2 flex gap-1">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                        form.password.length >= i * 3
+                          ? i <= 2 ? 'bg-warning-400' : 'bg-success-500'
+                          : 'bg-gray-200'
+                      }`} />
+                    ))}
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  <button className="btn-outline flex items-center justify-center">
-                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Google
-                  </button>
-                  <button className="btn-outline flex items-center justify-center">
-                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    Facebook
-                  </button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm password</label>
+                  <input
+                    id="signup-password2"
+                    type="password"
+                    required
+                    value={form.password2}
+                    onChange={e => update('password2', e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 transition-all ${
+                      form.password2 && form.password !== form.password2
+                        ? 'border-error-300 focus:ring-error-500/40'
+                        : 'border-gray-200 focus:ring-primary-500/40 focus:border-primary-500'
+                    }`}
+                    placeholder="••••••••••"
+                  />
                 </div>
-              </div>
 
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                    Sign in
-                  </Link>
-                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-6 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all"
+                  >
+                    Back
+                  </button>
+                  <motion.button
+                    id="signup-submit"
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-accent-600 text-white font-semibold shadow-lg shadow-primary-500/30 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
+                    whileHover={{ scale: loading ? 1 : 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {loading ? 'Creating account…' : 'Create account'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </form>
+
+          <p className="mt-8 text-center text-sm text-gray-500">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Right — Decorative */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-bl from-accent-600 via-primary-600 to-secondary-700">
+        <div className="absolute inset-0 bg-black/10" />
+        <motion.div
+          className="absolute top-32 right-16 w-80 h-80 rounded-full bg-white/10 blur-3xl"
+          animate={{ y: [0, 40, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-24 left-16 w-64 h-64 rounded-full bg-accent-300/20 blur-3xl"
+          animate={{ y: [0, -30, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="relative z-10 flex flex-col justify-center p-16 text-white">
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h1 className="text-5xl font-bold leading-tight mb-6">
+              Start your<br />
+              <span className="bg-gradient-to-r from-accent-200 to-white bg-clip-text text-transparent">
+                journey today
+              </span>
+            </h1>
+            <p className="text-lg text-white/80 max-w-md leading-relaxed">
+              Whether you're here to discover unique products or build your own online empire — we've got you covered.
+            </p>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            className="mt-12 grid grid-cols-3 gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            {[
+              { num: '10K+', label: 'Active Buyers' },
+              { num: '500+', label: 'Unique Shops' },
+              { num: '50K+', label: 'Products' },
+            ].map(s => (
+              <div key={s.label} className="text-center">
+                <div className="text-3xl font-bold">{s.num}</div>
+                <div className="text-sm text-white/70 mt-1">{s.label}</div>
               </div>
-            </div>
+            ))}
           </motion.div>
         </div>
       </div>
     </div>
   )
 }
-
-export default SignUpPage

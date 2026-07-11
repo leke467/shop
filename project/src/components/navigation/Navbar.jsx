@@ -1,228 +1,207 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 
-function Navbar() {
+export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const { itemCount } = useCart()
-  const { user, isAdmin, logout } = useUser()
+  const { user, isAuthenticated, isAdmin, isSeller, logout } = useUser()
+  const menuRef = useRef(null)
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true)
-      } else {
-        setIsScrolled(false)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
+    const onScroll = () => setIsScrolled(window.scrollY > 10)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => { setMobileOpen(false); setUserMenuOpen(false) }, [location.pathname])
+
+  // Close user menu on outside click
   useEffect(() => {
-    // Close mobile menu when changing routes
-    setIsMobileMenuOpen(false)
-    setIsUserMenuOpen(false)
-  }, [location.pathname])
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setUserMenuOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
-  const navbarClasses = `fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${
-    isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'
-  }`
-
-  const linkClasses = 'text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors'
-  const activeLinkClasses = 'text-primary-600 font-semibold'
-
-  const isLinkActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/'
-    }
-    return location.pathname.startsWith(path)
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
+  const isHome = location.pathname === '/'
+
   return (
-    <nav className={navbarClasses}>
-      <div className="container-custom">
+    <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+      isScrolled || !isHome
+        ? 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm'
+        : 'bg-transparent'
+    }`}>
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center"
-            >
-              <span className="text-2xl font-bold gradient-text">MultiShop</span>
-            </motion.div>
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-primary-500/30 group-hover:shadow-lg transition-all">
+              M
+            </div>
+            <span className={`font-bold text-lg transition-colors ${isScrolled || !isHome ? 'text-gray-900' : 'text-white'}`}>
+              Marketplace
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/" className={`${linkClasses} ${isLinkActive('/') ? activeLinkClasses : ''}`}>
-              Home
-            </Link>
-            <Link to="/explore/products" className={`${linkClasses} ${isLinkActive('/explore') ? activeLinkClasses : ''}`}>
-              Explore
-            </Link>
-            {user && (
-              <Link to="/create-shop" className={`${linkClasses} ${isLinkActive('/create-shop') ? activeLinkClasses : ''}`}>
-                Create Shop
+          {/* Center nav */}
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              { to: '/', label: 'Home' },
+              { to: '/explore/products', label: 'Explore' },
+            ].map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  location.pathname === link.to
+                    ? (isScrolled || !isHome ? 'bg-primary-50 text-primary-700' : 'bg-white/20 text-white')
+                    : (isScrolled || !isHome ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-white/80 hover:text-white hover:bg-white/10')
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {isSeller && (
+              <Link to="/dashboard" className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                isScrolled || !isHome ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}>
+                Dashboard
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" className={`${linkClasses} ${isLinkActive('/admin') ? activeLinkClasses : ''}`}>
+              <Link to="/admin" className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                isScrolled || !isHome ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}>
                 Admin
               </Link>
             )}
           </div>
 
-          {/* Cart & User Menu */}
-          <div className="flex items-center">
-            <Link to="/cart" className="relative p-2 mr-4 text-gray-700 hover:text-primary-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            {/* Cart */}
+            <Link to="/cart" className="relative p-2 rounded-xl transition-all hover:bg-gray-100/50">
+              <svg className={`w-5 h-5 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               {itemCount > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-primary-600 rounded-full">
-                  {itemCount}
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-accent-500 text-white text-xs font-bold flex items-center justify-center shadow-sm">
+                  {itemCount > 9 ? '9+' : itemCount}
                 </span>
               )}
             </Link>
 
-            {/* User Menu */}
-            {user ? (
-              <div className="relative ml-3">
+            {/* User menu */}
+            {isAuthenticated ? (
+              <div className="relative" ref={menuRef}>
                 <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="relative h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold focus:outline-none"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
+                    isScrolled || !isHome ? 'hover:bg-gray-100' : 'hover:bg-white/10'
+                  }`}
                 >
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-sm font-bold">
+                    {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <span className={`hidden sm:inline text-sm font-medium ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`}>
+                    {user?.first_name || 'Account'}
+                  </span>
                 </button>
 
-                {/* User Dropdown Menu */}
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                    <div className="py-1">
-                      <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-gray-500 text-xs">{user.email}</p>
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden py-2"
+                    >
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900">{user?.first_name} {user?.last_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       </div>
-                      <Link
-                        to="/dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Shop Dashboard
+                      <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>📊</span> Dashboard
                       </Link>
-                      <Link
-                        to="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Profile Settings
+                      <Link to="/create-shop" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>🏪</span> Create Shop
                       </Link>
-                      <button
-                        onClick={logout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      >
-                        Sign Out
+                      <hr className="my-1 border-gray-100" />
+                      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-error-600 hover:bg-error-50 transition-colors">
+                        <span>🚪</span> Sign out
                       </button>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 ml-4">
-                <Link to="/login" className="btn-outline hidden md:inline-flex">
-                  Sign In
+              <div className="hidden md:flex items-center gap-2">
+                <Link to="/login" className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  isScrolled || !isHome ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'
+                }`}>
+                  Sign in
                 </Link>
-                <Link to="/signup" className="btn-primary hidden md:inline-flex">
-                  Sign Up
+                <Link to="/signup" className="px-4 py-2 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white text-sm font-semibold shadow-md shadow-primary-500/25 hover:shadow-lg transition-all">
+                  Get started
                 </Link>
               </div>
             )}
 
-            {/* Mobile menu button */}
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary-600 hover:bg-gray-100 focus:outline-none ml-2"
-            >
-              <span className="sr-only">Open main menu</span>
-              <svg 
-                className={`${isMobileMenuOpen ? 'hidden' : 'block'} h-6 w-6`} 
-                xmlns="http://www.w3.org/2000/svg" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor" 
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <svg 
-                className={`${isMobileMenuOpen ? 'block' : 'hidden'} h-6 w-6`} 
-                xmlns="http://www.w3.org/2000/svg" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor" 
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            {/* Mobile hamburger */}
+            <button className="md:hidden p-2 rounded-xl hover:bg-gray-100/50 transition-colors" onClick={() => setMobileOpen(!mobileOpen)}>
+              <svg className={`w-6 h-6 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
               </svg>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <motion.div 
-        className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden`}
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ 
-          opacity: isMobileMenuOpen ? 1 : 0,
-          height: isMobileMenuOpen ? 'auto' : 0
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
-          <Link to="/" className={`block px-3 py-2 rounded-md text-base font-medium ${isLinkActive('/') ? activeLinkClasses : 'text-gray-700'}`}>
-            Home
-          </Link>
-          <Link to="/explore/products" className={`block px-3 py-2 rounded-md text-base font-medium ${isLinkActive('/explore') ? activeLinkClasses : 'text-gray-700'}`}>
-            Explore
-          </Link>
-          {user && (
-            <>
-              <Link to="/create-shop" className={`block px-3 py-2 rounded-md text-base font-medium ${isLinkActive('/create-shop') ? activeLinkClasses : 'text-gray-700'}`}>
-                Create Shop
-              </Link>
-              <Link to="/dashboard" className={`block px-3 py-2 rounded-md text-base font-medium ${isLinkActive('/dashboard') ? activeLinkClasses : 'text-gray-700'}`}>
-                Shop Dashboard
-              </Link>
-            </>
-          )}
-          {isAdmin && (
-            <Link to="/admin" className={`block px-3 py-2 rounded-md text-base font-medium ${isLinkActive('/admin') ? activeLinkClasses : 'text-gray-700'}`}>
-              Admin
-            </Link>
-          )}
-          {!user && (
-            <div className="space-y-1">
-              <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700">
-                Sign In
-              </Link>
-              <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium text-primary-600">
-                Sign Up
-              </Link>
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-white border-t border-gray-200/50 overflow-hidden shadow-lg"
+          >
+            <div className="px-6 py-4 space-y-1">
+              <Link to="/" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Home</Link>
+              <Link to="/explore/products" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Explore</Link>
+              {isSeller && <Link to="/dashboard" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Dashboard</Link>}
+              {isAdmin && <Link to="/admin" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Admin</Link>}
+              
+              {!isAuthenticated && (
+                <div className="pt-4 border-t border-gray-100 space-y-2">
+                  <Link to="/login" className="block w-full text-center py-2.5 rounded-xl text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">
+                    Sign in
+                  </Link>
+                  <Link to="/signup" className="block w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-md shadow-primary-500/20 hover:opacity-95 transition-all">
+                    Get started
+                  </Link>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   )
 }
-
-export default Navbar

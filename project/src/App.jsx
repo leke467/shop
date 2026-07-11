@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 
@@ -16,8 +15,8 @@ import AdminPanel from './pages/AdminPanel'
 import CartPage from './pages/CartPage'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
-import NotFoundPage from './pages/NotFoundPage'
 import ForgotPassword from './pages/ForgotPassword'
+import NotFoundPage from './pages/NotFoundPage'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
@@ -34,8 +33,8 @@ function App() {
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="explore/products" element={<ExplorePage />} />
-                <Route path="shop/:shopId" element={<ShopPage />} />
-                <Route path="product/:productId" element={<ProductPage />} />
+                <Route path="shop/:shopSlug" element={<ShopPage />} />
+                <Route path="product/:productSlug" element={<ProductPage />} />
                 <Route path="create-shop" element={<ShopCreationPage />} />
                 <Route path="dashboard" element={<ShopDashboard />} />
                 <Route path="admin" element={<AdminPanel />} />

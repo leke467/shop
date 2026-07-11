@@ -1,487 +1,261 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { orderAPI, getImageUrl } from '../services/api'
+import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 
-function CartPage() {
-  const { cart, total, itemCount, updateQuantity, removeFromCart, clearCart } = useCart()
-  const [checkoutStep, setCheckoutStep] = useState(0) // 0: cart, 1: shipping, 2: payment, 3: review, 4: confirmation
+function generateIdempotencyKey() {
+  // Simple UUID-like key
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+}
 
-  const handleCheckout = () => {
-    // Here we would normally process payment, but for this demo we'll just simulate a successful checkout
-    setCheckoutStep(4)
-    // Clear cart after successful checkout
-    setTimeout(() => {
-      clearCart()
-    }, 1000)
+export default function CartPage() {
+  const { isAuthenticated } = useUser()
+  const { refreshCart } = useCart()
+  const navigate = useNavigate()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(null)
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
+  const [checkoutForm, setCheckoutForm] = useState({
+    provider: 'stripe',
+    full_name: '', phone: '', email: '',
+    line1: '', line2: '', city: '', state: '', postal_code: '', country: '',
+  })
+
+  const loadCart = () => {
+    setLoading(true)
+    orderAPI.cart()
+      .then(data => setItems(data?.items || data || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
   }
 
-  if (itemCount === 0 && checkoutStep !== 4) {
-    return (
-      <div className="min-h-screen pt-24 pb-16 container-custom">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="bg-white rounded-xl shadow-md p-8">
-            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <h1 className="mt-4 text-2xl font-bold text-gray-900">Your cart is empty</h1>
-            <p className="mt-2 text-gray-600">Looks like you haven't added any items to your cart yet.</p>
-            <div className="mt-6">
-              <Link to="/explore/products" className="btn-primary">
-                Explore Products
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  useEffect(() => {
+    if (isAuthenticated) loadCart()
+    else setLoading(false)
+  }, [isAuthenticated])
+
+  const updateQty = async (itemId, qty) => {
+    if (qty < 1) return removeItem(itemId)
+    setUpdating(itemId)
+    try {
+      await orderAPI.updateCartItem(itemId, { quantity: qty })
+      setItems(prev => prev.map(i => (i.id === itemId || i.public_id === itemId) ? { ...i, quantity: qty } : i))
+      if (refreshCart) refreshCart()
+    } catch { } finally { setUpdating(null) }
   }
 
-  const stepContent = () => {
-    switch (checkoutStep) {
-      case 0: // Cart
-        return (
-          <div>
-            <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Cart Items */}
-              <div className="md:col-span-8">
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                  <ul className="divide-y divide-gray-200">
-                    {Object.entries(cart).map(([shopId, shopCart]) => (
-                      <li key={shopId} className="p-4">
-                        <div className="mb-3">
-                          <Link 
-                            to={`/shop/${shopId}`}
-                            className="text-lg font-semibold text-primary-600 hover:text-primary-700 flex items-center"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                            {shopCart.shopName}
-                          </Link>
-                        </div>
-                        <ul className="space-y-4">
-                          {shopCart.items.map((item) => (
-                            <li key={item.productId} className="flex items-center py-4">
-                              <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                                <img
-                                  src={item.image}
-                                  alt={item.name}
-                                  className="h-full w-full object-cover object-center"
-                                />
-                              </div>
+  const removeItem = async (itemId) => {
+    setUpdating(itemId)
+    try {
+      await orderAPI.removeCartItem(itemId)
+      setItems(prev => prev.filter(i => i.id !== itemId && i.public_id !== itemId))
+      if (refreshCart) refreshCart()
+    } catch { } finally { setUpdating(null) }
+  }
 
-                              <div className="ml-4 flex-1 flex flex-col">
-                                <div>
-                                  <div className="flex justify-between text-base font-medium text-gray-900">
-                                    <h3>
-                                      <Link to={`/product/${item.productId}`}>{item.name}</Link>
-                                    </h3>
-                                    <p className="ml-4">${(item.price * item.quantity).toFixed(2)}</p>
-                                  </div>
-                                  <p className="mt-1 text-sm text-gray-500">${item.price.toFixed(2)} each</p>
-                                </div>
-                                <div className="flex-1 flex items-end justify-between text-sm">
-                                  <div className="flex items-center border border-gray-300 rounded-md">
-                                    <button 
-                                      onClick={() => updateQuantity(item.productId, shopId, item.quantity - 1)}
-                                      className="p-2 text-gray-600 hover:text-gray-700"
-                                    >
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                                      </svg>
-                                    </button>
-                                    <input 
-                                      type="number" 
-                                      min="1" 
-                                      value={item.quantity} 
-                                      onChange={(e) => updateQuantity(item.productId, shopId, parseInt(e.target.value) || 1)}
-                                      className="w-10 text-center border-0 focus:ring-0 p-0 text-gray-900"
-                                    />
-                                    <button 
-                                      onClick={() => updateQuantity(item.productId, shopId, item.quantity + 1)}
-                                      className="p-2 text-gray-600 hover:text-gray-700"
-                                    >
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                    </button>
-                                  </div>
+  const subtotal = items.reduce((sum, i) => sum + (Number(i.unit_price || 0) * i.quantity), 0)
 
-                                  <div className="flex">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFromCart(item.productId, shopId)}
-                                      className="font-medium text-primary-600 hover:text-primary-500"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex justify-between">
-                          <span className="text-sm text-gray-600">Subtotal</span>
-                          <span className="font-medium">${shopCart.subtotal.toFixed(2)}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Order Summary */}
-              <div className="md:col-span-4">
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h2>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Shipping</span>
-                      <span>$0.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tax</span>
-                      <span>${(total * 0.1).toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-gray-200 pt-3 flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>${(total + (total * 0.1)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className="mt-6">
-                    <button
-                      onClick={() => setCheckoutStep(1)}
-                      className="btn-primary w-full"
-                    >
-                      Proceed to Checkout
-                    </button>
-                    <button
-                      onClick={() => clearCart()}
-                      className="mt-3 btn-outline w-full"
-                    >
-                      Clear Cart
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 1: // Shipping
-        return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Shipping</h1>
-              <button
-                onClick={() => setCheckoutStep(0)}
-                className="text-primary-600 hover:text-primary-700 flex items-center"
-              >
-                <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Cart
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <form className="space-y-4">
-                <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="name" className="input mt-1" />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">Street Address</label>
-                    <input type="text" id="address" className="input mt-1" />
-                  </div>
-
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
-                    <input type="text" id="city" className="input mt-1" />
-                  </div>
-
-                  <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">State / Province</label>
-                    <input type="text" id="state" className="input mt-1" />
-                  </div>
-
-                  <div>
-                    <label htmlFor="zip" className="block text-sm font-medium text-gray-700">ZIP / Postal Code</label>
-                    <input type="text" id="zip" className="input mt-1" />
-                  </div>
-
-                  <div>
-                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country</label>
-                    <select id="country" className="input mt-1">
-                      <option>United States</option>
-                      <option>Canada</option>
-                      <option>Mexico</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="tel" id="phone" className="input mt-1" />
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutStep(2)}
-                    className="btn-primary w-full"
-                  >
-                    Continue to Payment
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-
-      case 2: // Payment
-        return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Payment</h1>
-              <button
-                onClick={() => setCheckoutStep(1)}
-                className="text-primary-600 hover:text-primary-700 flex items-center"
-              >
-                <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Shipping
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <form className="space-y-4">
-                <div>
-                  <label htmlFor="card-name" className="block text-sm font-medium text-gray-700">Name on Card</label>
-                  <input type="text" id="card-name" className="input mt-1" />
-                </div>
-
-                <div>
-                  <label htmlFor="card-number" className="block text-sm font-medium text-gray-700">Card Number</label>
-                  <input type="text" id="card-number" className="input mt-1" placeholder="•••• •••• •••• ••••" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="card-expiry" className="block text-sm font-medium text-gray-700">Expiration Date</label>
-                    <input type="text" id="card-expiry" className="input mt-1" placeholder="MM / YY" />
-                  </div>
-                  <div>
-                    <label htmlFor="card-cvc" className="block text-sm font-medium text-gray-700">CVC</label>
-                    <input type="text" id="card-cvc" className="input mt-1" placeholder="•••" />
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutStep(3)}
-                    className="btn-primary w-full"
-                  >
-                    Continue to Review
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-
-      case 3: // Review
-        return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Review Order</h1>
-              <button
-                onClick={() => setCheckoutStep(2)}
-                className="text-primary-600 hover:text-primary-700 flex items-center"
-              >
-                <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Payment
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900 mb-2">Items</h2>
-                  <ul className="divide-y divide-gray-200">
-                    {Object.entries(cart).map(([shopId, shopCart]) => (
-                      <li key={shopId} className="py-3">
-                        <div className="text-sm font-medium text-gray-900 mb-1">{shopCart.shopName}</div>
-                        <ul className="pl-4">
-                          {shopCart.items.map(item => (
-                            <li key={item.productId} className="flex justify-between text-sm py-1">
-                              <span>{item.name} × {item.quantity}</span>
-                              <span>${(item.price * item.quantity).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h2 className="text-lg font-medium text-gray-900 mb-2">Shipping</h2>
-                  <address className="not-italic text-gray-700">
-                    John Doe<br />
-                    123 Main St<br />
-                    Anytown, CA 12345<br />
-                    United States<br />
-                    (123) 456-7890
-                  </address>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h2 className="text-lg font-medium text-gray-900 mb-2">Payment</h2>
-                  <div className="flex items-center">
-                    <div className="h-8 w-12 bg-gray-200 rounded flex items-center justify-center mr-2">
-                      <span className="text-xs font-medium">VISA</span>
-                    </div>
-                    <span className="text-gray-700">•••• •••• •••• 4242</span>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h2 className="text-lg font-medium text-gray-900 mb-2">Order Summary</h2>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Shipping</span>
-                      <span>$0.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tax</span>
-                      <span>${(total * 0.1).toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>${(total + (total * 0.1)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={handleCheckout}
-                    className="btn-primary w-full"
-                  >
-                    Place Order
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 4: // Confirmation
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-white rounded-xl shadow-md p-8">
-              <div className="rounded-full bg-success-100 h-20 w-20 flex items-center justify-center mx-auto mb-4">
-                <svg className="h-10 w-10 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-              <p className="text-gray-600 mb-6">
-                Thank you for your order. We've received your payment and will process your items shortly.
-                A confirmation email has been sent to your inbox.
-              </p>
-              <p className="font-medium mb-6">Order #ORD-2023-1234</p>
-              <div className="flex justify-center space-x-4">
-                <Link to="/" className="btn-primary">
-                  Return Home
-                </Link>
-                <Link to="/explore/products" className="btn-outline">
-                  Continue Shopping
-                </Link>
-              </div>
-            </div>
-          </div>
-        )
-
-      default:
-        return null
+  const handleCheckout = async (e) => {
+    e.preventDefault()
+    setCheckoutError('')
+    setCheckoutLoading(true)
+    try {
+      const result = await orderAPI.checkout({
+        ...checkoutForm,
+        idempotency_key: generateIdempotencyKey(),
+      })
+      if (refreshCart) refreshCart()
+      navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+    } catch (err) {
+      setCheckoutError(err.response?.data?.detail || 'Checkout failed. Please try again.')
+    } finally {
+      setCheckoutLoading(false)
     }
   }
 
-  // Progress indicators for the checkout flow
-  const CheckoutProgress = () => {
-    if (checkoutStep === 0 || checkoutStep === 4) return null
-
-    const steps = [
-      { name: 'Shipping', step: 1 },
-      { name: 'Payment', step: 2 },
-      { name: 'Review', step: 3 }
-    ]
-
+  if (!isAuthenticated) {
     return (
-      <div className="mb-8">
-        <div className="flex items-center justify-center">
-          {steps.map((step, index) => (
-            <div key={step.name} className="flex items-center">
-              <div 
-                className={`flex items-center justify-center h-10 w-10 rounded-full ${
-                  checkoutStep >= step.step 
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                } transition-colors`}
-              >
-                {checkoutStep > step.step ? (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  index + 1
-                )}
-              </div>
-              <div className={`ml-2 text-sm ${checkoutStep === step.step ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
-                {step.name}
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`ml-2 mr-2 h-0.5 w-10 ${checkoutStep > index + 1 ? 'bg-primary-600' : 'bg-gray-200'}`} />
-              )}
-            </div>
-          ))}
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-24">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🛒</div>
+          <h2 className="text-2xl font-bold text-gray-900">Sign in to view your cart</h2>
+          <Link to="/login" className="mt-6 inline-block px-8 py-3 rounded-xl bg-primary-600 text-white font-semibold">Sign in</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <motion.div 
-      className="min-h-screen pt-24 pb-16 container-custom"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <CheckoutProgress />
-      {stepContent()}
-    </motion.div>
+    <div className="min-h-screen bg-gray-50 pt-24 pb-20">
+      <div className="max-w-6xl mx-auto px-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl p-6 animate-pulse flex gap-5">
+                <div className="w-24 h-24 rounded-xl bg-gray-200" />
+                <div className="flex-1 space-y-3"><div className="h-5 bg-gray-200 rounded w-48" /><div className="h-4 bg-gray-200 rounded w-24" /></div>
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-24">
+            <div className="text-7xl mb-4">🛒</div>
+            <h2 className="text-2xl font-bold text-gray-900">Your cart is empty</h2>
+            <p className="text-gray-500 mt-2">Start browsing and add some amazing products!</p>
+            <Link to="/explore/products" className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg">
+              Explore Products
+            </Link>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Items */}
+            <div className="lg:col-span-2 space-y-4">
+              <AnimatePresence>
+                {items.map(item => (
+                  <motion.div
+                    key={item.id || item.public_id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    className={`bg-white rounded-2xl p-5 border border-gray-100 flex gap-5 transition-opacity ${updating === (item.id || item.public_id) ? 'opacity-60' : ''}`}
+                  >
+                    {/* Image */}
+                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                      {item.variant?.product?.images?.[0] ? (
+                        <img src={getImageUrl(item.variant.product.images[0].thumbnail || item.variant.product.images[0].image)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl">📦</div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">{item.variant?.product?.name || item.product_name || 'Product'}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5">{item.variant?.name || ''}</p>
+                      <p className="font-bold text-gray-900 mt-2">${Number(item.unit_price || 0).toFixed(2)}</p>
+                    </div>
+
+                    {/* Quantity + remove */}
+                    <div className="flex flex-col items-end justify-between">
+                      <button onClick={() => removeItem(item.id || item.public_id)} className="text-gray-400 hover:text-error-500 transition-colors p-1">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                      <div className="flex items-center border border-gray-200 rounded-lg">
+                        <button onClick={() => updateQty(item.id || item.public_id, item.quantity - 1)} className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 text-sm font-bold">−</button>
+                        <span className="px-3 py-1.5 text-sm font-semibold">{item.quantity}</span>
+                        <button onClick={() => updateQty(item.id || item.public_id, item.quantity + 1)} className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 text-sm font-bold">+</button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 sticky top-24">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-500">Subtotal ({items.length} items)</span><span className="font-semibold">${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="text-success-600 font-medium">Free</span></div>
+                  <div className="border-t border-gray-100 pt-3 flex justify-between text-base"><span className="font-bold text-gray-900">Total</span><span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span></div>
+                </div>
+
+                {!showCheckout ? (
+                  <motion.button
+                    onClick={() => setShowCheckout(true)}
+                    className="w-full mt-6 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl transition-all"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Proceed to Checkout
+                  </motion.button>
+                ) : (
+                  <motion.form
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    onSubmit={handleCheckout}
+                    className="mt-6 space-y-4"
+                  >
+                    <h4 className="font-semibold text-gray-900">Shipping Details</h4>
+                    {checkoutError && (
+                      <div className="p-3 rounded-xl bg-error-50 border border-error-200 text-error-700 text-sm">{checkoutError}</div>
+                    )}
+                    {[
+                      { name: 'full_name', label: 'Full Name', required: true },
+                      { name: 'email', label: 'Email', type: 'email', required: true },
+                      { name: 'phone', label: 'Phone' },
+                      { name: 'line1', label: 'Address Line 1', required: true },
+                      { name: 'line2', label: 'Address Line 2' },
+                      { name: 'city', label: 'City', required: true },
+                      { name: 'state', label: 'State' },
+                      { name: 'postal_code', label: 'Postal Code', required: true },
+                      { name: 'country', label: 'Country (2-letter)', required: true, maxLength: 2 },
+                    ].map(f => (
+                      <input
+                        key={f.name}
+                        placeholder={f.label}
+                        type={f.type || 'text'}
+                        required={f.required}
+                        maxLength={f.maxLength}
+                        value={checkoutForm[f.name]}
+                        onChange={e => setCheckoutForm(prev => ({ ...prev, [f.name]: e.target.value }))}
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                      />
+                    ))}
+
+                    {/* Payment provider */}
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 mb-2 block">Payment</label>
+                      <div className="flex gap-2">
+                        {['stripe', 'paystack'].map(p => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setCheckoutForm(prev => ({ ...prev, provider: p }))}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ${
+                              checkoutForm.provider === p
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            {p === 'stripe' ? '💳 Stripe' : '🏦 Paystack'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <motion.button
+                      type="submit"
+                      disabled={checkoutLoading}
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-success-600 to-success-500 text-white font-semibold shadow-lg shadow-success-500/25 disabled:opacity-60 transition-all"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {checkoutLoading ? 'Processing…' : `Pay $${subtotal.toFixed(2)}`}
+                    </motion.button>
+                  </motion.form>
+                )}
+
+                <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                  Secured with 256-bit encryption
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
-
-export default CartPage

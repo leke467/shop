@@ -1,258 +1,259 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { productAPI, getImageUrl, orderAPI } from '../services/api'
+import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
-import { fetchProductDetails, fetchShopDetails } from '../services/api'
 
-function ProductPage() {
-  const { productId } = useParams()
+export default function ProductPage() {
+  const { productSlug } = useParams()
+  const { isAuthenticated } = useUser()
+  const { refreshCart } = useCart()
   const [product, setProduct] = useState(null)
-  const [shop, setShop] = useState(null)
-  const [selectedImage, setSelectedImage] = useState('')
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [selectedVariant, setSelectedVariant] = useState(null)
   const [quantity, setQuantity] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
-  const { addToCart } = useCart()
+  const [loading, setLoading] = useState(true)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [cartSuccess, setCartSuccess] = useState(false)
+  const [tab, setTab] = useState('description')
 
   useEffect(() => {
-    window.scrollTo(0, 0)
-    setQuantity(1)
-    setIsLoading(true)
+    setLoading(true)
+    productAPI.detail(productSlug)
+      .then(data => {
+        setProduct(data)
+        if (data.variants?.length) setSelectedVariant(data.variants[0])
+      })
+      .catch(() => setProduct(null))
+      .finally(() => setLoading(false))
+  }, [productSlug])
 
-    const loadProduct = async () => {
-      try {
-        const productData = await fetchProductDetails(productId)
-        setProduct(productData)
-        setSelectedImage(productData.gallery?.[0] || productData.image)
-
-        if (productData?.shopId) {
-          const shopData = await fetchShopDetails(productData.shopId)
-          setShop(shopData)
-        }
-      } catch (error) {
-        console.error('Failed to load product:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadProduct()
-  }, [productId])
-
-  const handleAddToCart = () => {
-    if (product) {
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product, product.shopId)
-      }
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) { window.location.href = '/login'; return }
+    if (!selectedVariant) return
+    setAddingToCart(true)
+    try {
+      await orderAPI.addToCart({
+        variant: selectedVariant.public_id || selectedVariant.id,
+        quantity,
+      })
+      setCartSuccess(true)
+      if (refreshCart) refreshCart()
+      setTimeout(() => setCartSuccess(false), 3000)
+    } catch (err) {
+      console.error('Add to cart failed', err)
+    } finally {
+      setAddingToCart(false)
     }
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen pt-24 pb-16 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 pt-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12">
+            <div className="aspect-square bg-gray-200 rounded-3xl animate-pulse" />
+            <div className="space-y-4 pt-8">
+              <div className="h-4 bg-gray-200 rounded w-32" />
+              <div className="h-10 bg-gray-200 rounded w-3/4" />
+              <div className="h-6 bg-gray-200 rounded w-40" />
+              <div className="h-24 bg-gray-200 rounded w-full mt-8" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen pt-24 pb-16 container-custom">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-24">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
-          <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
-          <Link to="/explore/products" className="btn-primary">
-            Browse Products
-          </Link>
+          <div className="text-6xl mb-4">📦</div>
+          <h2 className="text-2xl font-bold text-gray-900">Product not found</h2>
+          <Link to="/" className="mt-6 inline-block px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Back to Home</Link>
         </div>
       </div>
     )
   }
 
+  const images = product.images || []
+  const currentImage = images[selectedImage]
+  const variants = product.variants || []
+  const price = selectedVariant?.price || product.base_price || 0
+  const comparePrice = product.compare_at_price
+  const discount = comparePrice ? Math.round((1 - price / comparePrice) * 100) : 0
+
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="container-custom">
-        {/* Breadcrumbs */}
-        <nav className="flex mb-6 text-sm" aria-label="Breadcrumb">
-          <ol className="inline-flex items-center space-x-1 md:space-x-3">
-            <li className="inline-flex items-center">
-              <Link to="/" className="text-gray-700 hover:text-primary-600">
-                Home
-              </Link>
-            </li>
-            <li>
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                </svg>
-                <Link to="/explore/products" className="ml-1 text-gray-700 hover:text-primary-600">
-                  Products
-                </Link>
-              </div>
-            </li>
-            <li>
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                </svg>
-                <span className="ml-1 text-gray-500" aria-current="page">
-                  {product.name}
-                </span>
-              </div>
-            </li>
-          </ol>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+          <Link to="/" className="hover:text-primary-600 transition-colors">Home</Link>
+          <span>/</span>
+          <Link to="/explore/products" className="hover:text-primary-600 transition-colors">Products</Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium truncate">{product.name}</span>
         </nav>
 
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* Product Images */}
-            <div className="p-6">
-              <div className="mb-4 aspect-square overflow-hidden rounded-lg">
-                <motion.img 
-                  src={selectedImage} 
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Gallery */}
+          <div className="space-y-4">
+            <div className="aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm relative">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selectedImage}
+                  src={getImageUrl(currentImage?.large || currentImage?.image || '')}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  key={selectedImage}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 />
-              </div>
-              <div className="flex space-x-2 overflow-auto">
-                {product.gallery.map((image, index) => (
-                  <button 
-                    key={index}
-                    onClick={() => setSelectedImage(image)}
-                    className={`h-20 w-20 rounded-md overflow-hidden flex-shrink-0 border-2 ${
-                      selectedImage === image ? 'border-primary-500' : 'border-transparent'
+              </AnimatePresence>
+              {discount > 0 && (
+                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-error-500 text-white text-sm font-bold">
+                  -{discount}%
+                </div>
+              )}
+            </div>
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
+                      selectedImage === i ? 'border-primary-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <img 
-                      src={image} 
-                      alt={`${product.name} view ${index + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={getImageUrl(img.thumbnail || img.image)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* Details */}
+          <div className="lg:pt-4">
+            {/* Shop link */}
+            <Link to={`/shop/${product.shop?.slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors mb-3">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center text-white text-xs font-bold">
+                {product.shop?.name?.[0] || 'S'}
+              </div>
+              {product.shop?.name || 'Shop'}
+            </Link>
+
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
+
+            {/* Rating */}
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className={`w-4 h-4 ${i < Math.round(product.rating_average || 0) ? 'text-warning-400' : 'text-gray-200'} fill-current`} viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <span className="text-sm text-gray-500">{product.rating_count || 0} reviews</span>
+              {product.purchase_count > 0 && <span className="text-sm text-gray-400">• {product.purchase_count} sold</span>}
             </div>
 
-            {/* Product Details */}
-            <div className="p-6 flex flex-col">
-              <div className="flex justify-between">
-                <Link 
-                  to={`/shop/${product.shopId}`}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  {product.shopName}
-                </Link>
-                <div className="flex items-center">
-                  <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
-                  </svg>
-                  <span className="ml-1 text-sm text-gray-700">{product.rating}</span>
-                  <span className="mx-1 text-gray-400">•</span>
-                  <span className="text-sm text-gray-600">{product.reviewCount} reviews</span>
-                </div>
-              </div>
+            {/* Price */}
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-4xl font-bold text-gray-900">${Number(price).toFixed(2)}</span>
+              {comparePrice && (
+                <span className="text-xl text-gray-400 line-through">${Number(comparePrice).toFixed(2)}</span>
+              )}
+            </div>
 
-              <h1 className="text-2xl font-bold text-gray-900 mt-2 mb-1">{product.name}</h1>
-              
-              <div className="mb-4">
-                <span className="text-2xl font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                {product.inventory <= 5 && product.inventory > 0 && (
-                  <span className="ml-2 text-sm text-warning-600">Only {product.inventory} left!</span>
-                )}
-                {product.inventory === 0 && (
-                  <span className="ml-2 text-sm text-error-600">Out of stock</span>
-                )}
-              </div>
-
-              <p className="text-gray-700 mb-4">{product.description}</p>
-
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Features:</h3>
-                <ul className="space-y-1">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <svg className="h-5 w-5 text-primary-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
+            {/* Variants */}
+            {variants.length > 1 && (
+              <div className="mt-8">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Options</h3>
+                <div className="flex flex-wrap gap-2">
+                  {variants.map(v => (
+                    <button
+                      key={v.public_id || v.id}
+                      onClick={() => setSelectedVariant(v)}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
+                        selectedVariant?.id === v.id || selectedVariant?.public_id === v.public_id
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      {v.name || v.sku}
+                      {v.price && <span className="ml-2 text-gray-400">${Number(v.price).toFixed(2)}</span>}
+                    </button>
                   ))}
-                </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Quantity + Add to Cart */}
+            <div className="mt-8 flex items-center gap-4">
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">−</button>
+                <span className="px-5 py-3 text-gray-900 font-semibold min-w-[3rem] text-center">{quantity}</span>
+                <button onClick={() => setQuantity(q => q + 1)} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">+</button>
               </div>
 
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="flex items-center border border-gray-300 rounded-md">
-                  <button 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 text-gray-600 hover:text-gray-700"
-                    disabled={quantity <= 1}
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  </button>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    value={quantity} 
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-12 text-center border-0 focus:ring-0"
-                  />
-                  <button 
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 text-gray-600 hover:text-gray-700"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                </div>
+              <motion.button
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+                className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl disabled:opacity-60 transition-all duration-300"
+                whileHover={{ scale: addingToCart ? 1 : 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {addingToCart ? 'Adding…' : cartSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
+              </motion.button>
+            </div>
 
-                <div className="flex-grow">
-                  <button 
-                    onClick={handleAddToCart}
-                    disabled={product.inventory === 0}
-                    className={`w-full btn ${
-                      product.inventory === 0
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'btn-primary'
+            {/* Success toast */}
+            <AnimatePresence>
+              {cartSuccess && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-4 p-3 rounded-xl bg-success-50 border border-success-200 text-success-700 text-sm flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                  Added to your cart! <Link to="/cart" className="font-semibold underline">View Cart</Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Tabs — Description / Reviews */}
+            <div className="mt-10 border-t border-gray-200 pt-8">
+              <div className="flex gap-1 mb-6">
+                {['description', 'reviews'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      tab === t ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    {product.inventory === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
                   </button>
-                </div>
+                ))}
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-auto">
-                <h3 className="font-semibold mb-2">About the shop:</h3>
-                {shop && (
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full overflow-hidden mr-3">
-                      <img 
-                        src={shop.logo} 
-                        alt={`${shop.name} logo`} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium">{shop.name}</p>
-                      <p className="text-sm text-gray-600">{shop.ownerName}</p>
-                    </div>
-                    <Link 
-                      to={`/shop/${shop.id}`}
-                      className="ml-auto btn-outline text-sm"
-                    >
-                      Visit Shop
-                    </Link>
-                  </div>
-                )}
-              </div>
+              {tab === 'description' && (
+                <div className="prose prose-gray max-w-none">
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">{product.description || 'No description available.'}</p>
+                </div>
+              )}
+
+              {tab === 'reviews' && (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">Reviews coming soon</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -260,5 +261,3 @@ function ProductPage() {
     </div>
   )
 }
-
-export default ProductPage
