@@ -34,7 +34,7 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
     search_fields = ["name", "description", "tags"]
-    ordering_fields = ["base_price", "rating_average", "purchase_count", "created_at"]
+    ordering_fields = ["base_price", "rating_average", "purchase_count", "created_at", "?"]
     ordering = ["-created_at"]
     filterset_fields = ["status", "is_featured", "category", "shop__slug"]
 

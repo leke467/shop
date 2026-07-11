@@ -200,7 +200,7 @@ export default function HomePage() {
     setLoading(true)
     Promise.allSettled([
       shopAPI.list({ page_size: 8 }),
-      productAPI.list({ page_size: 12 }),
+      productAPI.list({ page_size: 12, ordering: '?' }),
       isAuthenticated ? personalAPI.feed() : Promise.resolve(null),
     ]).then(([shopRes, prodRes, feedRes]) => {
       if (shopRes.status === 'fulfilled') setShops(shopRes.value?.results || shopRes.value || [])

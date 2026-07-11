@@ -32,7 +32,8 @@ function App() {
             <Routes>
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
-                <Route path="explore/products" element={<ExplorePage />} />
+                <Route path="explore" element={<ExplorePage />} />
+                <Route path="explore/:exploreType" element={<ExplorePage />} />
                 <Route path="shop/:shopSlug" element={<ShopPage />} />
                 <Route path="product/:productSlug" element={<ProductPage />} />
                 <Route path="create-shop" element={<ShopCreationPage />} />

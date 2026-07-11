@@ -81,6 +81,8 @@ export default function ShopPage() {
   // Apply shop theme colors if available
   const theme = shop.theme || {}
   const primaryColor = theme.primary_color || '#4f46e5'
+  const textColor = theme.text_color || '#111827'
+  const mutedTextColor = theme.muted_text_color || '#6B7280'
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
@@ -92,7 +94,7 @@ export default function ShopPage() {
 
       {/* Shop header */}
       <div className="max-w-7xl mx-auto px-6">
-        <div className="relative -mt-16 flex flex-col md:flex-row md:items-end gap-5 mb-8">
+        <div className="relative -mt-16 flex flex-col md:flex-row md:items-start gap-5 mb-8">
           {/* Logo */}
           <div className="w-28 h-28 rounded-3xl bg-white shadow-xl border-4 border-white overflow-hidden flex-shrink-0 flex items-center justify-center">
             {shop.logo ? (
@@ -102,20 +104,25 @@ export default function ShopPage() {
             )}
           </div>
 
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">{shop.name}</h1>
+          <div className="flex-1 mb-2">
+            {/* md:h-16 forces exactly 64px height on desktop so the name overlaps the banner completely */}
+            <div className="md:h-16 flex items-center gap-3">
+              <h1 className="text-3xl font-bold md:!text-white md:drop-shadow-lg" style={{ color: textColor }}>{shop.name}</h1>
               {shop.is_verified && (
-                <span className="px-3 py-1 rounded-full bg-success-100 text-success-700 text-xs font-semibold">✓ Verified</span>
+                <span className="px-3 py-1 rounded-full bg-success-100 text-success-700 text-xs font-semibold shadow-sm">✓ Verified</span>
               )}
             </div>
-            <p className="text-gray-500 mt-1 max-w-2xl">{shop.tagline || shop.description}</p>
-            <div className="flex items-center gap-5 mt-3 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-warning-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                {Number(shop.rating_average || 0).toFixed(1)} ({shop.rating_count || 0} reviews)
-              </span>
-              <span>{products.length} products</span>
+            
+            {/* Starts exactly below the banner line on desktop */}
+            <div className="md:pt-2">
+              <p className="mt-2 md:mt-0 max-w-2xl font-medium" style={{ color: mutedTextColor }}>{shop.tagline || shop.description}</p>
+              <div className="flex items-center gap-5 mt-3 md:mt-2 text-sm font-medium" style={{ color: mutedTextColor }}>
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-warning-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                  {Number(shop.rating_average || 0).toFixed(1)} ({shop.rating_count || 0} reviews)
+                </span>
+                <span>{products.length} products</span>
+              </div>
             </div>
           </div>
         </div>
@@ -130,9 +137,8 @@ export default function ShopPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`relative px-5 py-3 text-sm font-medium transition-colors ${
-                tab === t.key ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`relative px-5 py-3 text-sm font-medium transition-colors ${tab === t.key ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               {t.label} {t.count != null && <span className="text-gray-400 ml-1">({t.count})</span>}
               {tab === t.key && (
