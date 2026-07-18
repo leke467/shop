@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl } from '../services/api'
+import SEOHead from '../components/SEOHead'
 
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
@@ -39,6 +40,32 @@ export default function ShopPage() {
   const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('products')
   const [loading, setLoading] = useState(true)
+
+  // Report Shop State
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('scam')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState(false)
+
+  const handleReport = async (e) => {
+    e.preventDefault()
+    setReporting(true)
+    try {
+      await shopAPI.reportShop(shopSlug, { reason: reportReason, details: reportDetails })
+      setReportSuccess(true)
+      setTimeout(() => {
+        setShowReportModal(false)
+        setReportSuccess(false)
+        setReportDetails('')
+      }, 3000)
+    } catch (err) {
+      console.error('Report failed', err)
+      alert(err.response?.data?.error || 'Failed to report shop. Please try again.')
+    } finally {
+      setReporting(false)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -86,6 +113,11 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
+      <SEOHead 
+        title={shop.name} 
+        description={shop.tagline || shop.description || `Shop ${shop.name} on our marketplace.`} 
+      />
+      
       {/* Banner */}
       <div className="relative h-64 md:h-80 overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${theme.secondary_color || '#7c3aed'})` }}>
         {shop.banner && <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />}
@@ -106,22 +138,38 @@ export default function ShopPage() {
 
           <div className="flex-1 mb-2">
             {/* md:h-16 forces exactly 64px height on desktop so the name overlaps the banner completely */}
-            <div className="md:h-16 flex items-center gap-3">
-              <h1 className="text-3xl font-bold md:!text-white md:drop-shadow-lg" style={{ color: textColor }}>{shop.name}</h1>
-              {shop.is_verified && (
-                <span className="px-3 py-1 rounded-full bg-success-100 text-success-700 text-xs font-semibold shadow-sm">✓ Verified</span>
-              )}
+            <div className="md:h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold md:!text-white md:drop-shadow-lg" style={{ color: textColor }}>{shop.name}</h1>
+                {shop.is_verified && (
+                  <span className="px-3 py-1 rounded-full bg-success-100 text-success-700 text-xs font-semibold shadow-sm">✓ Verified</span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="text-sm px-3 py-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100 font-medium transition-colors hidden md:flex items-center gap-1"
+              >
+                🚩 Report Shop
+              </button>
             </div>
             
             {/* Starts exactly below the banner line on desktop */}
             <div className="md:pt-2">
               <p className="mt-2 md:mt-0 max-w-2xl font-medium" style={{ color: mutedTextColor }}>{shop.tagline || shop.description}</p>
-              <div className="flex items-center gap-5 mt-3 md:mt-2 text-sm font-medium" style={{ color: mutedTextColor }}>
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-warning-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                  {Number(shop.rating_average || 0).toFixed(1)} ({shop.rating_count || 0} reviews)
-                </span>
-                <span>{products.length} products</span>
+              <div className="flex items-center justify-between mt-3 md:mt-2">
+                <div className="flex items-center gap-5 text-sm font-medium" style={{ color: mutedTextColor }}>
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 text-warning-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                    {Number(shop.rating_average || 0).toFixed(1)} ({shop.rating_count || 0} reviews)
+                  </span>
+                  <span>{products.length} products</span>
+                </div>
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="md:hidden text-xs px-3 py-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100 font-medium transition-colors flex items-center gap-1"
+                >
+                  🚩 Report
+                </button>
               </div>
             </div>
           </div>
@@ -215,6 +263,66 @@ export default function ShopPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowReportModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Report Shop</h3>
+                {reportSuccess ? (
+                  <div className="py-8 text-center">
+                    <div className="w-16 h-16 bg-success-100 text-success-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
+                    <p className="font-medium text-gray-900">Report Submitted</p>
+                    <p className="text-sm text-gray-500 mt-1">Thank you for helping keep our community safe. Our team will review this shop shortly.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleReport}>
+                    <p className="text-sm text-gray-600 mb-6">If you believe this shop is violating our terms, please let us know.</p>
+                    
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Report</label>
+                        <select 
+                          value={reportReason} 
+                          onChange={e => setReportReason(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                        >
+                          <option value="scam">Scam / Fraud</option>
+                          <option value="fake_products">Counterfeit / Fake Products</option>
+                          <option value="harassment">Harassment / Abusive Behavior</option>
+                          <option value="inappropriate">Inappropriate Content</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (Optional)</label>
+                        <textarea 
+                          value={reportDetails}
+                          onChange={e => setReportDetails(e.target.value)}
+                          rows="4"
+                          placeholder="Please provide any extra context that will help us investigate..."
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                      <button type="button" onClick={() => setShowReportModal(false)} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                      <button type="submit" disabled={reporting} className="px-5 py-2.5 bg-error-600 hover:bg-error-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50">
+                        {reporting ? 'Submitting...' : 'Submit Report'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

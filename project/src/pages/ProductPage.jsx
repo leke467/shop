@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { productAPI, getImageUrl, orderAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
+import SEOHead from '../components/SEOHead'
 
 export default function ProductPage() {
   const { productSlug } = useParams()
@@ -17,6 +18,32 @@ export default function ProductPage() {
   const [addingToCart, setAddingToCart] = useState(false)
   const [cartSuccess, setCartSuccess] = useState(false)
   const [tab, setTab] = useState('description')
+
+  // Report Shop State
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('scam')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState(false)
+
+  const handleReport = async (e) => {
+    e.preventDefault()
+    setReporting(true)
+    try {
+      await shopAPI.reportShop(product.shop.slug, { reason: reportReason, details: reportDetails })
+      setReportSuccess(true)
+      setTimeout(() => {
+        setShowReportModal(false)
+        setReportSuccess(false)
+        setReportDetails('')
+      }, 3000)
+    } catch (err) {
+      console.error('Report failed', err)
+      alert(err.response?.data?.error || 'Failed to report shop. Please try again.')
+    } finally {
+      setReporting(false)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -88,6 +115,10 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
+      <SEOHead 
+        title={product.name} 
+        description={product.description?.substring(0, 150) || `Buy ${product.name} on our marketplace.`} 
+      />
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8">
@@ -140,13 +171,23 @@ export default function ProductPage() {
 
           {/* Details */}
           <div className="lg:pt-4">
-            {/* Shop link */}
-            <Link to={`/shop/${product.shop?.slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors mb-3">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center text-white text-xs font-bold">
-                {product.shop?.name?.[0] || 'S'}
-              </div>
-              {product.shop?.name || 'Shop'}
-            </Link>
+            {/* Shop link and Report */}
+            <div className="flex items-center justify-between mb-3">
+              <Link to={`/shop/${product.shop?.slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center text-white text-xs font-bold">
+                  {product.shop?.name?.[0] || 'S'}
+                </div>
+                {product.shop?.name || 'Shop'}
+              </Link>
+              {product.shop && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="text-xs text-gray-400 hover:text-error-600 transition-colors flex items-center gap-1"
+                >
+                  🚩 Report Shop
+                </button>
+              )}
+            </div>
 
             <h1 className="text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
 
@@ -259,6 +300,66 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowReportModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Report Shop</h3>
+                {reportSuccess ? (
+                  <div className="py-8 text-center">
+                    <div className="w-16 h-16 bg-success-100 text-success-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
+                    <p className="font-medium text-gray-900">Report Submitted</p>
+                    <p className="text-sm text-gray-500 mt-1">Thank you for helping keep our community safe. Our team will review this shop shortly.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleReport}>
+                    <p className="text-sm text-gray-600 mb-6">If you believe this shop is violating our terms, please let us know.</p>
+                    
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Report</label>
+                        <select 
+                          value={reportReason} 
+                          onChange={e => setReportReason(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                        >
+                          <option value="scam">Scam / Fraud</option>
+                          <option value="fake_products">Counterfeit / Fake Products</option>
+                          <option value="harassment">Harassment / Abusive Behavior</option>
+                          <option value="inappropriate">Inappropriate Content</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (Optional)</label>
+                        <textarea 
+                          value={reportDetails}
+                          onChange={e => setReportDetails(e.target.value)}
+                          rows="4"
+                          placeholder="Please provide any extra context that will help us investigate..."
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                      <button type="button" onClick={() => setShowReportModal(false)} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                      <button type="submit" disabled={reporting} className="px-5 py-2.5 bg-error-600 hover:bg-error-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50">
+                        {reporting ? 'Submitting...' : 'Submit Report'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

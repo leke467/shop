@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { searchAPI, personalAPI, shopAPI, productAPI, getImageUrl, orderAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
+import SEOHead from '../components/SEOHead'
 
 // ── Reusable cards ───────────────────────────────────────────
 function ShopCard({ shop }) {
@@ -237,7 +238,11 @@ export default function HomePage() {
   const displayItems = browseMode === 'shops' ? shops : products
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <SEOHead 
+        title="Home" 
+        description="Discover unique products from independent sellers across Nigeria. Secure escrow, fast delivery, and verified shops." 
+      />
       <Hero onSearch={handleSearch} />
 
       {/* Personalized feed (for authenticated users) */}

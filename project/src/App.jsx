@@ -15,6 +15,8 @@ import PricingPage from './pages/PricingPage'
 import SubscriptionDashboard from './pages/SubscriptionDashboard'
 import AdminPanel from './pages/AdminPanel'
 
+import OrdersPage from './pages/OrdersPage'
+
 import CartPage from './pages/CartPage'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
@@ -48,6 +50,7 @@ function App() {
                 <Route path="product/:productSlug" element={<ProductPage />} />
                 <Route path="create-shop" element={<ShopCreationPage />} />
                 <Route path="dashboard" element={<ShopDashboard />} />
+                <Route path="orders" element={<OrdersPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="subscription" element={<SubscriptionDashboard />} />
                 <Route path="admin" element={<AdminPanel />} />

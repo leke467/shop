@@ -137,6 +137,9 @@ export default function Navbar() {
                       <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                         <span>📊</span> Dashboard
                       </Link>
+                      <Link to="/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>🛍️</span> My Orders
+                      </Link>
                       <Link to="/create-shop" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                         <span>🏪</span> Create Shop
                       </Link>
@@ -191,9 +194,19 @@ export default function Navbar() {
             <div className="px-6 py-4 space-y-1">
               <Link to="/" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Home</Link>
               <Link to="/explore/products" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Explore</Link>
-              {isSeller && <Link to="/dashboard" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Dashboard</Link>}
-              {isAdmin && <Link to="/admin" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">Admin</Link>}
+              <Link to="/cart" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">🛒 Cart {itemCount > 0 && `(${itemCount})`}</Link>
+              {isAuthenticated && <Link to="/orders" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">🛍️ My Orders</Link>}
+              {isSeller && <Link to="/dashboard" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">📊 Dashboard</Link>}
+              {isAdmin && <Link to="/admin" className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors">🛡️ Admin</Link>}
               
+              {isAuthenticated && (
+                <div className="pt-4 border-t border-gray-100">
+                  <button onClick={handleLogout} className="block w-full text-left px-4 py-3 rounded-xl text-base font-medium text-error-600 hover:bg-error-50 transition-colors">
+                    🚪 Sign out
+                  </button>
+                </div>
+              )}
+
               {!isAuthenticated && (
                 <div className="pt-4 border-t border-gray-100 space-y-2">
                   <Link to="/login" className="block w-full text-center py-2.5 rounded-xl text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold transition-colors">

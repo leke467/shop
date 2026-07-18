@@ -1,10 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import SEOHead from '../components/SEOHead'
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20">
+      <SEOHead title="Privacy Policy" />
       <div className="max-w-4xl mx-auto px-6">
         <motion.div 
           initial={{ opacity: 0, y: 15 }}

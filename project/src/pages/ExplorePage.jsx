@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { searchAPI, getImageUrl } from '../services/api'
+import SEOHead from '../components/SEOHead'
 
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
@@ -118,8 +119,9 @@ export default function ExplorePage() {
   const facets = results.facets
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-16">
-      {/* Search header */}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <SEOHead title="Explore Marketplace" description="Search and discover products and shops." />
+      {/* Header/Search Bar */}
       <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3 w-full">

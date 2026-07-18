@@ -502,7 +502,7 @@ export default function ShopDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Multi-shop switcher: only shown when the user owns more than one. */}
             {shops.length > 1 && (
               <div className="relative">
@@ -528,7 +528,7 @@ export default function ShopDashboard() {
             <Link to="/create-shop" className="px-4 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-all">
               + New Shop
             </Link>
-            <Link to={`/shop/${shop.slug}`} className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all">
+            <Link to={`/shop/${shop.slug}`} className="hidden sm:inline-flex px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all">
               View Storefront →
             </Link>
           </div>
@@ -541,7 +541,7 @@ export default function ShopDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 bg-white rounded-2xl p-1.5 border border-gray-100 mb-8 overflow-x-auto">
+        <div className="flex items-center gap-1 bg-white rounded-2xl p-1.5 border border-gray-100 mb-8 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {tabs.map(t => (
             <button
               key={t.key}

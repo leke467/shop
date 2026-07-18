@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { orderAPI, shopAPI, getImageUrl } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
+import SEOHead from '../components/SEOHead'
 
 const NIGERIAN_STATES = [
   { value: 'abia', label: 'Abia' },
@@ -201,9 +202,10 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-20">
-      <div className="max-w-6xl mx-auto px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
+      <SEOHead title="Shopping Cart" />
+      <div className="max-w-7xl mx-auto px-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Cart</h1>
 
         {loading ? (
           <div className="space-y-4">
@@ -235,9 +237,9 @@ export default function CartPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -50 }}
-                    className="bg-white rounded-2xl p-5 border border-gray-100 flex gap-5"
+                    className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 flex gap-3 sm:gap-5"
                   >
-                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                    <div className="w-18 h-18 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
                       <img
                         src={getImageUrl(item.image || item.variant?.image)}
                         alt={item.product_name || item.name}
