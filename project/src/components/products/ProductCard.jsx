@@ -69,7 +69,7 @@ function ProductCard({ product }) {
 
           <div>
             <div className="flex justify-between items-center mb-3">
-              <p className="text-base font-bold text-gray-900">${Number(price || 0).toFixed(2)}</p>
+              <p className="text-base font-bold text-gray-900">₦{Number(price || 0).toLocaleString()}</p>
             </div>
             
             <div className="flex gap-2">

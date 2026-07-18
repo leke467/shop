@@ -48,13 +48,14 @@ function UsageBar({ label, used, limit, remaining }) {
 }
 
 export default function SubscriptionDashboard() {
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, loading: userLoading } = useUser()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (userLoading) return
     if (!isAuthenticated) { navigate('/login'); return }
     setLoading(true)
     Promise.all([
@@ -67,7 +68,7 @@ export default function SubscriptionDashboard() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, userLoading, navigate])
 
   if (loading) {
     return (

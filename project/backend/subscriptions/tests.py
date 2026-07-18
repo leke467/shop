@@ -170,10 +170,16 @@ def test_activate_plan_supersedes_previous(plans, user):
     services.activate_plan(user, plans["starter"])
     services.activate_plan(user, plans["growth"])
     active = UserSubscription.objects.filter(user=user, status="active")
+
     assert active.count() == 1
     assert active.first().plan.code == "growth"
-    # Previous one is cancelled, not deleted (history preserved).
-    assert UserSubscription.objects.filter(user=user, status="cancelled").count() == 1
+    # Previous subscriptions are cancelled, not deleted (history preserved).
+    # The user starts on Free (assigned at signup), which is superseded by
+    # Starter, which is in turn superseded by Growth — so two cancelled rows.
+    cancelled = UserSubscription.objects.filter(user=user, status="cancelled")
+    assert cancelled.count() == 2
+    assert set(cancelled.values_list("plan__code", flat=True)) == {"free", "starter"}
+
 
 
 @pytest.mark.django_db

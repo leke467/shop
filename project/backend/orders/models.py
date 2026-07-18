@@ -38,6 +38,7 @@ Idempotency
 """
 from __future__ import annotations
 
+import random
 import uuid
 from decimal import Decimal
 
@@ -245,6 +246,14 @@ class OrderGroup(TimeStampedModel):
 
     Shop owners query ``OrderGroup`` to see their incoming orders. This
     decouples fulfilment per shop from the top-level payment flow.
+
+    Escrow & Delivery Code
+    ----------------------
+    After checkout, funds are held in escrow (``escrow_status = HELD``).
+    The buyer receives a 6-digit ``delivery_code``.  When the seller
+    delivers the goods, the buyer shares the code.  The seller enters it
+    in the dashboard, which transitions ``escrow_status`` to ``RELEASED``
+    and credits the seller's wallet.
     """
 
     class FulfilmentStatus(models.TextChoices):
@@ -254,6 +263,12 @@ class OrderGroup(TimeStampedModel):
         SHIPPED = "shipped", _("Shipped")
         DELIVERED = "delivered", _("Delivered")
         CANCELLED = "cancelled", _("Cancelled")
+
+    class EscrowStatus(models.TextChoices):
+        HELD = "held", _("Held in escrow")
+        RELEASED = "released", _("Released to seller")
+        DISPUTED = "disputed", _("Under dispute")
+        REFUNDED = "refunded", _("Refunded to buyer")
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="groups")
     shop = models.ForeignKey(
@@ -268,9 +283,36 @@ class OrderGroup(TimeStampedModel):
     subtotal = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
+    shipping_total = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0")
+    )
     tracking_number = models.CharField(max_length=120, blank=True)
     tracking_url = models.URLField(blank=True)
     shop_notes = models.TextField(blank=True)
+
+    # --- Escrow & Delivery Code ---
+    delivery_code = models.CharField(
+        max_length=6, blank=True,
+        help_text="6-digit code the buyer shares with the seller to confirm delivery.",
+    )
+    escrow_status = models.CharField(
+        max_length=16,
+        choices=EscrowStatus.choices,
+        default=EscrowStatus.HELD,
+        db_index=True,
+    )
+    delivery_code_confirmed_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the seller entered the correct delivery code.",
+    )
+    escrow_released_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the funds were released to the seller's wallet.",
+    )
+    dispute_reason = models.TextField(
+        blank=True,
+        help_text="Reason provided by the buyer if they open a dispute.",
+    )
 
     class Meta:
         unique_together = ("order", "shop")
@@ -278,6 +320,11 @@ class OrderGroup(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Group<{self.shop.name}> in Order #{self.order.public_id}"
+
+    @staticmethod
+    def generate_delivery_code() -> str:
+        """Return a random 6-digit numeric code."""
+        return f"{random.randint(100000, 999999)}"
 
 
 # ---------------------------------------------------------------------------
@@ -378,3 +425,77 @@ class Coupon(TimeStampedModel):
         if self.valid_until and now > self.valid_until:
             return False
         return True
+
+
+# ---------------------------------------------------------------------------
+# Seller Wallet (tracks released escrow funds)
+# ---------------------------------------------------------------------------
+
+class SellerWallet(TimeStampedModel):
+    """Per-shop wallet that accumulates released escrow funds.
+
+    Each time a delivery code is confirmed and escrow is released, the
+    amount is credited here.  The shop owner can view their balance and
+    request payouts (handled manually for now).
+    """
+
+    shop = models.OneToOneField(
+        Shop, on_delete=models.CASCADE, related_name="wallet",
+    )
+    balance = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal("0"),
+        help_text="Available balance from released escrow funds.",
+    )
+    total_earned = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal("0"),
+        help_text="Lifetime earnings from all released orders.",
+    )
+    total_withdrawn = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal("0"),
+        help_text="Total amount withdrawn/paid out.",
+    )
+    currency = models.CharField(max_length=3, default="NGN")
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"Wallet<{self.shop.name}> ₦{self.balance}"
+
+    def credit(self, amount: Decimal, *, save: bool = True) -> None:
+        """Add released escrow funds to the balance."""
+        self.balance += amount
+        self.total_earned += amount
+        if save:
+            self.save(update_fields=["balance", "total_earned", "updated_at"])
+
+
+class WalletTransaction(TimeStampedModel):
+    """Ledger entry for every credit/debit to a seller's wallet."""
+
+    class Kind(models.TextChoices):
+        ESCROW_RELEASE = "escrow_release", _("Escrow release")
+        WITHDRAWAL = "withdrawal", _("Withdrawal")
+        REFUND_DEBIT = "refund_debit", _("Refund debit")
+        ADJUSTMENT = "adjustment", _("Manual adjustment")
+
+    wallet = models.ForeignKey(
+        SellerWallet, on_delete=models.CASCADE, related_name="transactions",
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    balance_after = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        help_text="Wallet balance after this transaction.",
+    )
+    reference = models.CharField(
+        max_length=255, blank=True,
+        help_text="E.g. OrderGroup public_id for escrow releases.",
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} {self.amount} → {self.wallet.shop.name}"

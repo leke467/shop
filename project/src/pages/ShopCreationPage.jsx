@@ -2,13 +2,59 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
-import { createShop } from '../services/api'
+import { createShop, shopAPI } from '../services/api'
+import LimitReachedModal, { extractLimitError } from '../components/subscription/LimitReachedModal'
 
 function ShopCreationPage() {
   const navigate = useNavigate()
   const { user } = useUser()
-  
+
   const [step, setStep] = useState(1)
+  // Populated when the backend rejects creation with a plan-limit (402) so we
+  // can show the upgrade modal instead of a generic error.
+  const [limitInfo, setLimitInfo] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  // Field-level errors from backend validation, keyed by field name.
+  const [fieldErrors, setFieldErrors] = useState({})
+  // General (non-field) error message.
+  const [generalError, setGeneralError] = useState('')
+
+  // Maps backend field names → the step they appear on.
+  const FIELD_STEP_MAP = {
+    name: 1, description: 1, email: 1, phone: 1, address: 1, slug: 1,
+    enable_product_listings: 2, enable_custom_orders: 2, enable_reviews: 2,
+    enable_contact: 2, enable_shipping: 2, enable_social_links: 2,
+    facebook_url: 2, instagram_url: 2, twitter_url: 2,
+    logo: 3, banner: 3,
+  }
+
+  /** Extract field-level and general errors from backend response. */
+  const parseBackendErrors = (error) => {
+    const data = error?.response?.data
+    // Wrapped format: {error: {detail: {...}}}
+    const detail = data?.error?.detail ?? data?.detail ?? data
+    const fields = {}
+    const generals = []
+
+    if (typeof detail === 'string') {
+      return { fields, general: detail }
+    }
+    if (Array.isArray(detail)) {
+      return { fields, general: detail.join(' ') }
+    }
+    if (detail && typeof detail === 'object') {
+      for (const [key, msgs] of Object.entries(detail)) {
+        const message = Array.isArray(msgs) ? msgs.join(' ') : String(msgs)
+        if (key === 'non_field_errors' || key === 'detail') {
+          generals.push(message)
+        } else {
+          fields[key] = message
+        }
+      }
+    }
+    return { fields, general: generals.join(' ') }
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -74,11 +120,15 @@ function ShopCreationPage() {
 
   const goToNextStep = () => {
     window.scrollTo(0, 0)
+    setFieldErrors({})
+    setGeneralError('')
     setStep(prev => prev + 1)
   }
 
   const goToPrevStep = () => {
     window.scrollTo(0, 0)
+    setFieldErrors({})
+    setGeneralError('')
     setStep(prev => prev - 1)
   }
 
@@ -112,9 +162,12 @@ function ShopCreationPage() {
       if (formData.socialLinks.twitter) payload.append('twitter_url', formData.socialLinks.twitter)
     }
 
+    setSubmitting(true)
+    setFieldErrors({})
+    setGeneralError('')
     try {
       const result = await createShop(payload)
-      
+
       // Update theme separately if needed
       try {
         await shopAPI.updateTheme(result.slug, {
@@ -125,12 +178,41 @@ function ShopCreationPage() {
         console.error('Failed to update initial theme:', themeError)
       }
 
-      navigate(`/shop/${result.slug}`)
+      // New shops are created in "draft" status, which the *public* storefront
+      // (/shop/:slug) hides from everyone but the owner on a fresh load — that
+      // was surfacing a misleading "Shop not found" 404. Send the owner to the
+      // dashboard instead, and pre-select the shop they just created so it
+      // opens directly.
+      try {
+        localStorage.setItem('dashboard.selectedShopSlug', result.slug)
+      } catch { /* ignore */ }
+      navigate('/dashboard')
     } catch (error) {
-      console.error('Failed to create shop:', error)
-      alert('Failed to create shop. Please check your inputs.')
+
+      // If the account has hit its plan's shop limit, the backend returns a
+      // structured 402/403 — show the upgrade modal instead of a generic error.
+      const limit = extractLimitError(error)
+      if (limit) {
+        setLimitInfo(limit)
+      } else {
+        const { fields, general } = parseBackendErrors(error)
+        setFieldErrors(fields)
+        setGeneralError(general || (Object.keys(fields).length === 0
+          ? 'Failed to create shop. Please check your inputs and try again.'
+          : ''))
+
+        // Jump to the step that contains the first errored field.
+        const firstField = Object.keys(fields)[0]
+        if (firstField && FIELD_STEP_MAP[firstField]) {
+          setStep(FIELD_STEP_MAP[firstField])
+        }
+        window.scrollTo(0, 0)
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
+
 
   const isStepValid = () => {
     switch (step) {
@@ -145,6 +227,13 @@ function ShopCreationPage() {
     }
   }
 
+  /** Renders an inline error message beneath a form field. */
+  const FieldError = ({ field }) => {
+    const msg = fieldErrors[field]
+    if (!msg) return null
+    return <p className="text-red-600 text-sm mt-1">{msg}</p>
+  }
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-custom">
@@ -155,6 +244,24 @@ function ShopCreationPage() {
               Set up your branded storefront and start selling your products to customers around the world.
             </p>
           </div>
+
+          {/* General error banner */}
+          {generalError && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
+              <svg className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="font-medium">Shop creation failed</p>
+                <p className="text-sm mt-0.5">{generalError}</p>
+              </div>
+              <button onClick={() => setGeneralError('')} className="text-red-400 hover:text-red-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
 
           {/* Progress Indicator */}
           <div className="mb-8">
@@ -210,9 +317,10 @@ function ShopCreationPage() {
                       id="name" 
                       value={formData.name}
                       onChange={(e) => updateForm('name', e.target.value)}
-                      className="input mt-1" 
+                      className={`input mt-1 ${fieldErrors.name ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                       required 
                     />
+                    <FieldError field="name" />
                   </div>
                   <div>
                     <label htmlFor="owner" className="block text-sm font-medium text-gray-700">Owner Name*</label>
@@ -234,9 +342,10 @@ function ShopCreationPage() {
                     rows={3} 
                     value={formData.description}
                     onChange={(e) => updateForm('description', e.target.value)}
-                    className="input mt-1" 
+                    className={`input mt-1 ${fieldErrors.description ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                     required
                   ></textarea>
+                  <FieldError field="description" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -247,9 +356,10 @@ function ShopCreationPage() {
                       id="email" 
                       value={formData.email}
                       onChange={(e) => updateForm('email', e.target.value)}
-                      className="input mt-1" 
+                      className={`input mt-1 ${fieldErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                       required 
                     />
+                    <FieldError field="email" />
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
@@ -258,8 +368,9 @@ function ShopCreationPage() {
                       id="phone" 
                       value={formData.phone}
                       onChange={(e) => updateForm('phone', e.target.value)}
-                      className="input mt-1" 
+                      className={`input mt-1 ${fieldErrors.phone ? 'border-red-500 ring-1 ring-red-500' : ''}`} 
                     />
+                    <FieldError field="phone" />
                   </div>
                 </div>
 
@@ -270,8 +381,10 @@ function ShopCreationPage() {
                     id="address" 
                     value={formData.address}
                     onChange={(e) => updateForm('address', e.target.value)}
-                    className="input mt-1" 
+                    className={`input mt-1 ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : ''}`} 
                   />
+                  <FieldError field="address" />
+                  <FieldError field="slug" />
                 </div>
 
                 <div>
@@ -436,9 +549,10 @@ function ShopCreationPage() {
                           id="facebook" 
                           value={formData.socialLinks.facebook}
                           onChange={(e) => updateNestedForm('socialLinks', 'facebook', e.target.value)}
-                          className="input mt-1" 
+                          className={`input mt-1 ${fieldErrors.facebook_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                           placeholder="https://facebook.com/yourpage"
                         />
+                        <FieldError field="facebook_url" />
                       </div>
                       <div>
                         <label htmlFor="instagram" className="block text-sm font-medium text-gray-700">Instagram URL</label>
@@ -447,9 +561,10 @@ function ShopCreationPage() {
                           id="instagram" 
                           value={formData.socialLinks.instagram}
                           onChange={(e) => updateNestedForm('socialLinks', 'instagram', e.target.value)}
-                          className="input mt-1" 
+                          className={`input mt-1 ${fieldErrors.instagram_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                           placeholder="https://instagram.com/youraccount"
                         />
+                        <FieldError field="instagram_url" />
                       </div>
                       <div>
                         <label htmlFor="twitter" className="block text-sm font-medium text-gray-700">Twitter URL</label>
@@ -458,9 +573,10 @@ function ShopCreationPage() {
                           id="twitter" 
                           value={formData.socialLinks.twitter}
                           onChange={(e) => updateNestedForm('socialLinks', 'twitter', e.target.value)}
-                          className="input mt-1" 
+                          className={`input mt-1 ${fieldErrors.twitter_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                           placeholder="https://twitter.com/youraccount"
                         />
+                        <FieldError field="twitter_url" />
                       </div>
                     </div>
                   </div>
@@ -659,12 +775,12 @@ function ShopCreationPage() {
                   >
                     Back
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn-primary"
-                    disabled={!formData.name || !formData.description || !formData.email || formData.categories.length === 0}
+                    disabled={submitting || !formData.name || !formData.description || !formData.email || formData.categories.length === 0}
                   >
-                    Create Shop
+                    {submitting ? 'Creating…' : 'Create Shop'}
                   </button>
                 </div>
               </form>
@@ -672,8 +788,13 @@ function ShopCreationPage() {
           )}
         </div>
       </div>
+
+      {limitInfo && (
+        <LimitReachedModal info={limitInfo} onClose={() => setLimitInfo(null)} />
+      )}
     </div>
   )
 }
+
 
 export default ShopCreationPage

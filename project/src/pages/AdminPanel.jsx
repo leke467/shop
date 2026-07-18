@@ -19,7 +19,7 @@ function StatCard({ icon, label, value, gradient }) {
 }
 
 export default function AdminPanel() {
-  const { isAdmin, isAuthenticated } = useUser()
+  const { isAdmin, isAuthenticated, loading: userLoading } = useUser()
   const navigate = useNavigate()
   const [tab, setTab] = useState('overview')
   const [shops, setShops] = useState([])
@@ -27,6 +27,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (userLoading) return
     if (!isAuthenticated || !isAdmin) { navigate('/'); return }
     setLoading(true)
     Promise.allSettled([
@@ -35,8 +36,8 @@ export default function AdminPanel() {
     ]).then(([shopRes, userRes]) => {
       if (shopRes.status === 'fulfilled') setShops(shopRes.value?.results || shopRes.value || [])
       if (userRes.status === 'fulfilled') setUsers(userRes.value?.results || userRes.value || [])
-    }).finally(() => setLoading(false))
-  }, [isAuthenticated, isAdmin, navigate])
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [isAuthenticated, isAdmin, userLoading, navigate])
 
   const tabs = [
     { key: 'overview', label: 'Overview', icon: '📊' },

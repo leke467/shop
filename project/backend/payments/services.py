@@ -17,6 +17,7 @@ from orders.models import Cart, CartItem, Order, OrderGroup, OrderItem
 from payments.gateways import get_gateway
 from payments.models import Payment, Transaction
 from products.models import Inventory
+from shops.models import DeliveryZone
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ def checkout(
     shipping_data: dict,
     idempotency_key: str,
     notes: str = "",
+    delivery_state: str = "",
+    manual_delivery_shops: list[str] = None,
     **provider_kwargs,
 ) -> Order:
     """
@@ -113,11 +116,26 @@ def checkout(
         for item in cart_items:
             shop = item.variant.product.shop
             if shop.pk not in shops_seen:
+                manual_delivery = manual_delivery_shops and shop.slug in manual_delivery_shops
+                
+                if manual_delivery:
+                    if not shop.allow_manual_delivery:
+                        raise CheckoutError(f"Manual delivery is not supported by shop: {shop.name}")
+                    shipping_fee = Decimal("0")
+                else:
+                    zone = DeliveryZone.objects.filter(shop=shop, state=delivery_state, is_active=True).first()
+                    if not zone:
+                        raise CheckoutError(f"Delivery is not available to {delivery_state} for shop: {shop.name}")
+                    shipping_fee = zone.fee
+
                 group = OrderGroup.objects.create(
                     order=order,
                     shop=shop,
                     status=OrderGroup.Status.PENDING,
                     subtotal=Decimal("0"),
+                    shipping_total=shipping_fee,
+                    delivery_code=OrderGroup.generate_delivery_code(),
+                    escrow_status=OrderGroup.EscrowStatus.HELD,
                 )
                 shops_seen[shop.pk] = group
             else:
@@ -142,8 +160,9 @@ def checkout(
 
         # Update order totals.
         order.subtotal = subtotal
+        order.shipping_total = sum(g.shipping_total for g in shops_seen.values())
         order.grand_total = subtotal + order.shipping_total + order.tax_total - order.discount_total
-        order.save(update_fields=["subtotal", "grand_total"])
+        order.save(update_fields=["subtotal", "shipping_total", "grand_total"])
 
         # --- Reserve inventory ---
         for item in cart_items:

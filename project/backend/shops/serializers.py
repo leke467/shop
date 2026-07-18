@@ -7,7 +7,10 @@ Business logic stays in views or services.
 from rest_framework import serializers
 
 from .models import (
+    DeliveryNote,
+    DeliveryZone,
     LayoutSection,
+    NIGERIAN_STATES,
     SectionBlock,
     Shop,
     ShopLayout,
@@ -83,7 +86,7 @@ class ShopListSerializer(serializers.ModelSerializer):
         model = Shop
         fields = (
             "public_id", "name", "slug", "tagline", "logo", "banner",
-            "status", "is_verified", "currency",
+            "status", "is_verified", "currency", "allow_manual_delivery",
             "rating_average", "rating_count", "product_count",
             "owner_email", "created_at",
         )
@@ -107,6 +110,8 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             "enable_product_listings", "enable_custom_orders",
             "enable_reviews", "enable_contact",
             "enable_shipping", "enable_social_links",
+            "allow_manual_delivery",
+            "custom_domain", "custom_domain_status", "custom_domain_verified_at",
             "status", "is_verified", "currency",
             "rating_average", "rating_count", "product_count", "total_sales",
             "theme", "layouts", "owner_email",
@@ -115,7 +120,9 @@ class ShopDetailSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "public_id", "rating_average", "rating_count",
             "product_count", "total_sales", "created_at", "updated_at",
+            "custom_domain", "custom_domain_status", "custom_domain_verified_at",
         )
+
 
     def get_social_links(self, obj):
         return {
@@ -138,8 +145,16 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             "enable_product_listings", "enable_custom_orders",
             "enable_reviews", "enable_contact",
             "enable_shipping", "enable_social_links",
-            "currency",
+            "allow_manual_delivery", "currency", "status",
         )
+        # ``slug`` is auto-generated in ``Shop.save()`` when omitted, so it must
+        # be optional here. The model field has no ``blank=True`` (a slug is
+        # always required at the DB level), which otherwise makes DRF treat it
+        # as a required input and reject creates that don't send one -> HTTP 400.
+        extra_kwargs = {
+            "slug": {"required": False},
+        }
+
 
     def create(self, validated_data):
         user = self.context["request"].user
@@ -180,3 +195,37 @@ class ShopReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
+
+
+# ---------------------------------------------------------------------------
+# Delivery Zones & Notes
+# ---------------------------------------------------------------------------
+
+class DeliveryZoneSerializer(serializers.ModelSerializer):
+    state_display = serializers.CharField(source="get_state_display", read_only=True)
+
+    class Meta:
+        model = DeliveryZone
+        fields = ("id", "state", "state_display", "fee", "is_active", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class DeliveryNoteSerializer(serializers.ModelSerializer):
+    state_display = serializers.CharField(source="get_state_requested_display", read_only=True)
+
+    class Meta:
+        model = DeliveryNote
+        fields = (
+            "id", "sender_name", "sender_email",
+            "state_requested", "state_display",
+            "message", "is_read", "created_at",
+        )
+        read_only_fields = ("id", "is_read", "created_at")
+
+
+class NigerianStatesSerializer(serializers.Serializer):
+    """Returns the full list of Nigerian states for dropdown population."""
+    states = serializers.SerializerMethodField()
+
+    def get_states(self, obj):
+        return [{"value": val, "label": label} for val, label in NIGERIAN_STATES]

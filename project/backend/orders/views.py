@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Cart, CartItem, Order
+from .models import Cart, CartItem, Order, OrderGroup, SellerWallet
 from .serializers import CartItemCreateSerializer, CartSerializer, OrderSerializer
 from products.models import ProductVariant
 
@@ -89,3 +89,174 @@ class OrderDetailView(generics.RetrieveAPIView):
         return Order.objects.filter(user=self.request.user).prefetch_related(
             "groups__items"
         )
+
+
+# ---------------------------------------------------------------------------
+# Escrow & Delivery Code
+# ---------------------------------------------------------------------------
+
+class DeliveryCodeView(APIView):
+    """Buyer views their delivery code(s) for an order."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, public_id):
+        order = generics.get_object_or_404(
+            Order, public_id=public_id, user=request.user
+        )
+        groups = order.groups.select_related("shop").all()
+        codes = []
+        for g in groups:
+            codes.append({
+                "group_id": g.id,
+                "shop_name": g.shop.name,
+                "shop_slug": g.shop.slug,
+                "delivery_code": g.delivery_code,
+                "escrow_status": g.escrow_status,
+                "subtotal": str(g.subtotal),
+                "shipping_total": str(g.shipping_total),
+            })
+        return Response({"order_id": str(order.public_id), "codes": codes})
+
+
+class ConfirmDeliveryView(APIView):
+    """Seller enters the delivery code to release escrow."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, group_id):
+        from .escrow import confirm_delivery_code, EscrowError
+
+        group = generics.get_object_or_404(
+            OrderGroup.objects.select_related("shop", "order"),
+            id=group_id,
+        )
+
+        code_attempt = request.data.get("code", "").strip()
+        if not code_attempt:
+            return Response(
+                {"detail": "Delivery code is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            confirm_delivery_code(
+                group, code_attempt, requesting_user=request.user,
+            )
+        except EscrowError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({
+            "detail": "Delivery confirmed! Funds have been released to your wallet.",
+            "escrow_status": group.escrow_status,
+        })
+
+
+class DisputeOrderView(APIView):
+    """Buyer opens a dispute on an order group."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, group_id):
+        from .escrow import dispute_order, EscrowError
+
+        group = generics.get_object_or_404(
+            OrderGroup.objects.select_related("order"),
+            id=group_id,
+        )
+
+        reason = request.data.get("reason", "")
+        try:
+            dispute_order(group, request.user, reason=reason)
+        except EscrowError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({
+            "detail": "Dispute opened. Our team will review this.",
+            "escrow_status": group.escrow_status,
+        })
+
+
+# ---------------------------------------------------------------------------
+# Seller Wallet
+# ---------------------------------------------------------------------------
+
+class SellerWalletView(APIView):
+    """Seller views their wallet balance and recent transactions."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, shop_slug):
+        from shops.models import Shop
+
+        shop = generics.get_object_or_404(Shop, slug=shop_slug, owner=request.user)
+        wallet, _created = SellerWallet.objects.get_or_create(
+            shop=shop, defaults={"currency": shop.currency or "NGN"},
+        )
+        txns = wallet.transactions.all()[:20]
+        return Response({
+            "balance": str(wallet.balance),
+            "total_earned": str(wallet.total_earned),
+            "total_withdrawn": str(wallet.total_withdrawn),
+            "currency": wallet.currency,
+            "transactions": [
+                {
+                    "kind": t.kind,
+                    "kind_display": t.get_kind_display(),
+                    "amount": str(t.amount),
+                    "balance_after": str(t.balance_after),
+                    "reference": t.reference,
+                    "notes": t.notes,
+                    "created_at": t.created_at.isoformat(),
+                }
+                for t in txns
+            ],
+        })
+
+
+# ---------------------------------------------------------------------------
+# Shop Orders (for seller dashboard)
+# ---------------------------------------------------------------------------
+
+class ShopOrdersView(APIView):
+    """Seller views orders for their shop."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, shop_slug):
+        from shops.models import Shop
+
+        shop = generics.get_object_or_404(Shop, slug=shop_slug, owner=request.user)
+        groups = (
+            OrderGroup.objects
+            .filter(shop=shop)
+            .select_related("order__user")
+            .prefetch_related("items")
+            .order_by("-created_at")[:50]
+        )
+        data = []
+        for g in groups:
+            data.append({
+                "group_id": g.id,
+                "order_id": str(g.order.public_id),
+                "buyer_email": g.order.user.email,
+                "buyer_name": g.order.shipping_full_name,
+                "status": g.status,
+                "escrow_status": g.escrow_status,
+                "subtotal": str(g.subtotal),
+                "shipping_total": str(g.shipping_total),
+                "delivery_code_confirmed": g.delivery_code_confirmed_at is not None,
+                "created_at": g.created_at.isoformat(),
+                "items": [
+                    {
+                        "product_name": item.product_name,
+                        "variant_name": item.variant_name,
+                        "quantity": item.quantity,
+                        "unit_price": str(item.unit_price),
+                        "line_total": str(item.line_total),
+                    }
+                    for item in g.items.all()
+                ],
+            })
+        return Response(data)

@@ -29,6 +29,7 @@ urlpatterns = [
     path("api/search/", include("search.urls")),
 
     path("api/personalization/", include("personalization.urls")),
+    path("api/", include("core.urls")),
 ]
 
 # Serve media files in development.

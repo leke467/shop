@@ -6,6 +6,7 @@ from .views import (
     ProductListView,
     ProductReviewListCreateView,
     ShopProductListView,
+    ProductImageUploadView,
 )
 
 urlpatterns = [
@@ -13,6 +14,7 @@ urlpatterns = [
     path("categories/", CategoryListView.as_view(), name="category-list"),
     path("<str:lookup>/", ProductDetailView.as_view(), name="product-detail"),
     path("<str:lookup>/reviews/", ProductReviewListCreateView.as_view(), name="product-reviews"),
+    path("<str:lookup>/images/", ProductImageUploadView.as_view(), name="product-images"),
     # Shop-scoped: /api/shops/<slug>/products/  (included from shops urls or root)
     path("shop/<slug:slug>/", ShopProductListView.as_view(), name="shop-product-list"),
 ]

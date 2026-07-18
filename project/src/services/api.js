@@ -111,6 +111,17 @@ export const shopAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data),
 
+  // Custom domain (feature-gated by the subscription plan)
+  getCustomDomain: (slug) =>
+    api.get(`/shops/${slug}/domain/`).then(r => r.data),
+  setCustomDomain: (slug, domain) =>
+    api.post(`/shops/${slug}/domain/`, { domain }).then(r => r.data),
+  verifyCustomDomain: (slug) =>
+    api.post(`/shops/${slug}/domain/verify/`).then(r => r.data),
+  removeCustomDomain: (slug) =>
+    api.delete(`/shops/${slug}/domain/`).then(r => r.data),
+
+
   // Layouts
   layouts: (slug) =>
     api.get(`/shops/${slug}/layouts/`).then(r => r.data),
@@ -120,6 +131,44 @@ export const shopAPI = {
     api.get(`/shops/${slug}/reviews/`).then(r => r.data),
   addReview: (slug, data) =>
     api.post(`/shops/${slug}/reviews/`, data).then(r => r.data),
+
+  // Delivery zones
+  deliveryZones: (slug) =>
+    api.get(`/shops/${slug}/delivery-zones/`).then(r => r.data),
+  deliveryZoneForState: (slug, state) =>
+    api.get(`/shops/${slug}/delivery-zones/`, { params: { state } }).then(r => r.data),
+  saveDeliveryZonesBulk: (slug, zones) =>
+    api.post(`/shops/${slug}/delivery-zones/bulk/`, { zones }).then(r => r.data),
+  createDeliveryZone: (slug, data) =>
+    api.post(`/shops/${slug}/delivery-zones/`, data).then(r => r.data),
+  updateDeliveryZone: (slug, id, data) =>
+    api.patch(`/shops/${slug}/delivery-zones/${id}/`, data).then(r => r.data),
+  deleteDeliveryZone: (slug, id) =>
+    api.delete(`/shops/${slug}/delivery-zones/${id}/`).then(r => r.data),
+
+  // Delivery notes
+  deliveryNotes: (slug) =>
+    api.get(`/shops/${slug}/delivery-notes/`).then(r => r.data),
+  sendDeliveryNote: (slug, data) =>
+    api.post(`/shops/${slug}/delivery-notes/send/`, data).then(r => r.data),
+  markNoteRead: (slug, id) =>
+    api.post(`/shops/${slug}/delivery-notes/${id}/read/`).then(r => r.data),
+
+  // Nigerian states
+  nigerianStates: () =>
+    api.get('/shops/nigerian-states/').then(r => r.data),
+
+  // Report shop
+  reportShop: (slug, data) =>
+    api.post(`/shops/${slug}/report/`, data).then(r => r.data),
+
+  // Seller verification (KYC)
+  getVerification: (slug) =>
+    api.get(`/shops/${slug}/verification/`).then(r => r.data),
+  submitVerification: (slug, formData) =>
+    api.post(`/shops/${slug}/verification/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(r => r.data),
 }
 
 // ── Products ─────────────────────────────────────────────────
@@ -128,14 +177,21 @@ export const productAPI = {
     api.get('/products/', { params }).then(r => r.data),
   detail: (slug) =>
     api.get(`/products/${slug}/`).then(r => r.data),
-  create: (data) =>
-    api.post('/products/', data).then(r => r.data),
+  create: (shopSlug, data) =>
+    api.post(`/products/shop/${shopSlug}/`, data).then(r => r.data),
   update: (slug, data) =>
     api.patch(`/products/${slug}/`, data).then(r => r.data),
   delete: (slug) =>
     api.delete(`/products/${slug}/`).then(r => r.data),
   reviews: (slug) =>
     api.get(`/products/${slug}/reviews/`).then(r => r.data),
+  uploadImage: (slug, file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return api.post(`/products/${slug}/images/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(r => r.data)
+  }
 }
 
 // ── Search ───────────────────────────────────────────────────
@@ -199,13 +255,29 @@ export const orderAPI = {
   cart: () =>
     api.get('/orders/cart/').then(r => r.data),
   addToCart: (data) =>
-    api.post('/orders/cart/items/', data).then(r => r.data),
+    api.post('/orders/cart/', data).then(r => r.data),
   updateCartItem: (id, data) =>
     api.patch(`/orders/cart/items/${id}/`, data).then(r => r.data),
   removeCartItem: (id) =>
     api.delete(`/orders/cart/items/${id}/`).then(r => r.data),
   checkout: (data) =>
     api.post('/payments/checkout/', data).then(r => r.data),
+
+  // Escrow & Delivery Code
+  deliveryCodes: (orderId) =>
+    api.get(`/orders/${orderId}/delivery-codes/`).then(r => r.data),
+  confirmDelivery: (groupId, code) =>
+    api.post(`/orders/groups/${groupId}/confirm-delivery/`, { code }).then(r => r.data),
+  disputeOrder: (groupId, reason) =>
+    api.post(`/orders/groups/${groupId}/dispute/`, { reason }).then(r => r.data),
+
+  // Seller Wallet
+  wallet: (shopSlug) =>
+    api.get(`/orders/wallet/${shopSlug}/`).then(r => r.data),
+
+  // Shop Orders (for seller dashboard)
+  shopOrders: (shopSlug) =>
+    api.get(`/orders/shop-orders/${shopSlug}/`).then(r => r.data),
 }
 
 // ── Image helper ─────────────────────────────────────────────

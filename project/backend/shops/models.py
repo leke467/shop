@@ -17,10 +17,13 @@ migrations, while a strict serializer layer validates them at the boundary.
 """
 from __future__ import annotations
 
+import secrets
+
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+
 
 from core.models import BaseModel, SoftDeleteModel, TimeStampedModel
 from core.validators import hex_color_validator, slug_validator
@@ -44,6 +47,37 @@ class Shop(BaseModel, SoftDeleteModel):
     )
     tagline = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
+    allow_manual_delivery = models.BooleanField(
+        default=False,
+        help_text="If true, buyers can choose to arrange delivery manually with the seller (0 fee upfront)."
+    )
+
+    # --- Seller Verification (KYC) ---
+    class VerificationStatus(models.TextChoices):
+        UNVERIFIED = "unverified", _("Unverified")
+        PENDING = "pending", _("Pending review")
+        VERIFIED = "verified", _("Verified")
+        REJECTED = "rejected", _("Rejected")
+
+    verification_status = models.CharField(
+        max_length=16,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.UNVERIFIED,
+        db_index=True,
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_document = models.FileField(
+        upload_to="shops/verification_docs/", blank=True, null=True,
+        help_text="Government-issued ID or CAC document for manual review.",
+    )
+    verification_legal_name = models.CharField(
+        max_length=255, blank=True,
+        help_text="Legal name as it appears on the submitted document.",
+    )
+    verification_notes = models.TextField(
+        blank=True,
+        help_text="Admin notes about the verification review.",
+    )
 
     # Branding assets (processed into responsive variants by the image pipeline).
     logo = models.ImageField(upload_to="shops/logos/", blank=True, null=True)
@@ -61,7 +95,44 @@ class Shop(BaseModel, SoftDeleteModel):
     twitter_url = models.URLField(blank=True)
     website_url = models.URLField(blank=True)
 
+    # Custom domain (feature-gated by the subscription plan).
+    #
+    # A shop on a plan with ``custom_domain_enabled`` can point their own
+    # domain (e.g. ``shop.example.com``) at the platform. The flow is:
+    #   1. Owner submits the domain -> we store it + a verification token,
+    #      status becomes PENDING and we surface the DNS records to add.
+    #   2. Owner adds a CNAME (domain -> platform host) and a TXT record
+    #      (``_shopverify.<domain>`` -> the token) at their DNS provider.
+    #   3. A verification check resolves the TXT record; on success the
+    #      status becomes VERIFIED and edge routing serves the storefront by
+    #      Host header.
+    class DomainStatus(models.TextChoices):
+        NONE = "none", _("None")
+        PENDING = "pending", _("Pending verification")
+        VERIFIED = "verified", _("Verified")
+        FAILED = "failed", _("Verification failed")
+
+    custom_domain = models.CharField(
+        max_length=253,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Owner's custom domain, e.g. 'shop.example.com'. "
+        "Unique across shops when set.",
+    )
+    custom_domain_status = models.CharField(
+        max_length=16,
+        choices=DomainStatus.choices,
+        default=DomainStatus.NONE,
+        db_index=True,
+    )
+    custom_domain_verification_token = models.CharField(
+        max_length=64, blank=True, default=""
+    )
+    custom_domain_verified_at = models.DateTimeField(null=True, blank=True)
+
     # Feature toggles.
+
     enable_product_listings = models.BooleanField(default=True)
     enable_custom_orders = models.BooleanField(default=False)
     enable_reviews = models.BooleanField(default=True)
@@ -118,8 +189,23 @@ class Shop(BaseModel, SoftDeleteModel):
     def is_open(self) -> bool:
         return self.status == self.Status.ACTIVE
 
+    # -- Custom domain helpers -------------------------------------------
+
+    @staticmethod
+    def generate_domain_token() -> str:
+        """Return a fresh, URL-safe verification token for a custom domain."""
+        return secrets.token_hex(16)
+
+    @property
+    def has_verified_domain(self) -> bool:
+        return (
+            bool(self.custom_domain)
+            and self.custom_domain_status == self.DomainStatus.VERIFIED
+        )
+
 
 class ShopTheme(TimeStampedModel):
+
     """Design tokens applied across a shop's storefront.
 
     Common tokens are first-class columns (validated, queryable); everything
@@ -318,3 +404,157 @@ class ShopReview(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.user}'s review of {self.shop.name}"
+
+
+# ---------------------------------------------------------------------------
+# Delivery Zones (per-shop, Nigerian states)
+# ---------------------------------------------------------------------------
+
+NIGERIAN_STATES = [
+    ("abia", "Abia"),
+    ("adamawa", "Adamawa"),
+    ("akwa_ibom", "Akwa Ibom"),
+    ("anambra", "Anambra"),
+    ("bauchi", "Bauchi"),
+    ("bayelsa", "Bayelsa"),
+    ("benue", "Benue"),
+    ("borno", "Borno"),
+    ("cross_river", "Cross River"),
+    ("delta", "Delta"),
+    ("ebonyi", "Ebonyi"),
+    ("edo", "Edo"),
+    ("ekiti", "Ekiti"),
+    ("enugu", "Enugu"),
+    ("fct", "FCT (Abuja)"),
+    ("gombe", "Gombe"),
+    ("imo", "Imo"),
+    ("jigawa", "Jigawa"),
+    ("kaduna", "Kaduna"),
+    ("kano", "Kano"),
+    ("katsina", "Katsina"),
+    ("kebbi", "Kebbi"),
+    ("kogi", "Kogi"),
+    ("kwara", "Kwara"),
+    ("lagos", "Lagos"),
+    ("nasarawa", "Nasarawa"),
+    ("niger", "Niger"),
+    ("ogun", "Ogun"),
+    ("ondo", "Ondo"),
+    ("osun", "Osun"),
+    ("oyo", "Oyo"),
+    ("plateau", "Plateau"),
+    ("rivers", "Rivers"),
+    ("sokoto", "Sokoto"),
+    ("taraba", "Taraba"),
+    ("yobe", "Yobe"),
+    ("zamfara", "Zamfara"),
+]
+
+
+class DeliveryZone(TimeStampedModel):
+    """
+    Per-state delivery fee for a shop.
+
+    Shop owners configure which Nigerian states they deliver to and
+    set a delivery fee for each. States not configured are treated as
+    unavailable during checkout.
+    """
+
+    shop = models.ForeignKey(
+        Shop, on_delete=models.CASCADE, related_name="delivery_zones"
+    )
+    state = models.CharField(
+        max_length=20,
+        choices=NIGERIAN_STATES,
+        db_index=True,
+    )
+    fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Delivery fee in the shop's currency for this state.",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("shop", "state")
+        ordering = ("state",)
+
+    def __str__(self) -> str:
+        return f"{self.shop.name} → {self.get_state_display()}: ₦{self.fee}"
+
+
+class DeliveryNote(TimeStampedModel):
+    """
+    A note from a buyer requesting delivery to a state that isn't
+    configured by the shop owner.
+
+    Shop owners see these in their dashboard so they know there's
+    demand for a particular state.
+    """
+
+    shop = models.ForeignKey(
+        Shop, on_delete=models.CASCADE, related_name="delivery_notes"
+    )
+    sender_name = models.CharField(max_length=120)
+    sender_email = models.EmailField()
+    state_requested = models.CharField(
+        max_length=20,
+        choices=NIGERIAN_STATES,
+        help_text="The state the buyer wanted delivery to.",
+    )
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"Note from {self.sender_name} → {self.shop.name} ({self.get_state_requested_display()})"
+
+
+# ---------------------------------------------------------------------------
+# Shop Report (anti-scam)
+# ---------------------------------------------------------------------------
+
+REPORT_REASONS = [
+    ("scam", "Scam / fraud"),
+    ("fake_products", "Fake or misleading products"),
+    ("non_delivery", "Never received my order"),
+    ("harassment", "Harassment or abuse"),
+    ("other", "Other"),
+]
+
+
+class ShopReport(TimeStampedModel):
+    """User report against a shop for scam or policy violations.
+
+    If a shop accumulates 3+ unique reports within 7 days, the platform
+    can auto-suspend it pending admin review.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        REVIEWED = "reviewed", _("Reviewed")
+        DISMISSED = "dismissed", _("Dismissed")
+
+    shop = models.ForeignKey(
+        Shop, on_delete=models.CASCADE, related_name="reports",
+    )
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="shop_reports_filed",
+    )
+    reason = models.CharField(max_length=20, choices=REPORT_REASONS)
+    description = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDING,
+        db_index=True,
+    )
+    admin_notes = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ("shop", "reporter")  # one report per user per shop
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"Report by {self.reporter} against {self.shop.name} ({self.reason})"

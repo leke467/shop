@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { searchAPI, personalAPI, shopAPI, productAPI, getImageUrl } from '../services/api'
+import { searchAPI, personalAPI, shopAPI, productAPI, getImageUrl, orderAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 // ── Reusable cards ───────────────────────────────────────────
@@ -72,9 +72,9 @@ function ProductCard({ product }) {
           )}
           {/* Price badge */}
           <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
-            <span className="font-bold text-gray-900">${Number(product.base_price || 0).toFixed(2)}</span>
+            <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
             {product.compare_at_price && (
-              <span className="ml-2 text-sm text-gray-400 line-through">${Number(product.compare_at_price).toFixed(2)}</span>
+              <span className="ml-2 text-sm text-gray-400 line-through">₦{Number(product.compare_at_price).toLocaleString()}</span>
             )}
           </div>
         </div>
@@ -190,11 +190,32 @@ function Hero({ onSearch }) {
 export default function HomePage() {
   const { user, isAuthenticated } = useUser()
   const navigate = useNavigate()
+  const location = useLocation()
   const [browseMode, setBrowseMode] = useState('products')
   const [shops, setShops] = useState([])
   const [products, setProducts] = useState([])
   const [feedProducts, setFeedProducts] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const [successOrder, setSuccessOrder] = useState(null)
+  const [deliveryCodes, setDeliveryCodes] = useState([])
+  const [codesLoading, setCodesLoading] = useState(false)
+
+  useEffect(() => {
+    if (location.state?.orderSuccess && location.state?.orderId) {
+      setSuccessOrder(location.state.orderId)
+      setCodesLoading(true)
+      orderAPI.deliveryCodes(location.state.orderId)
+        .then(res => {
+          setDeliveryCodes(res.codes || [])
+        })
+        .catch(() => {})
+        .finally(() => setCodesLoading(false))
+      
+      // Clean up location state to avoid popup showing again on reload
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
 
   useEffect(() => {
     setLoading(true)
@@ -384,6 +405,76 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Order Success Escrow Modal */}
+      <AnimatePresence>
+        {successOrder && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-lg w-full border border-gray-100 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setSuccessOrder(null)}
+                className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-success-50 text-success-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">🎉</div>
+                <h3 className="text-2xl font-bold text-gray-900">Order Placed!</h3>
+                <p className="text-sm text-gray-500 mt-2">Your payment is secured safely in escrow.</p>
+              </div>
+
+              <div className="mt-6 p-4 rounded-2xl bg-warning-50 border border-warning-200">
+                <h4 className="font-semibold text-warning-800 text-sm flex items-center gap-1.5">
+                  ⚠️ Critical Security Warning
+                </h4>
+                <p className="text-xs text-warning-700 mt-1 leading-relaxed">
+                  Only share the code(s) below with the seller <strong>AFTER</strong> you have physically received and inspected your goods. Do not message this code to anyone online.
+                </p>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider">Your Delivery Codes</h4>
+                {codesLoading ? (
+                  <div className="h-20 flex items-center justify-center text-gray-400 animate-pulse text-sm">Loading delivery codes...</div>
+                ) : (
+                  <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                    {deliveryCodes.map(code => (
+                      <div key={code.group_id} className="p-4 rounded-xl bg-gray-50 border border-gray-100 flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-400 uppercase">Shop</p>
+                          <p className="font-bold text-gray-800 text-sm truncate max-w-[200px]">{code.shop_name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-semibold text-gray-400 uppercase">Code</p>
+                          <p className="text-2xl font-extrabold text-primary-600 tracking-wider font-mono">{code.delivery_code}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSuccessOrder(null)}
+                className="w-full mt-8 py-3.5 rounded-xl bg-gray-900 text-white font-semibold shadow-lg hover:bg-gray-800 transition-all text-center"
+              >
+                Got it, thank you
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

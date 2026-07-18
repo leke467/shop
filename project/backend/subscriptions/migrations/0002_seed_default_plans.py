@@ -1,24 +1,26 @@
 """
-Seed / update the marketplace subscription plans.
+Data migration: seed the default subscription plans.
 
-Idempotent: keyed on the stable ``code`` field, so running it repeatedly
-updates existing plans in place rather than creating duplicates. Adding a new
-plan is a matter of adding a dict here (or creating one in the admin) — no
-other code changes are needed anywhere in the system.
+Runs automatically on ``migrate`` so a fresh install already has the standard
+plan set (Free, Starter, Growth, Business, Enterprise) — no manual seeding
+step required. You can freely edit prices/limits or add new plans afterwards
+in the Django admin; this migration only ever *creates* missing plans (keyed on
+the stable ``code``) and never overwrites or deletes what's already there.
 
-Usage::
-
-    python manage.py seed_subscription_plans
+Plan          Price    Shops       Products
+Free          0        1           5
+Starter       3,000    2           50
+Growth        7,500    5           200
+Business      15,000   Unlimited   1,000
+Enterprise    30,000   Unlimited   Unlimited
 """
 from decimal import Decimal
 
-from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import migrations
 
-from subscriptions.models import SubscriptionPlan
-
-# ``None`` limits mean unlimited.
-PLANS = [
+# ``None`` limits mean unlimited. Kept self-contained (no app imports) so the
+# migration remains stable even if the model/command evolve later.
+DEFAULT_PLANS = [
     {
         "code": "free",
         "name": "Free",
@@ -81,7 +83,6 @@ PLANS = [
         "name": "Enterprise",
         "description": "Custom pricing with everything unlocked. Contact sales.",
         "monthly_price": Decimal("30000"),   # from / starting price; quoted per deal
-
         "max_shops": None,               # unlimited
         "max_products": None,            # unlimited
         "custom_domain_enabled": True,
@@ -94,25 +95,38 @@ PLANS = [
 ]
 
 
-class Command(BaseCommand):
-    help = "Seed or update the 5 default subscription plans (idempotent)."
+def seed_plans(apps, schema_editor):
+    SubscriptionPlan = apps.get_model("subscriptions", "SubscriptionPlan")
+    for spec in DEFAULT_PLANS:
+        # get_or_create (not update_or_create) so we never overwrite edits an
+        # admin has made to an existing plan on a re-run/rollback-forward.
+        SubscriptionPlan.objects.get_or_create(
+            code=spec["code"],
+            defaults={**spec, "currency": "NGN", "is_active": True},
+        )
 
-    @transaction.atomic
-    def handle(self, *args, **options):
-        created, updated = 0, 0
-        for spec in PLANS:
-            code = spec["code"]
-            obj, was_created = SubscriptionPlan.objects.update_or_create(
-                code=code,
-                defaults={**spec, "currency": "NGN", "is_active": True},
-            )
-            if was_created:
-                created += 1
-                self.stdout.write(self.style.SUCCESS(f"Created plan: {obj.name}"))
-            else:
-                updated += 1
-                self.stdout.write(f"Updated plan: {obj.name}")
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Done. {created} created, {updated} updated."
-        ))
+def unseed_plans(apps, schema_editor):
+    """Reverse: remove only the plans we seeded, and only if unused.
+
+    We avoid deleting plans that have subscriptions attached so history is
+    never destroyed by a rollback.
+    """
+    SubscriptionPlan = apps.get_model("subscriptions", "SubscriptionPlan")
+    codes = [p["code"] for p in DEFAULT_PLANS]
+    (
+        SubscriptionPlan.objects
+        .filter(code__in=codes, subscriptions__isnull=True)
+        .delete()
+    )
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("subscriptions", "0001_initial"),
+    ]
+
+    operations = [
+        migrations.RunPython(seed_plans, unseed_plans),
+    ]

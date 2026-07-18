@@ -7,12 +7,14 @@ from .models import Cart, CartItem, Coupon, Order, OrderGroup, OrderItem
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True)
+    shop_slug = serializers.CharField(source="variant.product.shop.slug", read_only=True)
+    allow_manual_delivery = serializers.BooleanField(source="variant.product.shop.allow_manual_delivery", read_only=True)
     line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = CartItem
         fields = (
-            "id", "variant", "product_name", "variant_name",
+            "id", "variant", "product_name", "variant_name", "shop_slug", "allow_manual_delivery",
             "quantity", "unit_price", "line_total",
         )
         read_only_fields = ("id", "unit_price", "line_total")

@@ -138,7 +138,13 @@ class Product(BaseModel, SoftDeleteModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name) or "product"
+            base = slugify(self.name) or "product"
+            slug = base
+            n = 1
+            while Product.objects.filter(shop=self.shop, slug=slug).exclude(pk=self.pk).exists():
+                n += 1
+                slug = f"{base}-{n}"
+            self.slug = slug
         super().save(*args, **kwargs)
 
     @property

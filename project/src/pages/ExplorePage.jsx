@@ -17,7 +17,7 @@ function ProductCard({ product }) {
             </div>
           )}
           <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
-            <span className="font-bold text-gray-900">${Number(product.base_price || 0).toFixed(2)}</span>
+            <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
           </div>
         </div>
         <div className="p-4">

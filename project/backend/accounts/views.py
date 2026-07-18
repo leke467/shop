@@ -35,14 +35,14 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
-        return Response(
+        from .cookie_views import _set_auth_cookies
+        response = Response(
             {
                 "user": UserProfileSerializer(user).data,
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
             },
             status=status.HTTP_201_CREATED,
         )
+        return _set_auth_cookies(response, str(refresh.access_token), str(refresh))
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

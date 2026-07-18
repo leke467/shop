@@ -61,6 +61,18 @@ class FeatureNotAvailable(SubscriptionError):
         self.recommended_plan = recommended_plan
 
 
+class DowngradeBlocked(SubscriptionError):
+    """Raised when a plan switch would leave the user over the new limits.
+
+    Carries structured context so the frontend can render a helpful message
+    telling the user exactly what they need to reduce before switching.
+    """
+
+    def __init__(self, message: str, *, blockers: list[dict]):
+        super().__init__(message)
+        self.blockers = blockers  # [{"type": "shops", "used": 5, "limit": 2}, ...]
+
+
 @dataclass
 class UsageSnapshot:
     """A point-in-time view of a user's plan usage vs. limits."""
@@ -269,6 +281,44 @@ def assert_can_create_product(user) -> None:
         )
 
 
+def assert_can_switch_to_plan(user, target_plan: SubscriptionPlan) -> None:
+    """Raise :class:`DowngradeBlocked` if the user's current usage exceeds
+    the target plan's limits.
+
+    Called before any plan switch so that users must reduce their resource
+    usage before moving to a smaller plan.
+    """
+    shops_used = count_shops(user)
+    products_used = count_products(user)
+    blockers = []
+
+    if target_plan.max_shops is not None and shops_used > target_plan.max_shops:
+        blockers.append({
+            "type": "shops",
+            "used": shops_used,
+            "limit": target_plan.max_shops,
+            "excess": shops_used - target_plan.max_shops,
+        })
+
+    if target_plan.max_products is not None and products_used > target_plan.max_products:
+        blockers.append({
+            "type": "products",
+            "used": products_used,
+            "limit": target_plan.max_products,
+            "excess": products_used - target_plan.max_products,
+        })
+
+    if blockers:
+        parts = []
+        for b in blockers:
+            parts.append(
+                f"You currently have {b['used']} {b['type']} but the "
+                f"{target_plan.name} plan only allows {b['limit']}. "
+                f"Please remove or deactivate {b['excess']} {b['type']} first."
+            )
+        raise DowngradeBlocked(" ".join(parts), blockers=blockers)
+
+
 def has_feature(user, feature: str) -> bool:
     """Return whether the user's current plan includes ``feature``."""
     plan = get_current_plan(user)
@@ -344,8 +394,12 @@ def initiate_paystack_upgrade(user, plan: SubscriptionPlan, *,
         )
 
     if plan.is_free:
+        assert_can_switch_to_plan(user, plan)
         activate_plan(user, plan, months=1, auto_renew=False)
         return {"free": True, "detail": "Switched to the free plan."}
+
+    # Block any paid downgrade that would exceed the target plan's limits.
+    assert_can_switch_to_plan(user, plan)
 
     # Reuse the existing Paystack gateway abstraction from the payments app.
     from payments.gateways import get_gateway

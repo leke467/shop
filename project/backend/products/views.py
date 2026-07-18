@@ -11,6 +11,7 @@ from .serializers import (
     ProductDetailSerializer,
     ProductListSerializer,
     ProductReviewSerializer,
+    ProductImageSerializer,
 )
 
 
@@ -39,9 +40,15 @@ class ProductListView(generics.ListAPIView):
     filterset_fields = ["status", "is_featured", "category", "shop__slug"]
 
     def get_queryset(self):
-        return Product.objects.filter(status=Product.Status.ACTIVE).select_related(
+        qs = Product.objects.filter(status=Product.Status.ACTIVE).select_related(
             "shop", "category"
         ).prefetch_related("images")
+        
+        shop_slug = self.request.query_params.get("shop")
+        if shop_slug:
+            qs = qs.filter(shop__slug=shop_slug)
+            
+        return qs
 
 
 class ShopProductListView(generics.ListCreateAPIView):
@@ -77,6 +84,8 @@ class ShopProductListView(generics.ListCreateAPIView):
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Public detail (GET) / owner-only edit (PUT/PATCH/DELETE)."""
+
+    owner_field = "shop.owner"
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -136,3 +145,24 @@ class ProductReviewListCreateView(generics.ListCreateAPIView):
             return ProductReview.objects.filter(product__public_id=val)
         except ValueError:
             return ProductReview.objects.filter(product__slug=lookup)
+
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+
+class ProductImageUploadView(generics.CreateAPIView):
+    """Upload an image to a product."""
+    serializer_class = ProductImageSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        lookup = self.kwargs.get("lookup")
+        import uuid
+        try:
+            val = uuid.UUID(lookup)
+            product = generics.get_object_or_404(Product, public_id=val, shop__owner=self.request.user)
+        except ValueError:
+            product = generics.get_object_or_404(Product, slug=lookup, shop__owner=self.request.user)
+
+        serializer.save(product=product)

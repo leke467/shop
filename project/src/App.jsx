@@ -19,20 +19,27 @@ import CartPage from './pages/CartPage'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import ForgotPassword from './pages/ForgotPassword'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import RefundPage from './pages/RefundPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
 import { CartProvider } from './context/CartContext'
 import { UserProvider } from './context/UserContext'
+import { NotificationProvider } from './context/NotificationContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
   return (
-    <UserProvider>
-      <ShopProvider>
-        <CartProvider>
-          <AnimatePresence mode="wait">
-            <Routes>
+    <ThemeProvider>
+      <NotificationProvider>
+        <UserProvider>
+          <ShopProvider>
+          <CartProvider>
+            <AnimatePresence mode="wait">
+              <Routes>
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="explore" element={<ExplorePage />} />
@@ -49,13 +56,18 @@ function App() {
                 <Route path="login" element={<LoginPage />} />
                 <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="signup" element={<SignUpPage />} />
+                <Route path="terms" element={<TermsPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="refund" element={<RefundPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>
           </AnimatePresence>
         </CartProvider>
-      </ShopProvider>
-    </UserProvider>
+        </ShopProvider>
+      </UserProvider>
+    </NotificationProvider>
+    </ThemeProvider>
   )
 }
 

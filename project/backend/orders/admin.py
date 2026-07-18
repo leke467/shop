@@ -7,6 +7,8 @@ from .models import (
     Order,
     OrderGroup,
     OrderItem,
+    SellerWallet,
+    WalletTransaction,
 )
 
 
@@ -74,10 +76,11 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderGroup)
 class OrderGroupAdmin(admin.ModelAdmin):
-    list_display = ("id", "order", "shop", "status", "subtotal")
-    list_filter = ("status",)
-    search_fields = ("order__public_id", "shop__name")
+    list_display = ("id", "order", "shop", "status", "escrow_status", "subtotal", "delivery_code")
+    list_filter = ("status", "escrow_status")
+    search_fields = ("order__public_id", "shop__name", "delivery_code")
     raw_id_fields = ("order", "shop")
+    readonly_fields = ("delivery_code", "delivery_code_confirmed_at", "escrow_released_at")
     inlines = [OrderItemInline]
 
 
@@ -100,3 +103,22 @@ class CouponAdmin(admin.ModelAdmin):
     list_filter = ("discount_type", "is_active")
     search_fields = ("code",)
     raw_id_fields = ("shop",)
+
+
+# ---------------------------------------------------------------------------
+# Seller Wallet
+# ---------------------------------------------------------------------------
+
+class WalletTransactionInline(admin.TabularInline):
+    model = WalletTransaction
+    extra = 0
+    readonly_fields = ("kind", "amount", "balance_after", "reference", "notes", "created_at")
+
+
+@admin.register(SellerWallet)
+class SellerWalletAdmin(admin.ModelAdmin):
+    list_display = ("shop", "balance", "total_earned", "total_withdrawn", "currency")
+    search_fields = ("shop__name", "shop__slug")
+    raw_id_fields = ("shop",)
+    readonly_fields = ("balance", "total_earned", "total_withdrawn")
+    inlines = [WalletTransactionInline]

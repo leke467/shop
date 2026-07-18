@@ -50,10 +50,10 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = (
-            "public_id", "sku", "name", "attributes", "price",
+            "id", "public_id", "sku", "name", "attributes", "price",
             "is_default", "is_active", "weight_grams", "inventory",
         )
-        read_only_fields = ("public_id",)
+        read_only_fields = ("id", "public_id",)
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -114,10 +114,11 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            "name", "slug", "description", "category",
+            "public_id", "name", "slug", "description", "category",
             "base_price", "compare_at_price", "currency",
             "status", "is_featured", "tags",
         )
+        read_only_fields = ("public_id", "slug",)
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):

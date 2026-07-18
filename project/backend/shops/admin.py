@@ -1,10 +1,13 @@
 from django.contrib import admin
 
 from .models import (
+    DeliveryNote,
+    DeliveryZone,
     LayoutSection,
     SectionBlock,
     Shop,
     ShopLayout,
+    ShopReport,
     ShopReview,
     ShopStaff,
     ShopTheme,
@@ -112,6 +115,13 @@ class ShopAdmin(admin.ModelAdmin):
                 "product_count", "total_sales",
             ),
         }),
+        ("Seller Verification (KYC)", {
+            "fields": (
+                "verification_status", "verified_at",
+                "verification_legal_name", "verification_document",
+                "verification_notes",
+            ),
+        }),
     )
 
 
@@ -146,3 +156,51 @@ class ShopReviewAdmin(admin.ModelAdmin):
     search_fields = ("shop__name", "user__email")
     raw_id_fields = ("shop", "user")
     date_hierarchy = "created_at"
+
+
+# ---------------------------------------------------------------------------
+# Delivery Zones & Notes
+# ---------------------------------------------------------------------------
+
+class DeliveryZoneInline(admin.TabularInline):
+    model = DeliveryZone
+    extra = 1
+
+
+@admin.register(DeliveryZone)
+class DeliveryZoneAdmin(admin.ModelAdmin):
+    list_display = ("shop", "state", "fee", "is_active", "created_at")
+    list_filter = ("is_active", "state")
+    search_fields = ("shop__name",)
+    raw_id_fields = ("shop",)
+
+
+@admin.register(DeliveryNote)
+class DeliveryNoteAdmin(admin.ModelAdmin):
+    list_display = ("shop", "sender_name", "state_requested", "is_read", "created_at")
+    list_filter = ("is_read", "state_requested")
+    search_fields = ("shop__name", "sender_name", "sender_email")
+    raw_id_fields = ("shop",)
+    date_hierarchy = "created_at"
+
+
+# ---------------------------------------------------------------------------
+# Shop Reports
+# ---------------------------------------------------------------------------
+
+@admin.register(ShopReport)
+class ShopReportAdmin(admin.ModelAdmin):
+    list_display = ("shop", "reporter", "reason", "status", "created_at")
+    list_filter = ("status", "reason", "created_at")
+    search_fields = ("shop__name", "reporter__email", "description")
+    raw_id_fields = ("shop", "reporter")
+    date_hierarchy = "created_at"
+    readonly_fields = ("shop", "reporter", "reason", "description", "created_at")
+    fieldsets = (
+        (None, {
+            "fields": ("shop", "reporter", "reason", "description", "created_at"),
+        }),
+        ("Admin Review", {
+            "fields": ("status", "admin_notes"),
+        }),
+    )

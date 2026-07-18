@@ -27,9 +27,9 @@ def api_exception_handler(exc, context):
     #
     # Imported lazily to avoid an app-loading cycle at settings import time.
     try:
-        from subscriptions.services import FeatureNotAvailable, LimitReached
+        from subscriptions.services import DowngradeBlocked, FeatureNotAvailable, LimitReached
     except Exception:  # pragma: no cover - subscriptions app may be absent
-        FeatureNotAvailable = LimitReached = ()
+        DowngradeBlocked = FeatureNotAvailable = LimitReached = ()
 
     if LimitReached and isinstance(exc, LimitReached):
         rec = exc.recommended_plan
@@ -69,6 +69,19 @@ def api_exception_handler(exc, context):
                 }
             },
             status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if DowngradeBlocked and isinstance(exc, DowngradeBlocked):
+        return Response(
+            {
+                "error": {
+                    "type": "DowngradeBlocked",
+                    "detail": str(exc),
+                    "status_code": 409,
+                    "blockers": exc.blockers,
+                }
+            },
+            status=status.HTTP_409_CONFLICT,
         )
 
     response = drf_exception_handler(exc, context)

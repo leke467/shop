@@ -41,6 +41,7 @@ from .serializers import (
     UserSubscriptionSerializer,
 )
 from .services import (
+    DowngradeBlocked,
     SubscriptionError,
     activate_plan,
     ensure_subscription,
@@ -126,6 +127,8 @@ class UpgradeView(APIView):
                 request.user, plan,
                 callback_url=ser.validated_data.get("callback_url", ""),
             )
+        except DowngradeBlocked:
+            raise
         except SubscriptionError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

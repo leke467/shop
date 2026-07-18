@@ -106,9 +106,9 @@ function Footer() {
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400">&copy; {currentYear} MultiShop. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex space-x-6">
-            <a href="#" className="text-gray-400 hover:text-white transition">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white transition">Refund Policy</a>
+            <Link to="/privacy" className="text-gray-400 hover:text-white transition">Privacy Policy</Link>
+            <Link to="/terms" className="text-gray-400 hover:text-white transition">Terms of Service</Link>
+            <Link to="/refund" className="text-gray-400 hover:text-white transition">Refund Policy</Link>
           </div>
         </div>
       </div>

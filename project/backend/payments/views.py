@@ -41,6 +41,11 @@ class CheckoutSerializer(serializers.Serializer):
     # Provider-specific extras (e.g. Paystack needs email)
     email = serializers.EmailField(required=False)
 
+    # Delivery System
+    delivery_state = serializers.CharField(max_length=100)
+    delivery_fees = serializers.DictField(child=serializers.DictField(), required=False)
+    manual_delivery_shops = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+
 
 class CheckoutView(APIView):
     """
@@ -76,6 +81,8 @@ class CheckoutView(APIView):
                 idempotency_key=str(d["idempotency_key"]),
                 notes=d.get("notes", ""),
                 email=d.get("email", request.user.email),
+                delivery_state=d["delivery_state"],
+                manual_delivery_shops=d.get("manual_delivery_shops", []),
             )
         except DuplicateOrderError as e:
             return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)

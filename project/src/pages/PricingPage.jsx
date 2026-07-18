@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { subscriptionAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
@@ -30,6 +30,7 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(null) // plan code being processed
   const [error, setError] = useState('')
+  const [downgradeBlockers, setDowngradeBlockers] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -70,7 +71,12 @@ export default function PricingPage() {
         navigate('/subscription')
       }
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Could not start upgrade. Please try again.')
+      const errData = err?.response?.data?.error || err?.response?.data
+      if (errData?.type === 'DowngradeBlocked') {
+        setDowngradeBlockers(errData.blockers || [])
+      } else {
+        setError(errData?.detail || 'Could not start upgrade. Please try again.')
+      }
     } finally {
       setUpgrading(null)
     }
@@ -182,6 +188,61 @@ export default function PricingPage() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {downgradeBlockers && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setDowngradeBlockers(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
+            >
+              <div className="w-12 h-12 rounded-full bg-error-50 text-error-600 flex items-center justify-center text-2xl mb-5 mx-auto">
+                ⚠️
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Downgrade Blocked</h3>
+              <p className="text-gray-500 text-center text-sm mb-6">
+                You need to clean up some resources before switching to this plan.
+              </p>
+              
+              <div className="space-y-3 mb-8">
+                {downgradeBlockers.map((b, i) => (
+                  <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start gap-3 text-sm">
+                    <span className="text-xl mt-0.5">{b.type === 'shops' ? '🏪' : '📦'}</span>
+                    <div>
+                      <p className="font-semibold text-gray-900 capitalize">{b.type} Limit Exceeded</p>
+                      <p className="text-gray-500 mt-0.5">
+                        You have {b.used}, but this plan only allows {b.limit}. Please delete {b.excess} {b.type}.
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDowngradeBlockers(null)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex-1 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-500/20"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

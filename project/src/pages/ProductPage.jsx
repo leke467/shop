@@ -8,7 +8,7 @@ import { useCart } from '../context/CartContext'
 export default function ProductPage() {
   const { productSlug } = useParams()
   const { isAuthenticated } = useUser()
-  const { refreshCart } = useCart()
+  const { addToCart } = useCart()
   const [product, setProduct] = useState(null)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState(null)
@@ -30,16 +30,17 @@ export default function ProductPage() {
   }, [productSlug])
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) { window.location.href = '/login'; return }
     if (!selectedVariant) return
     setAddingToCart(true)
     try {
-      await orderAPI.addToCart({
-        variant: selectedVariant.public_id || selectedVariant.id,
+      await addToCart({
+        variant_id: selectedVariant.id,
         quantity,
+        product_name: product.name,
+        variant_name: selectedVariant.name,
+        unit_price: selectedVariant.price,
       })
       setCartSuccess(true)
-      if (refreshCart) refreshCart()
       setTimeout(() => setCartSuccess(false), 3000)
     } catch (err) {
       console.error('Add to cart failed', err)
@@ -164,16 +165,16 @@ export default function ProductPage() {
 
             {/* Price */}
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-gray-900">${Number(price).toFixed(2)}</span>
+              <span className="text-4xl font-bold text-gray-900">₦{Number(price).toLocaleString()}</span>
               {comparePrice && (
-                <span className="text-xl text-gray-400 line-through">${Number(comparePrice).toFixed(2)}</span>
+                <span className="text-xl text-gray-400 line-through">₦{Number(comparePrice).toLocaleString()}</span>
               )}
             </div>
 
             {/* Variants */}
-            {variants.length > 1 && (
+            {variants.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Options</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Options</h3>
                 <div className="flex flex-wrap gap-2">
                   {variants.map(v => (
                     <button
@@ -186,7 +187,7 @@ export default function ProductPage() {
                       }`}
                     >
                       {v.name || v.sku}
-                      {v.price && <span className="ml-2 text-gray-400">${Number(v.price).toFixed(2)}</span>}
+                      {v.price && <span className="ml-2 text-gray-400">₦{Number(v.price).toLocaleString()}</span>}
                     </button>
                   ))}
                 </div>
