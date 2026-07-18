@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { orderAPI } from '../services/api'
+import { useUser } from './UserContext'
 
 const CartContext = createContext()
 
@@ -8,6 +9,7 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
+  const { isAuthenticated, loading: userLoading } = useUser()
   const [items, setItems] = useState([])
   const [itemCount, setItemCount] = useState(0)
   const [total, setTotal] = useState(0)
@@ -27,8 +29,18 @@ export function CartProvider({ children }) {
       })
   }, [])
 
-  // Load cart on mount
-  useEffect(() => { refreshCart() }, [refreshCart])
+  // Load cart on mount or auth change
+  useEffect(() => {
+    if (!userLoading) {
+      if (isAuthenticated) {
+        refreshCart()
+      } else {
+        setItems([])
+        setItemCount(0)
+        setTotal(0)
+      }
+    }
+  }, [isAuthenticated, userLoading, refreshCart])
 
   const value = {
     cart: items,

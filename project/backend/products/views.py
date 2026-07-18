@@ -67,8 +67,12 @@ class ShopProductListView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         from shops.models import Shop
+        from subscriptions.services import assert_can_create_product
+        # Enforce the subscription product limit before creating.
+        assert_can_create_product(self.request.user)  # raises LimitReached if at cap
         shop = generics.get_object_or_404(Shop, slug=self.kwargs["slug"], owner=self.request.user)
         serializer.save(shop=shop)
+
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):

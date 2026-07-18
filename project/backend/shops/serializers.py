@@ -142,8 +142,13 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        validated_data["owner"] = self.context["request"].user
+        user = self.context["request"].user
+        # Enforce the subscription shop limit before creating.
+        from subscriptions.services import assert_can_create_shop
+        assert_can_create_shop(user)  # raises LimitReached if at cap
+        validated_data["owner"] = user
         shop = super().create(validated_data)
+
         # Auto-create default theme and home layout.
         ShopTheme.objects.create(shop=shop)
         layout = ShopLayout.objects.create(shop=shop, page=ShopLayout.Pages.HOME)

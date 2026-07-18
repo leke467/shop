@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl } from '../services/api'
 import { useUser } from '../context/UserContext'
+import LimitReachedModal, { extractLimitError } from '../components/subscription/LimitReachedModal'
+
 
 function StatCard({ icon, label, value, gradient }) {
   return (
@@ -73,6 +75,8 @@ export default function ShopDashboard() {
   const [productForm, setProductForm] = useState({ name: '', description: '', base_price: '', status: 'active' })
   const [saving, setSaving] = useState(false)
   const [themeSaving, setThemeSaving] = useState(false)
+  const [limitInfo, setLimitInfo] = useState(null)
+
   
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
@@ -106,9 +110,15 @@ export default function ShopDashboard() {
     setLoading(true)
     shopAPI.mine()
       .then(data => {
-        setShop(data)
-        loadTheme(data.slug)
-        return productAPI.list({ shop: data.slug, page_size: 100 })
+        const myShop = Array.isArray(data) ? data[0] : (data?.results ? data.results[0] : data)
+        if (myShop) {
+          setShop(myShop)
+          if (myShop.slug) {
+            loadTheme(myShop.slug)
+            return productAPI.list({ shop: myShop.slug, page_size: 100 })
+          }
+        }
+        return Promise.resolve([])
       })
       .then(data => setProducts(data?.results || data || []))
       .catch(() => {})
@@ -124,11 +134,17 @@ export default function ShopDashboard() {
       setProductForm({ name: '', description: '', base_price: '', status: 'active' })
       setTab('products')
     } catch (err) {
-      console.error('Create product failed', err)
+      const limit = extractLimitError(err)
+      if (limit) {
+        setLimitInfo(limit)
+      } else {
+        console.error('Create product failed', err)
+      }
     } finally {
       setSaving(false)
     }
   }
+
 
   const handleSaveTheme = async (e) => {
     e.preventDefault()
@@ -682,6 +698,11 @@ export default function ShopDashboard() {
           )}
         </AnimatePresence>
       </div>
+
+      {limitInfo && (
+        <LimitReachedModal info={limitInfo} onClose={() => setLimitInfo(null)} />
+      )}
     </div>
   )
 }
+

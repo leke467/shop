@@ -12,8 +12,8 @@ function ShopCreationPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    logo: '',
-    banner: '',
+    logo: null,
+    banner: null,
     ownerName: '',
     email: '',
     phone: '',
@@ -90,33 +90,45 @@ function ShopCreationPage() {
       return
     }
 
-    const payload = {
-      name: formData.name,
-      description: formData.description,
-      logo: formData.logo,
-      banner: formData.banner,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      categories: formData.categories,
-      primary_color: formData.colors.primary,
-      secondary_color: formData.colors.secondary,
-      enable_product_listings: formData.features.productListings,
-      enable_custom_orders: formData.features.customOrders,
-      enable_reviews: formData.features.reviews,
-      enable_contact: formData.features.contact,
-      enable_shipping: formData.features.shipping,
-      enable_social_links: formData.features.socialLinks,
-      facebook_url: formData.socialLinks.facebook,
-      instagram_url: formData.socialLinks.instagram,
-      twitter_url: formData.socialLinks.twitter,
+    const payload = new FormData()
+    payload.append('name', formData.name)
+    payload.append('description', formData.description)
+    if (formData.logo) payload.append('logo', formData.logo)
+    if (formData.banner) payload.append('banner', formData.banner)
+    payload.append('email', formData.email)
+    if (formData.phone) payload.append('phone', formData.phone)
+    if (formData.address) payload.append('address', formData.address)
+    
+    payload.append('enable_product_listings', formData.features.productListings)
+    payload.append('enable_custom_orders', formData.features.customOrders)
+    payload.append('enable_reviews', formData.features.reviews)
+    payload.append('enable_contact', formData.features.contact)
+    payload.append('enable_shipping', formData.features.shipping)
+    payload.append('enable_social_links', formData.features.socialLinks)
+    
+    if (formData.features.socialLinks) {
+      if (formData.socialLinks.facebook) payload.append('facebook_url', formData.socialLinks.facebook)
+      if (formData.socialLinks.instagram) payload.append('instagram_url', formData.socialLinks.instagram)
+      if (formData.socialLinks.twitter) payload.append('twitter_url', formData.socialLinks.twitter)
     }
 
     try {
       const result = await createShop(payload)
-      navigate(`/shop/${result.id}`)
+      
+      // Update theme separately if needed
+      try {
+        await shopAPI.updateTheme(result.slug, {
+          primary_color: formData.colors.primary,
+          secondary_color: formData.colors.secondary
+        })
+      } catch (themeError) {
+        console.error('Failed to update initial theme:', themeError)
+      }
+
+      navigate(`/shop/${result.slug}`)
     } catch (error) {
       console.error('Failed to create shop:', error)
+      alert('Failed to create shop. Please check your inputs.')
     }
   }
 
@@ -146,11 +158,11 @@ function ShopCreationPage() {
 
           {/* Progress Indicator */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start sm:items-center justify-between">
               {[1, 2, 3].map((stepNumber) => (
-                <div key={stepNumber} className="flex items-center">
+                <div key={stepNumber} className="flex flex-col sm:flex-row items-center w-1/3 sm:w-auto">
                   <div 
-                    className={`flex items-center justify-center h-10 w-10 rounded-full ${
+                    className={`flex-shrink-0 flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full ${
                       stepNumber === step 
                         ? 'bg-primary-600 text-white'
                         : stepNumber < step
@@ -159,22 +171,22 @@ function ShopCreationPage() {
                     } transition-colors`}
                   >
                     {stepNumber < step ? (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      stepNumber
+                      <span className="text-sm sm:text-base">{stepNumber}</span>
                     )}
                   </div>
-                  <div className={`ml-2 text-sm ${stepNumber === step ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
-                    {stepNumber === 1 && 'Basic Information'}
+                  <div className={`mt-2 sm:mt-0 sm:ml-2 text-xs sm:text-sm text-center sm:text-left ${stepNumber === step ? 'font-medium text-gray-900' : 'text-gray-500 hidden sm:block'}`}>
+                    {stepNumber === 1 && 'Basic Info'}
                     {stepNumber === 2 && 'Shop Features'}
-                    {stepNumber === 3 && 'Branding & Design'}
+                    {stepNumber === 3 && 'Branding'}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-2 h-2 flex">
+            <div className="mt-4 sm:mt-2 h-2 flex">
               <div className={`flex-1 rounded-l-full ${step >= 2 ? 'bg-primary-500' : 'bg-gray-200'}`}></div>
               <div className={`flex-1 rounded-r-full ${step >= 3 ? 'bg-primary-500' : 'bg-gray-200'}`}></div>
             </div>
@@ -494,10 +506,10 @@ function ShopCreationPage() {
                     <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                       {formData.logo ? (
                         <div className="relative">
-                          <img src={formData.logo} alt="Logo preview" className="mx-auto h-32 w-32 object-cover rounded-lg" />
+                          <img src={URL.createObjectURL(formData.logo)} alt="Logo preview" className="mx-auto h-32 w-32 object-cover rounded-lg" />
                           <button 
                             type="button"
-                            onClick={() => updateForm('logo', '')}
+                            onClick={() => updateForm('logo', null)}
                             className="absolute top-0 right-0 bg-white rounded-full p-1 shadow"
                           >
                             <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -506,23 +518,21 @@ function ShopCreationPage() {
                           </button>
                         </div>
                       ) : (
-                        <>
+                        <div className="relative">
                           <div className="mx-auto h-12 w-12 text-gray-400">
                             <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">Upload your shop logo (square format recommended)</p>
-                        </>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => updateForm('logo', e.target.files[0])}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
                       )}
-                      
-                      <input 
-                        type="text" 
-                        value={formData.logo}
-                        onChange={(e) => updateForm('logo', e.target.value)}
-                        placeholder="Enter logo URL"
-                        className="input mt-2 text-sm"
-                      />
                     </div>
                   </div>
 
@@ -531,10 +541,10 @@ function ShopCreationPage() {
                     <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                       {formData.banner ? (
                         <div className="relative">
-                          <img src={formData.banner} alt="Banner preview" className="mx-auto h-32 w-full object-cover rounded-lg" />
+                          <img src={URL.createObjectURL(formData.banner)} alt="Banner preview" className="mx-auto h-32 w-full object-cover rounded-lg" />
                           <button 
                             type="button"
-                            onClick={() => updateForm('banner', '')}
+                            onClick={() => updateForm('banner', null)}
                             className="absolute top-0 right-0 bg-white rounded-full p-1 shadow"
                           >
                             <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -543,23 +553,21 @@ function ShopCreationPage() {
                           </button>
                         </div>
                       ) : (
-                        <>
+                        <div className="relative">
                           <div className="mx-auto h-12 w-12 text-gray-400">
                             <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">Upload your banner image (1200×400px recommended)</p>
-                        </>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => updateForm('banner', e.target.files[0])}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
                       )}
-                      
-                      <input 
-                        type="text" 
-                        value={formData.banner}
-                        onChange={(e) => updateForm('banner', e.target.value)}
-                        placeholder="Enter banner URL"
-                        className="input mt-2 text-sm"
-                      />
                     </div>
                   </div>
                 </div>

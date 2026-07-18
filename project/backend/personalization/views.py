@@ -88,22 +88,22 @@ def build_recommendations(user, limit=24):
     # Category affinities — top 5 categories by event count.
     category_affinities = (
         PersonalizationEvent.objects
-        .filter(user=user, category__isnull=False)
-        .values("category")
+        .filter(user=user, target_type="category")
+        .values("target_id")
         .annotate(score=Count("id"))
         .order_by("-score")[:5]
     )
-    affinity_cat_ids = [c["category"] for c in category_affinities]
+    affinity_cat_ids = [c["target_id"] for c in category_affinities]
 
     # Shop affinities — top 5 shops.
     shop_affinities = (
         PersonalizationEvent.objects
-        .filter(user=user, shop__isnull=False)
-        .values("shop")
+        .filter(user=user, target_type="shop")
+        .values("target_id")
         .annotate(score=Count("id"))
         .order_by("-score")[:5]
     )
-    affinity_shop_ids = [s["shop"] for s in shop_affinities]
+    affinity_shop_ids = [s["target_id"] for s in shop_affinities]
 
     # Build combined query.
     qs = Product.objects.filter(status=Product.Status.ACTIVE)
@@ -152,11 +152,10 @@ class PersonalizedFeedView(APIView):
 
     def get(self, request):
         user = request.user
-        staleness_hours = 6
 
         # Check cache.
         cache = RecommendationCache.objects.filter(user=user).first()
-        if cache and cache.is_stale(staleness_hours):
+        if cache and cache.is_stale:
             cache = None
 
         if cache and cache.product_ids:
@@ -176,8 +175,7 @@ class PersonalizedFeedView(APIView):
                 user=user,
                 defaults={
                     "product_ids": product_ids,
-                    "generated_at": timezone.now(),
-                    "strategy": "category_shop_affinity_v1",
+                    "computed_at": timezone.now(),
                 },
             )
 

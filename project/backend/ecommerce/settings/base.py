@@ -82,7 +82,9 @@ LOCAL_APPS = [
     "products.apps.ProductsConfig",
     "orders.apps.OrdersConfig",
     "payments.apps.PaymentsConfig",
+    "subscriptions.apps.SubscriptionsConfig",
     "search.apps.SearchConfig",
+
     "personalization.apps.PersonalizationConfig",
 ]
 

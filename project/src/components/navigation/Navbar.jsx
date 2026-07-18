@@ -59,7 +59,9 @@ export default function Navbar() {
             {[
               { to: '/', label: 'Home' },
               { to: '/explore/products', label: 'Explore' },
+              { to: '/pricing', label: 'Pricing' },
             ].map(link => (
+
               <Link
                 key={link.to}
                 to={link.to}
@@ -138,7 +140,11 @@ export default function Navbar() {
                       <Link to="/create-shop" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                         <span>🏪</span> Create Shop
                       </Link>
+                      <Link to="/subscription" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>💳</span> Subscription
+                      </Link>
                       <hr className="my-1 border-gray-100" />
+
                       <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-error-600 hover:bg-error-50 transition-colors">
                         <span>🚪</span> Sign out
                       </button>

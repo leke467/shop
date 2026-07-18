@@ -7,7 +7,7 @@
  */
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -48,8 +48,11 @@ api.interceptors.response.use(
         return api(original)
       } catch (err) {
         processQueue(err)
-        // Redirect to login if refresh fails
-        if (window.location.pathname !== '/login') {
+        // Redirect to login if refresh fails, except if it was just the silent profile check
+        if (
+          window.location.pathname !== '/login' && 
+          !original.url.includes('/users/profile/')
+        ) {
           window.location.href = '/login'
         }
         return Promise.reject(err)
@@ -155,6 +158,36 @@ export const personalAPI = {
     api.post('/personalization/favourites/', data).then(r => r.data),
   removeFavourite: (id) =>
     api.delete(`/personalization/favourites/${id}/`).then(r => r.data),
+}
+
+// ── Subscriptions ────────────────────────────────────────────
+export const subscriptionAPI = {
+  plans: () =>
+    api.get('/subscription/plans/').then(r => r.data),
+  current: () =>
+    api.get('/subscription/current/').then(r => r.data),
+  mine: () =>
+    api.get('/subscription/mine/').then(r => r.data),
+  upgrade: (data) =>
+    api.post('/subscription/upgrade/', data).then(r => r.data),
+
+  // Admin
+  admin: {
+    listPlans: () =>
+      api.get('/subscription/admin/plans/').then(r => r.data),
+    createPlan: (data) =>
+      api.post('/subscription/admin/plans/', data).then(r => r.data),
+    updatePlan: (code, data) =>
+      api.patch(`/subscription/admin/plans/${code}/`, data).then(r => r.data),
+    deletePlan: (code) =>
+      api.delete(`/subscription/admin/plans/${code}/`).then(r => r.data),
+    subscriptions: (params) =>
+      api.get('/subscription/admin/subscriptions/', { params }).then(r => r.data),
+    changePlan: (data) =>
+      api.post('/subscription/admin/change-plan/', data).then(r => r.data),
+    stats: () =>
+      api.get('/subscription/admin/stats/').then(r => r.data),
+  },
 }
 
 // ── Orders & Checkout ────────────────────────────────────────
