@@ -225,9 +225,9 @@ export default function HomePage() {
       productAPI.list({ page_size: 12, ordering: '?' }),
       isAuthenticated ? personalAPI.feed() : Promise.resolve(null),
     ]).then(([shopRes, prodRes, feedRes]) => {
-      if (shopRes.status === 'fulfilled') setShops(shopRes.value?.results || shopRes.value || [])
-      if (prodRes.status === 'fulfilled') setProducts(prodRes.value?.results || prodRes.value || [])
-      if (feedRes.status === 'fulfilled' && feedRes.value) setFeedProducts(feedRes.value?.results || [])
+      if (shopRes.status === 'fulfilled') setShops((shopRes.value?.results || shopRes.value || []).filter(s => !s.is_locked))
+      if (prodRes.status === 'fulfilled') setProducts((prodRes.value?.results || prodRes.value || []).filter(p => !p.is_locked))
+      if (feedRes.status === 'fulfilled' && feedRes.value) setFeedProducts((feedRes.value?.results || []).filter(p => !p.is_locked))
     }).finally(() => setLoading(false))
   }, [isAuthenticated])
 

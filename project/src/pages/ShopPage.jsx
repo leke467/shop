@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl } from '../services/api'
+import { useUser } from '../context/UserContext'
 import SEOHead from '../components/SEOHead'
 
 function ProductCard({ product }) {
@@ -40,6 +41,7 @@ export default function ShopPage() {
   const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('products')
   const [loading, setLoading] = useState(true)
+  const { user } = useUser()
 
   // Report Shop State
   const [showReportModal, setShowReportModal] = useState(false)
@@ -112,13 +114,43 @@ export default function ShopPage() {
   const mutedTextColor = theme.muted_text_color || '#6B7280'
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16 relative">
       <SEOHead 
         title={shop.name} 
         description={shop.tagline || shop.description || `Shop ${shop.name} on our marketplace.`} 
       />
+
+      {shop.is_locked && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center pt-16 bg-white/40 backdrop-blur-md">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100 max-w-md text-center mx-4">
+            <div className="w-16 h-16 bg-error-50 text-error-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            {user?.email === shop.owner_email ? (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900">Subscription Expired</h2>
+                <p className="text-gray-500 mt-2 mb-6">Your shop is currently hidden from customers because your subscription limits have been exceeded. Please upgrade your plan or remove excess products/shops to reactivate it.</p>
+                <Link to="/seller/dashboard" className="block w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors">
+                  Go to Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900">Shop Unavailable</h2>
+                <p className="text-gray-500 mt-2 mb-6">This shop is currently inactive and cannot accept orders at this time.</p>
+                <Link to="/" className="block w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                  Back to Explore
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       
-      {/* Banner */}
+      <div className={shop.is_locked ? 'pointer-events-none opacity-50 select-none' : ''}>
+        {/* Banner */}
       <div className="relative h-64 md:h-80 overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${theme.secondary_color || '#7c3aed'})` }}>
         {shop.banner && <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
@@ -263,6 +295,8 @@ export default function ShopPage() {
           )}
         </AnimatePresence>
       </div>
+
+      </div> {/* End blur wrapper */}
 
       {/* Report Modal */}
       <AnimatePresence>

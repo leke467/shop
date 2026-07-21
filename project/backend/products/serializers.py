@@ -9,6 +9,7 @@ from .models import (
     ProductReview,
     ProductVariant,
 )
+from subscriptions.services import is_user_locked
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -62,6 +63,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True, default=None)
     primary_image = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -70,7 +72,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "currency", "status", "is_featured",
             "rating_average", "rating_count", "view_count",
             "shop_name", "shop_slug", "category_name", "primary_image",
-            "created_at",
+            "is_locked", "created_at",
         )
         read_only_fields = fields
 
@@ -84,6 +86,9 @@ class ProductListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(img.image.url)
         return None
 
+    def get_is_locked(self, obj):
+        return is_user_locked(obj.shop.owner)
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     """Full detail with variants, images, reviews."""
@@ -92,6 +97,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -101,13 +107,16 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "status", "is_featured", "tags",
             "rating_average", "rating_count", "view_count", "purchase_count",
             "shop_name", "shop_slug", "category",
-            "variants", "images",
+            "variants", "images", "is_locked",
             "created_at", "updated_at",
         )
         read_only_fields = (
             "public_id", "rating_average", "rating_count",
             "view_count", "purchase_count", "created_at", "updated_at",
         )
+
+    def get_is_locked(self, obj):
+        return is_user_locked(obj.shop.owner)
 
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):

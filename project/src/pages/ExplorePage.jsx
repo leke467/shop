@@ -114,8 +114,8 @@ export default function ExplorePage() {
     { value: 'popular', label: 'Most Popular' },
   ]
 
-  const productList = results.products?.results || []
-  const shopList = results.shops?.results || []
+  const productList = (results.products?.results || []).filter(p => !p.is_locked)
+  const shopList = (results.shops?.results || []).filter(s => !s.is_locked)
   const facets = results.facets
 
   return (

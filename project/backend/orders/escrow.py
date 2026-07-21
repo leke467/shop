@@ -52,18 +52,22 @@ def confirm_delivery_code(
     now = timezone.now()
 
     with transaction.atomic():
+        # Calculate commission (on subtotal only)
+        commission = order_group.subtotal * (order_group.shop.commission_rate / Decimal("100.0"))
+        
         # Release escrow.
         order_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
         order_group.delivery_code_confirmed_at = now
         order_group.escrow_released_at = now
         order_group.status = OrderGroup.FulfilmentStatus.DELIVERED
+        order_group.commission_fee = commission
         order_group.save(update_fields=[
             "escrow_status", "delivery_code_confirmed_at",
-            "escrow_released_at", "status", "updated_at",
+            "escrow_released_at", "status", "commission_fee", "updated_at",
         ])
 
-        # Credit the seller's wallet.
-        release_amount = order_group.subtotal + order_group.shipping_total
+        # Credit the seller's wallet (Subtotal - Commission + Shipping).
+        release_amount = (order_group.subtotal - commission) + order_group.shipping_total
         wallet, _created = SellerWallet.objects.get_or_create(
             shop=order_group.shop,
             defaults={"currency": order_group.order.currency},
@@ -84,6 +88,11 @@ def confirm_delivery_code(
         "Escrow released: group=%s amount=%s wallet_balance=%s",
         order_group.pk, release_amount, wallet.balance,
     )
+    
+    # --- Send Notification Email ---
+    from core.emails import send_escrow_released_email
+    send_escrow_released_email(order_group, release_amount)
+    
     return True
 
 
@@ -115,3 +124,7 @@ def dispute_order(
         "Dispute opened: group=%s buyer=%s reason=%s",
         order_group.pk, buyer.email, reason[:80],
     )
+
+    # --- Send Notification Email ---
+    from core.emails import send_dispute_opened_email
+    send_dispute_opened_email(order_group, reason)

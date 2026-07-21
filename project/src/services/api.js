@@ -164,9 +164,9 @@ export const shopAPI = {
 
   // Seller verification (KYC)
   getVerification: (slug) =>
-    api.get(`/shops/${slug}/verification/`).then(r => r.data),
+    api.get(`/shops/${slug}/`).then(r => r.data),
   submitVerification: (slug, formData) =>
-    api.post(`/shops/${slug}/verification/`, formData, {
+    api.post(`/shops/${slug}/kyc/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(r => r.data),
 }

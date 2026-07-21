@@ -6,6 +6,14 @@ Business logic stays in views or services.
 """
 from rest_framework import serializers
 
+from .domains import (
+    DomainError,
+    attach_domain,
+    dns_instructions,
+    remove_domain,
+    verify_domain,
+)
+from subscriptions.services import is_user_locked
 from .models import (
     DeliveryNote,
     DeliveryZone,
@@ -81,6 +89,7 @@ class ShopListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views (no nested layout/theme)."""
 
     owner_email = serializers.EmailField(source="owner.email", read_only=True)
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Shop
@@ -88,9 +97,12 @@ class ShopListSerializer(serializers.ModelSerializer):
             "public_id", "name", "slug", "tagline", "logo", "banner",
             "status", "is_verified", "currency", "allow_manual_delivery",
             "rating_average", "rating_count", "product_count",
-            "owner_email", "created_at",
+            "owner_email", "is_locked", "created_at", "verification_status"
         )
         read_only_fields = fields
+        
+    def get_is_locked(self, obj):
+        return is_user_locked(obj.owner)
 
 
 class ShopDetailSerializer(serializers.ModelSerializer):
@@ -100,6 +112,7 @@ class ShopDetailSerializer(serializers.ModelSerializer):
     layouts = ShopLayoutSerializer(many=True, read_only=True)
     owner_email = serializers.EmailField(source="owner.email", read_only=True)
     social_links = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Shop
@@ -114,13 +127,15 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             "custom_domain", "custom_domain_status", "custom_domain_verified_at",
             "status", "is_verified", "currency",
             "rating_average", "rating_count", "product_count", "total_sales",
-            "theme", "layouts", "owner_email",
+            "theme", "layouts", "owner_email", "is_locked",
+            "verification_status", "verified_at", "verification_document", "id_number", "verification_legal_name", "verification_notes",
             "created_at", "updated_at",
         )
         read_only_fields = (
             "public_id", "rating_average", "rating_count",
             "product_count", "total_sales", "created_at", "updated_at",
             "custom_domain", "custom_domain_status", "custom_domain_verified_at",
+            "verification_status", "verified_at", "verification_document", "id_number", "verification_legal_name", "verification_notes",
         )
 
 
@@ -131,6 +146,9 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             "twitter": obj.twitter_url,
             "website": obj.website_url,
         }
+        
+    def get_is_locked(self, obj):
+        return is_user_locked(obj.owner)
 
 
 class ShopCreateUpdateSerializer(serializers.ModelSerializer):
@@ -175,6 +193,20 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             config={"title": shop.name, "subtitle": shop.tagline},
         )
         return shop
+
+
+class ShopKYCSerializer(serializers.ModelSerializer):
+    """Write serializer for submitting KYC details."""
+    
+    class Meta:
+        model = Shop
+        fields = ("id_number", "verification_document", "verification_legal_name")
+        extra_kwargs = {
+            "verification_document": {"required": True},
+            "id_number": {"required": True},
+            "verification_legal_name": {"required": True}
+        }
+
 
 
 # ---------------------------------------------------------------------------

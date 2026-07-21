@@ -10,6 +10,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.utils import timezone
+
 from core.permissions import IsOwnerOrReadOnly
 
 from .domains import (
@@ -39,6 +41,7 @@ from .serializers import (
     SectionBlockSerializer,
     ShopCreateUpdateSerializer,
     ShopDetailSerializer,
+    ShopKYCSerializer,
     ShopLayoutSerializer,
     ShopListSerializer,
     ShopReviewSerializer,
@@ -107,6 +110,27 @@ class MyShopView(generics.ListAPIView):
 
     def get_queryset(self):
         return Shop.objects.filter(owner=self.request.user)
+
+
+class ShopKYCView(APIView):
+    """
+    POST /api/shops/<slug>/kyc/
+    Submit KYC details. Automatically sets status to 'verified'.
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request, slug):
+        shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
+        serializer = ShopKYCSerializer(shop, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(
+            verification_status=Shop.VerificationStatus.VERIFIED,
+            verified_at=timezone.now()
+        )
+        return Response(
+            {"detail": "KYC details submitted and verified successfully.", "status": "verified"}
+        )
 
 
 # ---------------------------------------------------------------------------

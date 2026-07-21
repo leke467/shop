@@ -18,6 +18,7 @@ migrations, while a strict serializer layer validates them at the boundary.
 from __future__ import annotations
 
 import secrets
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -59,6 +60,14 @@ class Shop(BaseModel, SoftDeleteModel):
         VERIFIED = "verified", _("Verified")
         REJECTED = "rejected", _("Rejected")
 
+    # Commission Rate (Percentage)
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("5.00"),
+        help_text="Platform commission percentage (e.g. 5.00 for 5%)."
+    )
+
     verification_status = models.CharField(
         max_length=16,
         choices=VerificationStatus.choices,
@@ -73,6 +82,10 @@ class Shop(BaseModel, SoftDeleteModel):
     verification_legal_name = models.CharField(
         max_length=255, blank=True,
         help_text="Legal name as it appears on the submitted document.",
+    )
+    id_number = models.CharField(
+        max_length=50, blank=True,
+        help_text="Government-issued ID number (e.g. BVN, NIN).",
     )
     verification_notes = models.TextField(
         blank=True,

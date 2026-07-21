@@ -28,7 +28,7 @@ from .views import (
     ShopThemeResetView,
     ShopThemeView,
     ShopUpdateView,
-    VerificationSubmitView,
+    ShopKYCView,
 )
 
 
@@ -82,5 +82,5 @@ urlpatterns = [
     path("<slug:slug>/report/", ReportShopView.as_view(), name="shop-report"),
 
     # Seller verification (KYC)
-    path("<slug:slug>/verification/", VerificationSubmitView.as_view(), name="shop-verification"),
+    path("<slug:slug>/kyc/", ShopKYCView.as_view(), name="shop-verification"),
 ]

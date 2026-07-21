@@ -227,6 +227,14 @@ def checkout(
         cart.items.all().delete()
 
         logger.info("Checkout success: order=%s payment=%s", order.public_id, payment.public_id)
+        
+        # --- Send Notification Emails ---
+        from core.emails import send_order_placed_buyer_email, send_order_placed_seller_email
+        order_groups = list(order.groups.all())
+        send_order_placed_buyer_email(order, order_groups)
+        for group in order_groups:
+            send_order_placed_seller_email(group)
+            
     else:
         # --- Release inventory reservations ---
         with transaction.atomic():

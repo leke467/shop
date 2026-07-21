@@ -56,7 +56,7 @@ class OrderGroupSerializer(serializers.ModelSerializer):
         model = OrderGroup
         fields = (
             "id", "shop", "shop_name", "status", "escrow_status", "subtotal",
-            "tracking_number", "tracking_url", "items",
+            "commission_fee", "tracking_number", "tracking_url", "items",
         )
 
 

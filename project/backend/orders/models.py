@@ -286,6 +286,10 @@ class OrderGroup(TimeStampedModel):
     shipping_total = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
+    commission_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0"),
+        help_text="Platform commission deducted from this order group."
+    )
     tracking_number = models.CharField(max_length=120, blank=True)
     tracking_url = models.URLField(blank=True)
     shop_notes = models.TextField(blank=True)

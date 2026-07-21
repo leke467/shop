@@ -197,6 +197,22 @@ def get_usage(user) -> UsageSnapshot:
     )
 
 
+def is_user_locked(user) -> bool:
+    """
+    Return True if the user is on the Free plan AND exceeds any limits.
+    (This enforces the 'lockout' when a subscription expires and they drop
+    back to Free but have more shops/products than Free allows).
+    """
+    usage = get_usage(user)
+    if usage.plan.code != FREE_PLAN_CODE:
+        return False
+        
+    shops_exceeded = usage.shops_limit is not None and usage.shops_used > usage.shops_limit
+    products_exceeded = usage.products_limit is not None and usage.products_used > usage.products_limit
+    
+    return shops_exceeded or products_exceeded
+
+
 # ---------------------------------------------------------------------------
 # Upgrade recommendation
 # ---------------------------------------------------------------------------

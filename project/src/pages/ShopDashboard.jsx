@@ -138,7 +138,7 @@ export default function ShopDashboard() {
 
   // KYC States
   const [kycStatus, setKycStatus] = useState('unverified')
-  const [kycForm, setKycForm] = useState({ legal_name: '', document: null })
+  const [kycForm, setKycForm] = useState({ verification_legal_name: '', id_number: '', document: null })
   const [kycSubmitting, setKycSubmitting] = useState(false)
   const [kycLoading, setKycLoading] = useState(false)
 
@@ -198,7 +198,7 @@ export default function ShopDashboard() {
     shopAPI.getVerification(slug)
       .then(data => {
         setKycStatus(data.verification_status || 'unverified')
-        setKycForm(f => ({ ...f, legal_name: data.verification_legal_name || '' }))
+        setKycForm(f => ({ ...f, verification_legal_name: data.verification_legal_name || '', id_number: data.id_number || '' }))
       })
       .catch(() => setKycStatus('unverified'))
       .finally(() => setKycLoading(false))
@@ -417,20 +417,21 @@ export default function ShopDashboard() {
 
   const handleKYCSubmit = async (e) => {
     e.preventDefault()
-    if (!kycForm.legal_name || !kycForm.document) {
-      toast('Legal name and document are required', 'error')
+    if (!kycForm.verification_legal_name || !kycForm.id_number || !kycForm.document) {
+      toast('Legal name, ID number, and document are required', 'error')
       return
     }
 
     setKycSubmitting(true)
     const formData = new FormData()
-    formData.append('legal_name', kycForm.legal_name)
-    formData.append('document', kycForm.document)
+    formData.append('verification_legal_name', kycForm.verification_legal_name)
+    formData.append('id_number', kycForm.id_number)
+    formData.append('verification_document', kycForm.document)
 
     try {
       const res = await shopAPI.submitVerification(shop.slug, formData)
       toast(res.detail || 'Verification request submitted!')
-      setKycStatus(res.verification_status || 'pending')
+      setKycStatus(res.status || 'verified')
     } catch (err) {
       toast(err.response?.data?.detail || 'Failed to submit verification request.', 'error')
     } finally {
@@ -669,9 +670,15 @@ export default function ShopDashboard() {
                             <span className="text-gray-500">Shipping</span>
                             <span className="text-gray-800">₦{Number(order.shipping_total).toLocaleString()}</span>
                           </div>
+                          {Number(order.commission_fee) > 0 && (
+                            <div className="flex justify-between text-xs font-bold mt-1">
+                              <span className="text-error-500">Platform Commission</span>
+                              <span className="text-error-600">-₦{Number(order.commission_fee).toLocaleString()}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-sm font-extrabold mt-1">
-                            <span className="text-gray-900">Total Revenue</span>
-                            <span className="text-primary-600">₦{(Number(order.subtotal) + Number(order.shipping_total)).toLocaleString()}</span>
+                            <span className="text-gray-900">Total Payout</span>
+                            <span className="text-primary-600">₦{(Number(order.subtotal) - Number(order.commission_fee || 0) + Number(order.shipping_total)).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
@@ -733,16 +740,28 @@ export default function ShopDashboard() {
                     </div>
                   </div>
 
-                  {/* Manual payout instructions */}
-                  <div className="bg-warning-50 border border-warning-200 rounded-2xl p-5 flex gap-4">
-                    <div className="text-2xl">💡</div>
-                    <div>
-                      <h5 className="font-semibold text-warning-850 text-sm">Need a payout transfer?</h5>
-                      <p className="text-xs text-warning-700 mt-1 leading-relaxed">
-                        Payout processing is currently managed by platform administrators. To request a manual withdrawal of your available balance directly to your bank account, please contact payout support with your shop slug (<strong>{shop.slug}</strong>).
-                      </p>
+                  {/* KYC-gated payout instructions */}
+                  {kycStatus !== 'verified' ? (
+                    <div className="bg-error-50 border border-error-200 rounded-2xl p-5 flex gap-4">
+                      <div className="text-2xl">🛡️</div>
+                      <div>
+                        <h5 className="font-semibold text-error-800 text-sm">Identity Verification Required</h5>
+                        <p className="text-xs text-error-700 mt-1 leading-relaxed">
+                          You must complete KYC verification before you can request payouts. Go to <button onClick={() => setTab('settings')} className="underline font-bold hover:text-error-900 transition-colors">Settings → Identity Verification</button> to submit your documents.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-warning-50 border border-warning-200 rounded-2xl p-5 flex gap-4">
+                      <div className="text-2xl">💡</div>
+                      <div>
+                        <h5 className="font-semibold text-warning-850 text-sm">Need a payout transfer?</h5>
+                        <p className="text-xs text-warning-700 mt-1 leading-relaxed">
+                          Payout processing is currently managed by platform administrators. To request a manual withdrawal of your available balance directly to your bank account, please contact payout support with your shop slug (<strong>{shop.slug}</strong>).
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Ledger entries */}
                   <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
@@ -1253,8 +1272,19 @@ export default function ShopDashboard() {
                                 type="text"
                                 required
                                 placeholder="Legal name matching document"
-                                value={kycForm.legal_name}
-                                onChange={e => setKycForm(prev => ({ ...prev, legal_name: e.target.value }))}
+                                value={kycForm.verification_legal_name}
+                                onChange={e => setKycForm(prev => ({ ...prev, verification_legal_name: e.target.value }))}
+                                className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-600 mb-1">ID Number (NIN / BVN / RC Number)</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="Enter ID number"
+                                value={kycForm.id_number}
+                                onChange={e => setKycForm(prev => ({ ...prev, id_number: e.target.value }))}
                                 className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
                               />
                             </div>
