@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
+import Logo from '../Logo'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -42,16 +43,11 @@ export default function Navbar() {
         ? 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm'
         : 'bg-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-primary-500/30 group-hover:shadow-lg transition-all">
-              M
-            </div>
-            <span className={`font-bold text-lg transition-colors ${isScrolled || !isHome ? 'text-gray-900' : 'text-white'}`}>
-              Marketplace
-            </span>
+          <Link to="/">
+            <Logo size="md" isDarkBg={!isScrolled && isHome} />
           </Link>
 
           {/* Center nav */}

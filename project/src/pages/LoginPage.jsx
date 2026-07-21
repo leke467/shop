@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
+import Logo from '../components/Logo'
 
 export default function LoginPage() {
   const { login } = useUser()

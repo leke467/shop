@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
+import Logo from '../components/Logo'
 
 export default function SignUpPage() {
   const { register } = useUser()
@@ -56,8 +57,8 @@ export default function SignUpPage() {
           transition={{ duration: 0.6 }}
         >
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-accent-600 text-white text-2xl font-bold mb-4 shadow-lg shadow-primary-500/30">
-              M
+            <div className="inline-flex items-center justify-center mb-4">
+              <Logo size="lg" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Create account</h2>
             <p className="mt-2 text-gray-500">Join thousands of buyers and sellers</p>

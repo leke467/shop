@@ -148,12 +148,16 @@ export default function ExplorePage() {
               {/* Filter toggle (mobile) */}
               <button
                 type="button"
-                onClick={() => setFiltersOpen(!filtersOpen)}
-                className="lg:hidden p-2.5 sm:p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex-shrink-0"
+                onClick={() => setFiltersOpen(true)}
+                className="lg:hidden px-3 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center gap-1.5 text-xs font-semibold text-gray-700 flex-shrink-0 relative"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
+                <span>Filters</span>
+                {(category || minPrice || maxPrice || sort !== 'newest') && (
+                  <span className="w-2 h-2 rounded-full bg-primary-600" />
+                )}
               </button>
             </div>
             
@@ -182,9 +186,9 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
-        {/* Sidebar filters */}
-        <aside className={`${filtersOpen ? 'block' : 'hidden'} lg:block w-64 flex-shrink-0`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex gap-8">
+        {/* Desktop Sidebar filters */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-6">
             {/* Sort */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
@@ -235,6 +239,123 @@ export default function ExplorePage() {
             </div>
           </div>
         </aside>
+
+        {/* Mobile Filter Drawer / Modal */}
+        <AnimatePresence>
+          {filtersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+                onClick={() => setFiltersOpen(false)} 
+              />
+              <motion.div 
+                initial={{ y: '100%' }} 
+                animate={{ y: 0 }} 
+                exit={{ y: '100%' }} 
+                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                className="relative bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto z-10 shadow-2xl flex flex-col space-y-5"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-900">Filter Results</h3>
+                  <button 
+                    onClick={() => setFiltersOpen(false)}
+                    className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 text-sm mb-2">Sort by</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {sortOptions.map(s => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => setSort(s.value)}
+                        className={`px-3 py-2 rounded-xl text-xs font-medium border text-center transition-all ${
+                          sort === s.value ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-gray-200 text-gray-600'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories */}
+                {facets?.categories?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm mb-2">Category</h4>
+                    <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
+                      <button 
+                        onClick={() => setCategory('')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          !category ? 'bg-primary-600 text-white font-semibold' : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        All Categories
+                      </button>
+                      {facets.categories.map(c => (
+                        <button 
+                          key={c.id} 
+                          onClick={() => setCategory(String(c.id))}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            category === String(c.id) ? 'bg-primary-600 text-white font-semibold' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {c.name} ({c.count})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price range */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 text-sm mb-2">Price Range (₦)</h4>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      placeholder="Min" 
+                      value={minPrice} 
+                      onChange={e => setMinPrice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border" 
+                    />
+                    <span className="text-gray-400">—</span>
+                    <input 
+                      type="number" 
+                      placeholder="Max" 
+                      value={maxPrice} 
+                      onChange={e => setMaxPrice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border" 
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 border-t border-gray-100 flex gap-3">
+                  <button 
+                    onClick={() => { setCategory(''); setMinPrice(''); setMaxPrice(''); setSort('newest'); }}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-xs sm:text-sm"
+                  >
+                    Reset All
+                  </button>
+                  <button 
+                    onClick={() => setFiltersOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-xs sm:text-sm shadow-md"
+                  >
+                    Show Results
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Results */}
         <main className="flex-1 min-w-0">
