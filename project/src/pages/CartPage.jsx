@@ -202,17 +202,17 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-12 overflow-x-hidden">
       <SEOHead title="Shopping Cart" />
-      <div className="max-w-7xl mx-auto px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Cart</h1>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 w-full box-border">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Your Cart</h1>
 
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl p-6 animate-pulse flex gap-5">
-                <div className="w-24 h-24 rounded-xl bg-gray-200" />
-                <div className="flex-1 space-y-3"><div className="h-5 bg-gray-200 rounded w-48" /><div className="h-4 bg-gray-200 rounded w-24" /></div>
+              <div key={i} className="bg-white rounded-2xl p-3.5 sm:p-6 animate-pulse flex gap-3 sm:gap-5">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-gray-200 flex-shrink-0" />
+                <div className="flex-1 space-y-3"><div className="h-5 bg-gray-200 rounded w-36 sm:w-48" /><div className="h-4 bg-gray-200 rounded w-20 sm:w-24" /></div>
               </div>
             ))}
           </div>
@@ -226,9 +226,9 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-8 min-w-0">
             {/* Items */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-4 min-w-0">
               <AnimatePresence>
                 {items.map(item => (
                   <motion.div
@@ -237,29 +237,56 @@ export default function CartPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -50 }}
-                    className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 flex gap-3 sm:gap-5"
+                    className="bg-white rounded-2xl p-3 sm:p-5 border border-gray-100 flex gap-3 sm:gap-5 min-w-0 overflow-hidden"
                   >
-                    <div className="w-18 h-18 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
-                      <img
-                        src={getImageUrl(item.image || item.variant?.image)}
-                        alt={item.product_name || item.name}
-                        className="w-full h-full object-cover"
-                        onError={e => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><rect width="24" height="24" fill="%23f3f4f6"/><text x="6" y="16" font-size="12">📦</text></svg>' }}
-                      />
+                    {/* Thumbnail */}
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center relative">
+                      {getImageUrl(item.image || item.variant?.image || item.variant_image) ? (
+                        <img
+                          src={getImageUrl(item.image || item.variant?.image || item.variant_image)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            e.target.style.display = 'none'
+                            if (e.target.nextElementSibling) {
+                              e.target.nextElementSibling.style.display = 'flex'
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-full h-full flex items-center justify-center text-gray-400 text-lg sm:text-xl bg-gray-50"
+                        style={{ display: getImageUrl(item.image || item.variant?.image || item.variant_image) ? 'none' : 'flex' }}
+                      >
+                        📦
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{item.product_name || item.name}</h3>
-                      {item.variant_name && <p className="text-sm text-gray-400">{item.variant_name}</p>}
-                      <p className="text-primary-600 font-bold mt-1">₦{Number(item.unit_price).toLocaleString()}</p>
-                    </div>
-                    <div className="flex flex-col items-end justify-between">
-                      <button onClick={() => handleRemoveItem(item.id || item.public_id)} className="text-gray-400 hover:text-error-500 transition-colors">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                      <div className={`flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden ${updating === (item.id || item.public_id) ? 'opacity-50' : ''}`}>
-                        <button onClick={() => handleUpdateQty(item.id || item.public_id, Math.max(1, item.quantity - 1))} className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 text-sm font-bold">-</button>
-                        <span className="px-3 py-1.5 text-sm font-semibold bg-gray-50 min-w-[40px] text-center">{item.quantity}</span>
-                        <button onClick={() => handleUpdateQty(item.id || item.public_id, item.quantity + 1)} className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 text-sm font-bold">+</button>
+
+                    {/* Info & Controls */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-gray-900 truncate text-xs sm:text-base">{item.product_name || item.name}</h3>
+                          {item.variant_name && <p className="text-[11px] sm:text-sm text-gray-400 truncate">{item.variant_name}</p>}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveItem(item.id || item.public_id)}
+                          className="text-gray-400 hover:text-error-500 transition-colors p-1 flex-shrink-0 -mr-1 -mt-1"
+                          title="Remove item"
+                        >
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mt-2 pt-1">
+                        <p className="text-primary-600 font-bold text-xs sm:text-base whitespace-nowrap">₦{Number(item.unit_price).toLocaleString()}</p>
+                        <div className={`flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0 ${updating === (item.id || item.public_id) ? 'opacity-50' : ''}`}>
+                          <button onClick={() => handleUpdateQty(item.id || item.public_id, Math.max(1, item.quantity - 1))} className="px-2 py-0.5 sm:px-2.5 sm:py-1.5 text-gray-500 hover:bg-gray-50 text-xs sm:text-sm font-bold">-</button>
+                          <span className="px-1.5 py-0.5 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-semibold bg-gray-50 min-w-[24px] sm:min-w-[40px] text-center">{item.quantity}</span>
+                          <button onClick={() => handleUpdateQty(item.id || item.public_id, item.quantity + 1)} className="px-2 py-0.5 sm:px-2.5 sm:py-1.5 text-gray-500 hover:bg-gray-50 text-xs sm:text-sm font-bold">+</button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -268,19 +295,19 @@ export default function CartPage() {
             </div>
 
             {/* Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 sticky top-24">
+            <div className="lg:col-span-1 min-w-0">
+              <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 sticky top-24 min-w-0 overflow-hidden box-border">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Subtotal ({items.length} items)</span><span className="font-semibold">₦{subtotal.toLocaleString()}</span></div>
+                <div className="space-y-3 text-sm min-w-0">
+                  <div className="flex justify-between items-center gap-2"><span className="text-gray-500 truncate">Subtotal ({items.length} items)</span><span className="font-semibold flex-shrink-0">₦{subtotal.toLocaleString()}</span></div>
 
                   {/* Delivery state selector */}
-                  <div className="pt-3 border-t border-gray-100">
+                  <div className="pt-3 border-t border-gray-100 min-w-0">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Delivery State</label>
                     <select
                       value={selectedState}
                       onChange={e => setSelectedState(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 box-border"
                     >
                       <option value="">Select your state…</option>
                       {NIGERIAN_STATES.map(s => (
@@ -291,34 +318,34 @@ export default function CartPage() {
 
                   {/* Delivery fee breakdown */}
                   {selectedState && !deliveryLoading && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0">
                       {shopSlugs.map(slug => {
                         const d = deliveryFees[slug]
                         const isManualAllowed = shopSettings[slug]?.allow_manual_delivery
                         const isManualSelected = manualDeliverySelected[slug]
 
                         return (
-                          <div key={slug} className="flex flex-col space-y-2 pb-2 border-b border-gray-50 last:border-0 last:pb-0">
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-500 font-medium truncate mr-2">Delivery ({slug})</span>
+                          <div key={slug} className="flex flex-col space-y-2 pb-2 border-b border-gray-50 last:border-0 last:pb-0 min-w-0">
+                            <div className="flex justify-between items-center gap-2 min-w-0">
+                              <span className="text-gray-500 font-medium truncate min-w-0 flex-1 text-xs sm:text-sm">Delivery ({slug})</span>
                               {isManualSelected ? (
-                                <span className="font-semibold text-gray-700">₦0</span>
+                                <span className="font-semibold text-gray-700 flex-shrink-0 text-xs sm:text-sm">₦0</span>
                               ) : d?.available ? (
-                                <span className="font-semibold text-gray-700">₦{d.fee.toLocaleString()}</span>
+                                <span className="font-semibold text-gray-700 flex-shrink-0 text-xs sm:text-sm">₦{d.fee.toLocaleString()}</span>
                               ) : (
-                                <span className="text-error-600 text-xs font-medium">Unavailable</span>
+                                <span className="text-error-600 text-xs font-medium flex-shrink-0">Unavailable</span>
                               )}
                             </div>
                             
                             {isManualAllowed && (
-                              <label className="flex items-center gap-2 cursor-pointer bg-gray-50 p-2 rounded-lg">
+                              <label className="flex items-center gap-2 cursor-pointer bg-gray-50 p-2 rounded-lg min-w-0">
                                 <input 
                                   type="checkbox" 
-                                  className="rounded text-primary-600 focus:ring-primary-500 w-4 h-4"
+                                  className="rounded text-primary-600 focus:ring-primary-500 w-4 h-4 flex-shrink-0"
                                   checked={!!isManualSelected}
                                   onChange={(e) => setManualDeliverySelected(prev => ({ ...prev, [slug]: e.target.checked }))}
                                 />
-                                <span className="text-xs text-gray-700">Arrange delivery manually with seller</span>
+                                <span className="text-xs text-gray-700 truncate">Arrange delivery manually with seller</span>
                               </label>
                             )}
                           </div>
@@ -348,20 +375,20 @@ export default function CartPage() {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="mt-4 p-3 rounded-xl bg-error-50 border border-error-200"
+                      className="mt-4 p-3 rounded-xl bg-error-50 border border-error-200 min-w-0"
                     >
-                      <p className="text-sm text-error-700 font-medium mb-2">
+                      <p className="text-xs sm:text-sm text-error-700 font-medium mb-2">
                         ⚠️ Delivery to {NIGERIAN_STATES.find(s => s.value === selectedState)?.label} isn't available for:
                       </p>
                       {unresolvedShops.map(slug => (
-                        <div key={slug} className="mt-2">
-                          <p className="text-sm text-error-600 font-semibold">{slug}</p>
+                        <div key={slug} className="mt-2 min-w-0">
+                          <p className="text-xs sm:text-sm text-error-600 font-semibold break-all">{slug}</p>
                           {noteSent[slug] ? (
                             <p className="text-xs text-success-600 mt-1">✅ Note sent! The shop owner will see your request.</p>
                           ) : (
                             <button
                               onClick={() => setShowNoteForm(showNoteForm === slug ? null : slug)}
-                              className="text-xs text-primary-600 hover:text-primary-700 font-medium mt-1 underline"
+                              className="text-xs text-primary-600 hover:text-primary-700 font-medium mt-1 underline block"
                             >
                               📩 Contact shop owner about delivery
                             </button>
@@ -374,32 +401,32 @@ export default function CartPage() {
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="mt-2 space-y-2"
+                                className="mt-2 space-y-2 min-w-0"
                               >
                                 <input
                                   placeholder="Your name"
                                   value={noteForm.sender_name}
                                   onChange={e => setNoteForm(p => ({ ...p, sender_name: e.target.value }))}
-                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border"
                                 />
                                 <input
                                   placeholder="Your email"
                                   type="email"
                                   value={noteForm.sender_email}
                                   onChange={e => setNoteForm(p => ({ ...p, sender_email: e.target.value }))}
-                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border"
                                 />
                                 <textarea
                                   placeholder="Leave a note for the shop owner (optional)"
                                   rows={2}
                                   value={noteForm.message}
                                   onChange={e => setNoteForm(p => ({ ...p, message: e.target.value }))}
-                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 resize-none"
+                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 resize-none box-border"
                                 />
                                 <motion.button
                                   onClick={() => handleSendNote(slug)}
                                   disabled={noteSending || !noteForm.sender_name || !noteForm.sender_email}
-                                  className="w-full py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                                  className="w-full py-2 rounded-lg bg-primary-600 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 transition-colors"
                                   whileTap={{ scale: 0.97 }}
                                 >
                                   {noteSending ? 'Sending…' : 'Send Note'}
@@ -417,33 +444,33 @@ export default function CartPage() {
                   <motion.button
                     onClick={onProceedToCheckout}
                     disabled={!canCheckout}
-                    className="w-full mt-6 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full mt-6 py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-xs sm:text-base shadow-lg shadow-primary-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     whileHover={canCheckout ? { scale: 1.01 } : {}}
                     whileTap={canCheckout ? { scale: 0.98 } : {}}
                   >
-                    {!selectedState ? 'Select delivery state to continue' : 'Proceed to Checkout'}
+                    {!selectedState ? 'Select state to continue' : 'Proceed to Checkout'}
                   </motion.button>
                 ) : (
                   <motion.form
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     onSubmit={handleCheckout}
-                    className="mt-6 space-y-4"
+                    className="mt-6 space-y-4 min-w-0"
                   >
-                    <h4 className="font-semibold text-gray-900">Shipping Details</h4>
+                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Shipping Details</h4>
                     
                     {/* Safety Banner */}
-                    <div className="p-3.5 rounded-xl bg-warning-50 border border-warning-200 space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-warning-850 uppercase tracking-wider">
+                    <div className="p-3 sm:p-3.5 rounded-xl bg-warning-50 border border-warning-200 space-y-1 overflow-hidden">
+                      <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-warning-850 uppercase tracking-wider">
                         🛡️ Escrow Protected Purchase
                       </div>
-                      <p className="text-xs text-warning-700 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-warning-700 leading-relaxed">
                         Your payment is held securely in escrow. Do not share your delivery code with the seller until you have received and inspected the products.
                       </p>
                     </div>
 
                     {checkoutError && (
-                      <div className="p-3 rounded-xl bg-error-50 border border-error-200 text-error-700 text-sm">{checkoutError}</div>
+                      <div className="p-3 rounded-xl bg-error-50 border border-error-200 text-error-700 text-xs sm:text-sm">{checkoutError}</div>
                     )}
                     {[
                       { name: 'full_name', label: 'Full Name', required: true },
@@ -462,25 +489,25 @@ export default function CartPage() {
                         maxLength={f.maxLength}
                         value={checkoutForm[f.name]}
                         onChange={e => setCheckoutForm(prev => ({ ...prev, [f.name]: e.target.value }))}
-                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 box-border"
                       />
                     ))}
 
                     {/* State (read-only — already selected above) */}
-                    <div className="px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-sm">
+                    <div className="px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-xs sm:text-sm truncate">
                       📍 Delivering to: <strong>{NIGERIAN_STATES.find(s => s.value === selectedState)?.label}</strong>
                     </div>
 
                     {/* Payment provider */}
                     <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">Payment</label>
+                      <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 block">Payment</label>
                       <div className="flex gap-2">
                         {['stripe', 'paystack'].map(p => (
                           <button
                             key={p}
                             type="button"
                             onClick={() => setCheckoutForm(prev => ({ ...prev, provider: p }))}
-                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ${
+                            className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium border-2 transition-all ${
                               checkoutForm.provider === p
                                 ? 'border-primary-500 bg-primary-50 text-primary-700'
                                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -495,7 +522,7 @@ export default function CartPage() {
                     <motion.button
                       type="submit"
                       disabled={checkoutLoading}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-success-600 to-success-500 text-white font-semibold shadow-lg shadow-success-500/25 disabled:opacity-60 transition-all"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-success-600 to-success-500 text-white font-semibold text-xs sm:text-base shadow-lg shadow-success-500/25 disabled:opacity-60 transition-all"
                       whileTap={{ scale: 0.98 }}
                     >
                       {checkoutLoading ? 'Processing…' : `Pay ₦${grandTotal.toLocaleString()}`}
