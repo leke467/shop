@@ -75,6 +75,7 @@ def send_order_placed_seller_email(order_group):
 def send_escrow_released_email(order_group, amount_released):
     """
     Notify seller that escrow funds have been released to their wallet.
+    
     """
     shop = order_group.shop
     if not shop.owner:
