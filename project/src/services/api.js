@@ -263,6 +263,30 @@ export const orderAPI = {
   checkout: (data) =>
     api.post('/payments/checkout/', data).then(r => r.data),
 
+  // Bank transfer (manual NGN transfer)
+  bankTransferAccounts: () =>
+    api.get('/payments/bank-transfer/accounts/').then(r => r.data),
+  bankTransferStatus: (orderId) =>
+    api.get(`/payments/bank-transfer/status/${orderId}/`).then(r => r.data),
+
+  bankTransferConfirm: (paymentId) =>
+    api.post('/payments/bank-transfer/confirm/', { payment: paymentId }).then(r => r.data),
+
+
+  // Paystack Verify
+  verifyPaystack: (reference) =>
+    api.get(`/payments/paystack/verify/${reference}/`).then(r => r.data),
+
+  // Monnify Verify
+  verifyMonnify: (reference) =>
+    api.get(`/payments/monnify/verify/${reference}/`).then(r => r.data),
+
+  // Buyer Refund Requests
+  refundRequests: () =>
+    api.get('/payments/refund-requests/').then(r => r.data),
+  requestRefund: (data) =>
+    api.post('/payments/refund-requests/', data).then(r => r.data),
+
   // Escrow & Delivery Code
   deliveryCodes: (orderId) =>
     api.get(`/orders/${orderId}/delivery-codes/`).then(r => r.data),

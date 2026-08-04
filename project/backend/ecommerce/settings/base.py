@@ -44,6 +44,39 @@ def env_list(key: str, default: str = "") -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _bank_transfer_accounts() -> list[dict]:
+    """
+    Build the list of manual bank-transfer destination accounts from env.
+
+    Reads indexed variables ``BANK_ACCOUNT_NUMBER_1``, ``BANK_NAME_1``,
+    ``BANK_ACCOUNT_NAME_1`` (and _2, _3, …). An account is only included if it
+    has an account number, so empty placeholders are skipped automatically.
+    Falls back to legacy single-account vars (``BANK_ACCOUNT_NUMBER`` etc.).
+    """
+    accounts: list[dict] = []
+    for i in range(1, 11):  # support up to 10 accounts
+        number = env(f"BANK_ACCOUNT_NUMBER_{i}", "")
+        if not number:
+            continue
+        accounts.append({
+            "account_name": env(f"BANK_ACCOUNT_NAME_{i}", "Marketplace Escrow"),
+            "account_number": number,
+            "bank_name": env(f"BANK_NAME_{i}", ""),
+        })
+
+    # Legacy single-account fallback (pre multi-bank support).
+    if not accounts:
+        legacy_number = env("BANK_ACCOUNT_NUMBER", "")
+        accounts.append({
+            "account_name": env("BANK_ACCOUNT_NAME", "Marketplace Escrow"),
+            "account_number": legacy_number,
+            "bank_name": env("BANK_NAME", ""),
+        })
+
+    return accounts
+
+
+
 # ---------------------------------------------------------------------------
 # Core security
 # ---------------------------------------------------------------------------
@@ -357,6 +390,20 @@ PAYMENTS = {
         "SECRET_KEY": env("PAYSTACK_SECRET_KEY", ""),
         "PUBLIC_KEY": env("PAYSTACK_PUBLIC_KEY", ""),
         "WEBHOOK_SECRET": env("PAYSTACK_WEBHOOK_SECRET", ""),
+    },
+    "MONNIFY": {
+        "API_KEY": env("MONNIFY_API_KEY", ""),
+        "SECRET_KEY": env("MONNIFY_SECRET_KEY", ""),
+        "CONTRACT_CODE": env("MONNIFY_CONTRACT_CODE", ""),
+        "BASE_URL": env("MONNIFY_BASE_URL", "https://sandbox.monnify.com"),
+    },
+    # Manual bank transfer (popular in Nigeria). Buyer transfers to one of
+    # the configured accounts (e.g. UBA, Opay, Moniepoint) with a unique
+    # reference, then the payment is confirmed by an admin (or via automated
+    # reconciliation) before the order is released from escrow.
+    "BANK_TRANSFER": {
+        "ACCOUNTS": _bank_transfer_accounts(),
+        "REFERENCE_PREFIX": env("BANK_REFERENCE_PREFIX", "MKT"),
     },
 }
 

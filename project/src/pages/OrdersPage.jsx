@@ -10,6 +10,14 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Refund request modal state
+  const [showRefundModal, setShowRefundModal] = useState(false)
+  const [refundGroup, setRefundGroup] = useState(null)
+  const [refundReason, setRefundReason] = useState('not_received')
+  const [refundDescription, setRefundDescription] = useState('')
+  const [requestingRefund, setRequestingRefund] = useState(false)
+  const [refundRequests, setRefundRequests] = useState([])
+
   // Dispute modal state
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeGroup, setDisputeGroup] = useState(null)
@@ -20,14 +28,22 @@ export default function OrdersPage() {
   const [deliveryCodes, setDeliveryCodes] = useState({})
   const [loadingCodes, setLoadingCodes] = useState({})
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true)
-    orderAPI.list()
-      .then(data => {
-        setOrders(data.results || data)
+    Promise.all([
+      orderAPI.list(),
+      orderAPI.refundRequests().catch(() => []),
+    ])
+      .then(([ordersData, refundData]) => {
+        setOrders(ordersData.results || ordersData)
+        setRefundRequests(Array.isArray(refundData) ? refundData : (refundData?.results || []))
       })
-      .catch(err => console.error('Failed to load orders', err))
+      .catch(err => console.error('Failed to load orders/refunds', err))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
   const fetchDeliveryCodes = async (orderId) => {
@@ -59,14 +75,33 @@ export default function OrdersPage() {
       const res = await orderAPI.disputeOrder(disputeGroup.id, disputeReason)
       setShowDisputeModal(false)
       setDisputeReason('')
-      // Refresh orders by re-fetching
-      const data = await orderAPI.list()
-      setOrders(data.results || data)
+      loadData()
       alert(res.detail || 'Dispute opened successfully.')
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to open dispute.')
     } finally {
       setDisputing(false)
+    }
+  }
+
+  const handleRequestRefund = async (e) => {
+    e.preventDefault()
+    if (!refundGroup) return
+    setRequestingRefund(true)
+    try {
+      await orderAPI.requestRefund({
+        order_group: refundGroup.id,
+        reason: refundReason,
+        description: refundDescription,
+      })
+      setShowRefundModal(false)
+      setRefundDescription('')
+      loadData()
+      alert('Refund request submitted successfully! Our team will review it.')
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to submit refund request.')
+    } finally {
+      setRequestingRefund(false)
     }
   }
 
@@ -134,7 +169,7 @@ export default function OrdersPage() {
                               {group.shop_name?.[0] || 'S'}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Link to={`/shop/${group.shop}`} className="font-semibold text-gray-900 hover:text-primary-600 transition-colors text-sm sm:text-base truncate block">
+                              <Link to={`/shop/${group.shop_slug || group.shop}`} className="font-semibold text-gray-900 hover:text-primary-600 transition-colors text-sm sm:text-base truncate block">
                                 {group.shop_name}
                               </Link>
                               <div className="text-xs sm:text-sm text-gray-500">Status: <span className="font-medium text-gray-700">{group.status}</span></div>
@@ -172,6 +207,36 @@ export default function OrdersPage() {
                                 Disputed
                               </span>
                             )}
+
+                            {/* Refund Request button / status badge */}
+                            {(() => {
+                              const existingRR = refundRequests.find(rr => rr.order_group === group.id)
+                              if (existingRR) {
+                                return (
+                                  <span className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg ${
+                                    existingRR.status === 'approved' ? 'bg-success-100 text-success-700' :
+                                    existingRR.status === 'rejected' ? 'bg-gray-100 text-gray-600' :
+                                    'bg-warning-100 text-warning-800'
+                                  }`}>
+                                    Refund {existingRR.status_display || existingRR.status}
+                                  </span>
+                                )
+                              }
+                              if (group.escrow_status !== 'refunded') {
+                                return (
+                                  <button
+                                    onClick={() => {
+                                      setRefundGroup(group)
+                                      setShowRefundModal(true)
+                                    }}
+                                    className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+                                  >
+                                    Request Refund
+                                  </button>
+                                )
+                              }
+                              return null
+                            })()}
                           </div>
                         </div>
 
@@ -242,6 +307,59 @@ export default function OrdersPage() {
                     <button type="button" onClick={() => setShowDisputeModal(false)} className="px-4 py-2 text-xs sm:text-sm text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
                     <button type="submit" disabled={disputing || !disputeReason.trim()} className="px-4 py-2 bg-error-600 hover:bg-error-700 text-white font-medium text-xs sm:text-sm rounded-xl transition-colors disabled:opacity-50">
                       {disputing ? 'Submitting...' : 'Open Dispute'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Refund Request Modal */}
+      <AnimatePresence>
+        {showRefundModal && refundGroup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowRefundModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden min-w-0">
+              <div className="p-5 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Request Refund</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-6 leading-relaxed">
+                  Submit a refund request for your order from <strong>{refundGroup.shop_name}</strong>. Our support team will review your request.
+                </p>
+                
+                <form onSubmit={handleRequestRefund}>
+                  <div className="mb-4">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reason for Refund</label>
+                    <select
+                      value={refundReason}
+                      onChange={e => setRefundReason(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none box-border"
+                    >
+                      <option value="not_received">Item not received</option>
+                      <option value="wrong_item">Wrong item received</option>
+                      <option value="damaged">Item arrived damaged</option>
+                      <option value="not_as_described">Item not as described</option>
+                      <option value="changed_mind">Changed my mind</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea 
+                      value={refundDescription}
+                      onChange={e => setRefundDescription(e.target.value)}
+                      required
+                      rows="4"
+                      placeholder="Explain why you are requesting a refund..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none box-border"
+                    ></textarea>
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <button type="button" onClick={() => setShowRefundModal(false)} className="px-4 py-2 text-xs sm:text-sm text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                    <button type="submit" disabled={requestingRefund || !refundDescription.trim()} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium text-xs sm:text-sm rounded-xl transition-colors disabled:opacity-50">
+                      {requestingRefund ? 'Submitting...' : 'Submit Refund Request'}
                     </button>
                   </div>
                 </form>

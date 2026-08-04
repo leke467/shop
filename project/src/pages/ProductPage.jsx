@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { productAPI, getImageUrl, orderAPI } from '../services/api'
+import { productAPI, shopAPI, getImageUrl, orderAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 import SEOHead from '../components/SEOHead'
@@ -30,7 +30,7 @@ export default function ProductPage() {
     e.preventDefault()
     setReporting(true)
     try {
-      await shopAPI.reportShop(product.shop.slug, { reason: reportReason, details: reportDetails })
+      await shopAPI.reportShop(product.shop_slug, { reason: reportReason, description: reportDetails })
       setReportSuccess(true)
       setTimeout(() => {
         setShowReportModal(false)
@@ -206,13 +206,13 @@ export default function ProductPage() {
           <div className="lg:pt-4">
             {/* Shop link and Report */}
             <div className="flex items-center justify-between mb-3">
-              <Link to={`/shop/${product.shop?.slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors">
+              <Link to={`/shop/${product.shop_slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center text-white text-xs font-bold">
-                  {product.shop?.name?.[0] || 'S'}
+                  {product.shop_name?.[0] || 'S'}
                 </div>
-                {product.shop?.name || 'Shop'}
+                {product.shop_name || 'Shop'}
               </Link>
-              {product.shop && (
+              {product.shop_slug && (
                 <button
                   onClick={() => setShowReportModal(true)}
                   className="text-xs text-gray-400 hover:text-error-600 transition-colors flex items-center gap-1"
@@ -364,8 +364,8 @@ export default function ProductPage() {
                         >
                           <option value="scam">Scam / Fraud</option>
                           <option value="fake_products">Counterfeit / Fake Products</option>
+                          <option value="non_delivery">Never Received Order</option>
                           <option value="harassment">Harassment / Abusive Behavior</option>
-                          <option value="inappropriate">Inappropriate Content</option>
                           <option value="other">Other</option>
                         </select>
                       </div>

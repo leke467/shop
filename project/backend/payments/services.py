@@ -131,7 +131,7 @@ def checkout(
                 group = OrderGroup.objects.create(
                     order=order,
                     shop=shop,
-                    status=OrderGroup.Status.PENDING,
+                    status=OrderGroup.FulfilmentStatus.PENDING,
                     subtotal=Decimal("0"),
                     shipping_total=shipping_fee,
                     delivery_code=OrderGroup.generate_delivery_code(),
@@ -144,6 +144,7 @@ def checkout(
             line_total = item.unit_price * item.quantity
             OrderItem.objects.create(
                 group=group,
+                variant=item.variant,
                 product_name=item.variant.product.name,
                 variant_name=item.variant.name,
                 sku=item.variant.sku,
@@ -181,7 +182,50 @@ def checkout(
         **provider_kwargs,
     )
 
-    # Create Payment + Transaction records.
+    # --- Pending (out-of-band) payments ---
+    # Covers: manual bank transfer, Paystack (popup completes later), etc.
+    # The charge "succeeded" in the sense that we captured the buyer's intent,
+    # but no funds have moved yet.  Keep the order and inventory reserved and
+    # hand back the provider-specific data (transfer details or access_code).
+    # Confirmation happens later via webhook or the verify endpoint.
+    if result.success and result.pending:
+        payment = Payment.objects.create(
+            order=order,
+            user=user,
+            provider=provider,
+            amount=order.grand_total,
+            currency=order.currency,
+            idempotency_key=idempotency_key,
+            provider_payment_id=result.provider_payment_id,
+            status=Payment.Status.AWAITING_TRANSFER,
+            metadata={"transfer": result.raw_response},
+        )
+        Transaction.objects.create(
+            payment=payment,
+            kind=Transaction.Kind.CHARGE,
+            status=Transaction.Status.PENDING,
+            amount=order.grand_total,
+            currency=order.currency,
+            provider_txn_id=result.provider_txn_id,
+            provider_response=result.raw_response,
+        )
+        logger.info(
+            "Pending payment initiated: provider=%s order=%s payment=%s ref=%s",
+            provider, order.public_id, payment.public_id, result.provider_payment_id,
+        )
+        # Attach the payment data so the view can surface it to the frontend
+        # (bank transfer details, Paystack access_code, etc.).
+        order._payment_instructions = {
+            "provider": provider,
+            "status": payment.status,
+            "reference": result.provider_payment_id,
+            "amount": str(order.grand_total),
+            "currency": order.currency,
+            **result.raw_response,
+        }
+        return order
+
+    # --- Synchronous capture (e.g. Stripe immediate capture) ---
     payment = Payment.objects.create(
         order=order,
         user=user,
@@ -208,33 +252,8 @@ def checkout(
     )
 
     if result.success:
-        # --- Confirm order ---
-        order.status = Order.Status.CONFIRMED
-        order.confirmed_at = timezone.now()
-        order.save(update_fields=["status", "confirmed_at"])
-
-        # Deduct reserved → actual stock.
-        with transaction.atomic():
-            for item in cart_items:
-                inv = inventories.get(item.variant_id)
-                if inv and inv.track_inventory:
-                    Inventory.objects.filter(pk=inv.pk).update(
-                        quantity=models_F("quantity") - item.quantity,
-                        reserved=models_F("reserved") - item.quantity,
-                    )
-
-        # Clear the cart.
-        cart.items.all().delete()
-
-        logger.info("Checkout success: order=%s payment=%s", order.public_id, payment.public_id)
-        
-        # --- Send Notification Emails ---
-        from core.emails import send_order_placed_buyer_email, send_order_placed_seller_email
-        order_groups = list(order.groups.all())
-        send_order_placed_buyer_email(order, order_groups)
-        for group in order_groups:
-            send_order_placed_seller_email(group)
-            
+        # Confirm immediately (synchronous providers like Stripe).
+        confirm_pending_payment(payment)
     else:
         # --- Release inventory reservations ---
         with transaction.atomic():
@@ -318,3 +337,123 @@ def process_refund(
         raise CheckoutError(f"Refund failed: {result.error_message}")
 
     return refund
+
+
+# ---------------------------------------------------------------------------
+# Shared: confirm a pending payment and its order
+# ---------------------------------------------------------------------------
+
+def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
+    """
+    Mark a pending/awaiting payment as captured and confirm its order.
+
+    This is the **single entry point** for transitioning a payment from a
+    pending state (``AWAITING_TRANSFER`` or ``PENDING``) to ``CAPTURED``.
+    It is called by:
+      - The Paystack/Stripe webhook handler (auto-confirmation)
+      - The ``confirm_bank_transfer`` admin action
+      - The ``PaystackVerifyView`` (frontend verify-after-popup)
+      - Synchronous capture in ``checkout()`` (Stripe instant)
+
+    Steps:
+      1. Mark payment as CAPTURED.
+      2. Mark pending transactions as SUCCESS.
+      3. Confirm the order (status → CONFIRMED).
+      4. Confirm each escrow group (HELD but funded).
+      5. Deduct reserved → actual stock.
+      6. Clear the buyer's cart.
+      7. Send notification emails.
+
+    Raises CheckoutError if the payment is already captured/cancelled.
+    """
+    # Already captured — idempotent, just return.
+    if payment.status == Payment.Status.CAPTURED:
+        return
+
+    allowed = (Payment.Status.AWAITING_TRANSFER, Payment.Status.PENDING, Payment.Status.PROCESSING)
+    if payment.status not in allowed:
+        raise CheckoutError(
+            f"Cannot confirm a payment in status {payment.status!r}."
+        )
+
+    from orders.models import Order, OrderGroup, OrderItem
+    from products.models import Inventory
+
+    order = payment.order
+    with transaction.atomic():
+        payment.status = Payment.Status.CAPTURED
+        payment.captured_at = timezone.now()
+        if verified_by:
+            if isinstance(payment.metadata, dict):
+                payment.metadata.setdefault("verified_by", str(verified_by))
+            else:
+                payment.metadata = {"verified_by": str(verified_by)}
+        payment.save(update_fields=["status", "captured_at", "metadata"])
+
+        Transaction.objects.filter(
+            payment=payment, status=Transaction.Status.PENDING,
+        ).update(
+            status=Transaction.Status.SUCCESS,
+            error_code="",
+            error_message="",
+        )
+
+        # Confirm the order (only if still pending).
+        if order.status in (Order.Status.PENDING, Order.Status.CONFIRMED):
+            order.status = Order.Status.CONFIRMED
+            order.confirmed_at = order.confirmed_at or timezone.now()
+            order.save(update_fields=["status", "confirmed_at"])
+
+        # Confirm each escrow group (still HELD, but now funded).
+        OrderGroup.objects.filter(
+            order=order, status=OrderGroup.FulfilmentStatus.PENDING,
+        ).update(status=OrderGroup.FulfilmentStatus.ACCEPTED)
+
+        # Deduct reserved → actual stock.
+        for item in OrderItem.objects.filter(group__order=order):
+            if item.variant_id:
+                Inventory.objects.filter(
+                    variant_id=item.variant_id, track_inventory=True,
+                ).update(
+                    quantity=models_F("quantity") - item.quantity,
+                    reserved=models_F("reserved") - item.quantity,
+                )
+
+    # Clear the buyer's cart.
+    cart = Cart.objects.filter(user=order.user).first()
+    if cart:
+        variant_ids = list(
+            OrderItem.objects.filter(group__order=order).values_list(
+                "variant_id", flat=True,
+            )
+        )
+        cart.items.filter(variant_id__in=variant_ids).delete()
+
+    # Emails
+    try:
+        from core.emails import send_order_placed_buyer_email, send_order_placed_seller_email
+        order_groups = list(order.groups.all())
+        send_order_placed_buyer_email(order, order_groups)
+        for group in order_groups:
+            send_order_placed_seller_email(group)
+    except Exception:
+        logger.exception("Failed to send order emails after payment confirmation")
+
+    logger.info(
+        "Payment confirmed: provider=%s payment=%s order=%s ref=%s",
+        payment.provider, payment.public_id, order.public_id,
+        payment.provider_payment_id,
+    )
+
+
+def confirm_bank_transfer(payment: Payment, *, verified_by=None) -> None:
+    """
+    Legacy convenience wrapper — confirms a bank transfer payment.
+
+    Delegates entirely to ``confirm_pending_payment``.
+    """
+    if payment.status != Payment.Status.AWAITING_TRANSFER:
+        raise CheckoutError(
+            f"Cannot confirm a payment in status {payment.status!r}."
+        )
+    confirm_pending_payment(payment, verified_by=verified_by)

@@ -45,6 +45,9 @@ class Payment(BaseModel):
 
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
+        # Buyer chose bank transfer; we're waiting for the funds to land and
+        # be confirmed. Order stays reserved (not deducted) until captured.
+        AWAITING_TRANSFER = "awaiting_transfer", _("Awaiting bank transfer")
         PROCESSING = "processing", _("Processing")
         CAPTURED = "captured", _("Captured")
         FAILED = "failed", _("Failed")
@@ -55,6 +58,8 @@ class Payment(BaseModel):
     class Provider(models.TextChoices):
         STRIPE = "stripe", _("Stripe")
         PAYSTACK = "paystack", _("Paystack")
+        MONNIFY = "monnify", _("Monnify (Moniepoint)")
+        BANK_TRANSFER = "bank_transfer", _("Bank transfer")
 
     order = models.ForeignKey(
         "orders.Order",
@@ -258,3 +263,70 @@ class WebhookEvent(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Webhook<{self.event_id}> {self.event_type} ({self.status})"
+
+
+class RefundRequest(BaseModel):
+    """
+    Buyer-initiated refund request.
+
+    The buyer submits a reason and description; an admin reviews and either
+    approves (triggering ``process_refund``) or rejects with notes.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending review")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+
+    class Reason(models.TextChoices):
+        NOT_RECEIVED = "not_received", _("Item not received")
+        WRONG_ITEM = "wrong_item", _("Wrong item received")
+        DAMAGED = "damaged", _("Item arrived damaged")
+        NOT_AS_DESCRIBED = "not_as_described", _("Item not as described")
+        CHANGED_MIND = "changed_mind", _("Changed my mind")
+        OTHER = "other", _("Other")
+
+    order_group = models.ForeignKey(
+        "orders.OrderGroup",
+        on_delete=models.CASCADE,
+        related_name="refund_requests",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="refund_requests",
+    )
+    reason = models.CharField(max_length=24, choices=Reason.choices)
+    description = models.TextField(
+        help_text="Detailed description of the issue.",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Notes from the admin when approving or rejecting.",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_refund_requests",
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"RefundRequest<{self.public_id}> "
+            f"{self.get_reason_display()} ({self.status})"
+        )

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 function ShopCard({ shop }) {
   return (
-    <Link to={`/shop/${shop.id}`}>
+    <Link to={`/shop/${shop.slug || shop.id}`}>
       <motion.div 
         whileHover={{ y: -5 }}
         className="overflow-hidden rounded-xl shadow-md bg-white h-full"

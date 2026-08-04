@@ -51,11 +51,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderGroupSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     shop_name = serializers.CharField(source="shop.name", read_only=True)
+    shop_slug = serializers.CharField(source="shop.slug", read_only=True)
 
     class Meta:
         model = OrderGroup
         fields = (
-            "id", "shop", "shop_name", "status", "escrow_status", "subtotal",
+            "id", "shop", "shop_name", "shop_slug", "status", "escrow_status", "subtotal",
             "commission_fee", "tracking_number", "tracking_url", "items",
         )
 

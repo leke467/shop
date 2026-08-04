@@ -55,17 +55,28 @@ function generateIdempotencyKey() {
 
 export default function CartPage() {
   const { isAuthenticated } = useUser()
-  const { items, updateQty, removeItem, total, loading } = useCart()
+  const { items, updateQty, removeItem, total, loading, refreshCart } = useCart()
+
   const navigate = useNavigate()
   const [updating, setUpdating] = useState(null)
   const [showCheckout, setShowCheckout] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
   const [checkoutForm, setCheckoutForm] = useState({
-    provider: 'paystack',
+    provider: 'monnify',
     full_name: '', phone: '', email: '',
     line1: '', line2: '', city: '', state: '', postal_code: '', country: 'NG',
   })
+
+  // Bank transfer (manual) state — instructions shown after placing the order.
+  const [transferInstructions, setTransferInstructions] = useState(null)
+  const [transferCopied, setTransferCopied] = useState(null)
+  const [transferRefreshing, setTransferRefreshing] = useState(false)
+  const [transferStatus, setTransferStatus] = useState(null)
+  // Destination bank accounts (UBA, Opay, Moniepoint…) the buyer picks from.
+  const [bankAccounts, setBankAccounts] = useState([])
+  const [selectedBankIndex, setSelectedBankIndex] = useState(0)
+
 
   // Delivery fee state
   const [selectedState, setSelectedState] = useState('')
@@ -130,8 +141,18 @@ export default function CartPage() {
     })
   }, [selectedState, shopSlugs.join(',')])
 
+  // Fetch available bank transfer accounts (UBA, Opay, Moniepoint…) once the
+  // buyer picks the bank transfer option, so they can choose where to send funds.
+  useEffect(() => {
+    if (checkoutForm.provider !== 'bank_transfer' || bankAccounts.length > 0) return
+    orderAPI.bankTransferAccounts()
+      .then(d => setBankAccounts(d.accounts || []))
+      .catch(() => {})
+  }, [checkoutForm.provider])
+
   // Calculate total delivery fee
   const totalDeliveryFee = useMemo(() => {
+
     return Object.keys(deliveryFees).reduce((sum, slug) => {
       if (manualDeliverySelected[slug]) return sum
       return sum + (deliveryFees[slug].fee || 0)
@@ -166,8 +187,102 @@ export default function CartPage() {
         state: selectedState,
         delivery_state: selectedState,
         manual_delivery_shops: Object.keys(manualDeliverySelected).filter(s => manualDeliverySelected[s]),
+        bank_index: selectedBankIndex,
         idempotency_key: generateIdempotencyKey(),
       })
+
+      // Monnify (Moniepoint) inline popup flow
+      if (result.payment && result.payment.provider === 'monnify') {
+        const monnifyData = result.payment
+        const reference = monnifyData.payment_reference || monnifyData.reference
+
+        if (window.MonnifySDK) {
+          window.MonnifySDK.initialize({
+            amount: grandTotal,
+            currency: 'NGN',
+            currencyCode: 'NGN',
+            customerName: checkoutForm.full_name || user?.email || 'Customer',
+            customerEmail: checkoutForm.email || user?.email,
+            paymentReference: reference,
+            paymentDescription: `Order ${result.order?.public_id || ''}`,
+            contractCode: monnifyData.contractCode || '8757701677',
+            apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
+            isTestMode: true,
+            onComplete: function(response) {
+              setCheckoutLoading(true)
+              orderAPI.verifyMonnify(reference)
+                .then(() => {
+                  refreshCart()
+                  navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+                })
+
+                .catch((verifyErr) => {
+                  setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
+                })
+                .finally(() => {
+                  setCheckoutLoading(false)
+                })
+            },
+            onClose: function(data) {
+              setCheckoutError('Monnify payment popup closed. Order reserved — you can retry payment or check your orders.')
+              setCheckoutLoading(false)
+            },
+          })
+          return
+        } else if (monnifyData.checkout_url) {
+          window.location.href = monnifyData.checkout_url
+          return
+        }
+      }
+
+      // Paystack inline popup flow
+      if (result.payment && result.payment.provider === 'paystack') {
+        const paystackData = result.payment
+        const accessCode = paystackData.access_code
+        const reference = paystackData.reference
+
+        if (window.PaystackPop && (accessCode || reference)) {
+          const handler = window.PaystackPop.setup({
+            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
+            email: checkoutForm.email || user?.email,
+            amount: Math.round(grandTotal * 100),
+            ref: reference,
+            access_code: accessCode,
+            onSuccess: async (transaction) => {
+              setCheckoutLoading(true)
+              try {
+                const verifyRef = reference || transaction.reference
+                await orderAPI.verifyPaystack(verifyRef)
+                refreshCart()
+                navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+
+              } catch (verifyErr) {
+                setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
+              } finally {
+                setCheckoutLoading(false)
+              }
+            },
+            onClose: () => {
+              setCheckoutError('Payment popup closed. Order reserved — you can retry payment or check your orders.')
+              setCheckoutLoading(false)
+            },
+          })
+          handler.openIframe()
+          return
+        } else if (paystackData.authorization_url) {
+          // Fallback redirect if popup JS isn't loaded
+          window.location.href = paystackData.authorization_url
+          return
+        }
+      }
+
+      // Bank transfer returns instructions instead of a captured payment —
+      // show the account details + reference in place of navigating away.
+      if (result.payment && result.payment.provider === 'bank_transfer') {
+        setTransferInstructions({ ...result.payment, orderId: result.order?.public_id })
+        setTransferStatus(result.payment.status)
+        return
+      }
       navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
     } catch (err) {
       setCheckoutError(err.response?.data?.detail || 'Checkout failed. Please try again.')
@@ -200,6 +315,41 @@ export default function CartPage() {
     } catch {}
     setNoteSending(false)
   }
+
+  // Copy the bank transfer reference (e.g. MKT-3F9A2C11) to the clipboard.
+  const copyTransferDetail = (key) => {
+    const value = transferInstructions?.[key]
+    if (!value) return
+    navigator.clipboard?.writeText(String(value))
+    setTransferCopied(key)
+    setTimeout(() => setTransferCopied(null), 1600)
+  }
+
+  // Re-fetch bank transfer status for an order placed earlier.
+  const refreshTransferStatus = async () => {
+    if (!transferInstructions?.orderId) return
+    setTransferRefreshing(true)
+    try {
+      const data = await orderAPI.bankTransferStatus(transferInstructions.orderId)
+      setTransferStatus(data.status)
+      setTransferInstructions(prev => ({
+        ...prev,
+        status: data.status,
+        account_name: data.account_name,
+        account_number: data.account_number,
+        bank_name: data.bank_name,
+        reference: data.reference,
+        amount: data.amount,
+        currency: data.currency,
+      }))
+    } catch {
+      // Keep the existing instructions; the status may simply not be
+      // resolvable (e.g. order no longer linked to a bank transfer).
+    } finally {
+      setTransferRefreshing(false)
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-12 overflow-x-hidden">
@@ -501,23 +651,68 @@ export default function CartPage() {
                     {/* Payment provider */}
                     <div>
                       <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 block">Payment</label>
-                      <div className="flex gap-2">
-                        {['stripe', 'paystack'].map(p => (
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: 'monnify', label: '⚡ Moniepoint / Monnify' },
+                          { id: 'paystack', label: '🏦 Paystack' },
+                          { id: 'bank_transfer', label: '🏧 Bank Transfer' },
+                          { id: 'stripe', label: '💳 Stripe' },
+                        ].map(p => (
                           <button
-                            key={p}
+                            key={p.id}
                             type="button"
-                            onClick={() => setCheckoutForm(prev => ({ ...prev, provider: p }))}
-                            className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium border-2 transition-all ${
-                              checkoutForm.provider === p
-                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            onClick={() => setCheckoutForm(prev => ({ ...prev, provider: p.id }))}
+                            className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium border-2 transition-all text-left ${
+                              checkoutForm.provider === p.id
+                                ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold'
                                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
                             }`}
                           >
-                            {p === 'stripe' ? '💳 Stripe' : '🏦 Paystack'}
+                            {p.label}
                           </button>
                         ))}
                       </div>
+                      {checkoutForm.provider === 'bank_transfer' && (
+                        <p className="mt-2 text-[11px] sm:text-xs text-gray-500 leading-relaxed">
+                          Pay directly from your Nigerian bank account. You'll get our account
+                          details and a unique reference to quote on your transfer — no card needed.
+                        </p>
+                      )}
+
+                      {/* Bank picker — buyer chooses which account (UBA, Opay, Moniepoint) to transfer to */}
+                      {checkoutForm.provider === 'bank_transfer' && bankAccounts.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-[11px] sm:text-xs font-medium text-gray-600">Transfer to:</p>
+                          {bankAccounts.map((acct, i) => {
+                            const idx = acct.index ?? i
+                            const active = selectedBankIndex === idx
+                            return (
+                              <label
+                                key={idx}
+                                className={`flex items-center gap-2.5 cursor-pointer rounded-lg border-2 p-2.5 transition-all min-w-0 ${
+                                  active ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="bank_account"
+                                  checked={active}
+                                  onChange={() => setSelectedBankIndex(idx)}
+                                  className="text-primary-600 focus:ring-primary-500 flex-shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{acct.bank_name || 'Bank'}</p>
+                                  <p className="text-[11px] text-gray-500 truncate">
+                                    {acct.account_number}{acct.account_name ? ` · ${acct.account_name}` : ''}
+                                  </p>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
+
 
                     <motion.button
                       type="submit"
@@ -525,10 +720,87 @@ export default function CartPage() {
                       className="w-full py-3.5 rounded-xl bg-gradient-to-r from-success-600 to-success-500 text-white font-semibold text-xs sm:text-base shadow-lg shadow-success-500/25 disabled:opacity-60 transition-all"
                       whileTap={{ scale: 0.98 }}
                     >
-                      {checkoutLoading ? 'Processing…' : `Pay ₦${grandTotal.toLocaleString()}`}
+                      {checkoutLoading
+                        ? 'Processing…'
+                        : checkoutForm.provider === 'bank_transfer'
+                          ? `Place order · Transfer ₦${grandTotal.toLocaleString()}`
+                          : `Pay ₦${grandTotal.toLocaleString()}`}
                     </motion.button>
                   </motion.form>
                 )}
+
+                {/* Bank transfer instructions — shown after placing a manual order */}
+                <AnimatePresence>
+                  {transferInstructions && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-4 p-4 sm:p-5 rounded-2xl border border-primary-200 bg-primary-50/60 space-y-4 min-w-0"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-primary-700 uppercase tracking-wider mb-1">
+                          🏦 Complete Your Bank Transfer
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-gray-600 leading-relaxed">
+                          Transfer <strong>₦{Number(transferInstructions.amount || 0).toLocaleString()}</strong> to the account below.
+                          Your order is reserved while we wait for the funds — quote the reference
+                          on your transfer so we can match it.
+                        </p>
+                      </div>
+
+                      {[
+                        { key: 'account_name', label: 'Account Name' },
+                        { key: 'account_number', label: 'Account Number' },
+                        { key: 'bank_name', label: 'Bank' },
+                        { key: 'reference', label: 'Reference' },
+                      ].map(row => (
+                        <div key={row.key} className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="min-w-0">
+                            <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-gray-400 font-medium">{row.label}</p>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 break-all">{transferInstructions[row.key] || '—'}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyTransferDetail(row.key)}
+                            className="flex-shrink-0 px-2 py-1 rounded-md bg-white border border-gray-200 text-[10px] sm:text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            {transferCopied === row.key ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      ))}
+
+                      <div className="pt-2 border-t border-primary-100 space-y-2 min-w-0">
+                        {transferStatus === 'captured' ? (
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-success-700">
+                            ✅ Transfer confirmed — your order is now being processed.
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-warning-700">
+                            ⏳ Awaiting confirmation. Your transfer is usually verified within a few hours of landing.
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={refreshTransferStatus}
+                            disabled={transferRefreshing}
+                            className="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-[11px] sm:text-xs font-semibold disabled:opacity-50 hover:bg-primary-700 transition-colors"
+                          >
+                            {transferRefreshing ? 'Checking…' : '↻ Check status'}
+                          </button>
+                          <Link
+                            to={`/orders/${transferInstructions.orderId}`}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] sm:text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            View order
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
 
                 <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>

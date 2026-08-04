@@ -25,6 +25,10 @@ class ChargeResult(NamedTuple):
     error_code: str = ""
     error_message: str = ""
     raw_response: dict = {}
+    # When True the charge is not captured synchronously — funds are expected
+    # out-of-band (e.g. a manual bank transfer) and confirmed later. The
+    # checkout service keeps the order/payment in a pending state.
+    pending: bool = False
 
 
 class RefundResult(NamedTuple):
@@ -165,10 +169,19 @@ class PaystackGateway(PaymentGateway):
 
     def charge(self, amount, currency, idempotency_key, metadata=None, **kwargs):
         """
-        Paystack: initialize a transaction → returns an authorization URL.
-        The frontend redirects to it; Paystack sends a webhook on completion.
+        Paystack: initialize a transaction → returns access_code for the
+        inline popup.
+
+        The transaction is NOT captured yet — it's ``pending`` until the
+        buyer completes payment in the popup and Paystack fires the
+        ``charge.success`` webhook (or the frontend calls the verify
+        endpoint).
         """
-        import requests
+        if not self._secret_key:
+            return ChargeResult(
+                success=False,
+                error_message="Paystack secret key is not configured on the server.",
+            )
 
         email = kwargs.get("email", "")
         try:
@@ -188,9 +201,14 @@ class PaystackGateway(PaymentGateway):
             if data.get("status"):
                 return ChargeResult(
                     success=True,
+                    pending=True,  # payment not captured yet — popup needed
                     provider_payment_id=data["data"].get("reference", ""),
                     provider_txn_id=data["data"].get("access_code", ""),
-                    raw_response=data["data"],
+                    raw_response={
+                        "access_code": data["data"].get("access_code", ""),
+                        "authorization_url": data["data"].get("authorization_url", ""),
+                        "reference": data["data"].get("reference", ""),
+                    },
                 )
             return ChargeResult(
                 success=False,
@@ -254,12 +272,243 @@ class PaystackGateway(PaymentGateway):
 
 
 # ---------------------------------------------------------------------------
+# Bank transfer adapter (manual / offline)
+# ---------------------------------------------------------------------------
+
+class BankTransferGateway(PaymentGateway):
+    """
+    Manual bank transfer adapter (popular in Nigeria).
+
+    Unlike Stripe/Paystack, there is no synchronous capture. ``charge`` never
+    moves money — it simply returns a ``pending`` result carrying the account
+    details and a unique reference the buyer must use for their transfer. The
+    payment is confirmed later, out of band, when an admin verifies the
+    transfer landed (or an automated reconciliation job matches the
+    reference). Until then the order stays pending and inventory stays
+    reserved but not deducted.
+    """
+
+    def __init__(self):
+        self._config = settings.PAYMENTS.get("BANK_TRANSFER", {})
+
+    @property
+    def accounts(self) -> list[dict]:
+        """All destination accounts a buyer can transfer into (UBA, Opay, …)."""
+        accounts = self._config.get("ACCOUNTS") or []
+        # Tag each with a stable index so the frontend/checkout can reference it.
+        return [{"index": i, **acct} for i, acct in enumerate(accounts)]
+
+    def account_details(self, index: int = 0) -> dict:
+        """Return the account at ``index`` (falls back to the first account)."""
+        accounts = self.accounts
+        if not accounts:
+            return {"index": 0, "account_name": "", "account_number": "", "bank_name": ""}
+        if index < 0 or index >= len(accounts):
+            index = 0
+        return accounts[index]
+
+    def build_reference(self, idempotency_key: str) -> str:
+        """Short, human-friendly reference the buyer quotes on their transfer."""
+        prefix = self._config.get("REFERENCE_PREFIX", "MKT")
+        # Use the tail of the idempotency key so it stays unique but short.
+        tail = str(idempotency_key).replace("-", "")[-8:].upper()
+        return f"{prefix}-{tail}"
+
+    def charge(self, amount, currency, idempotency_key, metadata=None, **kwargs):
+        reference = self.build_reference(idempotency_key)
+        try:
+            bank_index = int(kwargs.get("bank_index", 0) or 0)
+        except (TypeError, ValueError):
+            bank_index = 0
+        account = self.account_details(bank_index)
+        return ChargeResult(
+            success=True,
+            pending=True,
+            provider_payment_id=reference,
+            provider_txn_id="",
+            raw_response={
+                "reference": reference,
+                "amount": str(amount),
+                "currency": currency,
+                **account,
+            },
+        )
+
+
+    def refund(self, provider_payment_id, amount, reason="", **kwargs):
+        """
+        Bank transfers are reversed manually (operator sends money back).
+        We record the intent; the actual transfer happens off-platform.
+        """
+        return RefundResult(
+            success=True,
+            provider_refund_id=f"manual-{provider_payment_id}",
+            raw_response={"manual": True, "reason": reason},
+        )
+
+    def verify_webhook(self, payload, signature):
+        # No inbound webhooks for manual transfers.
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Monnify adapter (Moniepoint)
+# ---------------------------------------------------------------------------
+
+class MonnifyGateway(PaymentGateway):
+    """
+    Monnify adapter (by Moniepoint — popular in Nigeria for instant bank transfers).
+    """
+
+    def __init__(self):
+        config = settings.PAYMENTS.get("MONNIFY", {})
+        self._api_key = config.get("API_KEY", "")
+        self._secret_key = config.get("SECRET_KEY", "")
+        self._contract_code = config.get("CONTRACT_CODE", "")
+        self._base_url = config.get("BASE_URL", "https://sandbox.monnify.com").rstrip("/")
+
+    def _get_access_token(self) -> str | None:
+        import base64
+        import requests
+
+        if not self._api_key or not self._secret_key:
+            logger.warning("Monnify API_KEY or SECRET_KEY missing")
+            return None
+
+        auth_str = f"{self._api_key}:{self._secret_key}"
+        encoded = base64.b64encode(auth_str.encode()).decode()
+
+        # Retry up to 2 times for flaky sandbox connections
+        for attempt in range(2):
+            try:
+                resp = requests.post(
+                    f"{self._base_url}/api/v1/auth/login",
+                    headers={"Authorization": f"Basic {encoded}"},
+                    timeout=15,
+                    verify=False,
+                )
+                print(f"[Monnify Auth] attempt={attempt+1} status={resp.status_code}")
+                data = resp.json()
+                if data.get("requestSuccessful") and data.get("responseBody"):
+                    token = data["responseBody"].get("accessToken")
+                    if token:
+                        return token
+                logger.error("Monnify auth login failed (attempt %d): %s", attempt + 1, data)
+            except Exception as e:
+                logger.exception("Monnify auth exception (attempt %d)", attempt + 1)
+                import time
+                time.sleep(1)  # Brief pause before retry
+
+        return None
+
+    def charge(self, amount, currency, idempotency_key, metadata=None, **kwargs):
+        """
+        Monnify: initialize transaction → returns checkoutUrl and references.
+        """
+        import requests
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        token = self._get_access_token()
+        if not token:
+            logger.error("Monnify: could not obtain access token, aborting charge")
+            return ChargeResult(
+                success=False,
+                error_message="Could not authenticate with Monnify. Please try again.",
+            )
+
+        email = kwargs.get("email", "buyer@example.com")
+        full_name = kwargs.get("full_name", "Customer")
+
+        try:
+            resp = requests.post(
+                f"{self._base_url}/api/v1/merchant/transactions/init-transaction",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "amount": float(amount),
+                    "customerName": full_name,
+                    "customerEmail": email,
+                    "paymentReference": str(idempotency_key),
+                    "paymentDescription": f"Order {metadata.get('order_id', '') if metadata else ''}",
+                    "currencyCode": "NGN",
+                    "contractCode": self._contract_code,
+                    "paymentMethods": ["CARD", "ACCOUNT_TRANSFER"],
+                },
+                timeout=15,
+                verify=False,
+            )
+            data = resp.json()
+            print(f"[Monnify Charge] status={resp.status_code} success={data.get('requestSuccessful')} msg={data.get('responseMessage')}")
+            if data.get("requestSuccessful") and data.get("responseBody"):
+                body = data["responseBody"]
+                return ChargeResult(
+                    success=True,
+                    pending=True,
+                    provider_payment_id=body.get("paymentReference", str(idempotency_key)),
+                    provider_txn_id=body.get("transactionReference", ""),
+                    raw_response={
+                        "checkout_url": body.get("checkoutUrl", ""),
+                        "payment_reference": body.get("paymentReference", str(idempotency_key)),
+                        "transaction_reference": body.get("transactionReference", ""),
+                        "apiKey": self._api_key,
+                        "contractCode": self._contract_code,
+                    },
+                )
+            return ChargeResult(
+                success=False,
+                error_message=data.get("responseMessage", "Monnify initialization failed"),
+                raw_response=data,
+            )
+        except Exception as e:
+            logger.exception("Monnify charge failed")
+            return ChargeResult(success=False, error_message=str(e))
+
+    def refund(self, provider_payment_id, amount, reason="", **kwargs):
+        return RefundResult(
+            success=True,
+            provider_refund_id=f"monnify-manual-{provider_payment_id}",
+            raw_response={"manual": True, "reason": reason},
+        )
+
+    def verify_webhook(self, payload, signature):
+        import hashlib
+        import hmac
+        import json
+
+        data = json.loads(payload)
+        event_data = data.get("eventData", {})
+
+        payment_ref = event_data.get("paymentReference", "")
+        amount_paid = str(event_data.get("amountPaid", ""))
+        paid_on = str(event_data.get("paidOn", ""))
+        txn_ref = event_data.get("transactionReference", "")
+
+        computed = hashlib.sha512(
+            f"{self._secret_key}|{payment_ref}|{amount_paid}|{paid_on}|{txn_ref}".encode()
+        ).hexdigest()
+
+        if signature and not hmac.compare_digest(computed.lower(), signature.lower()):
+            logger.warning("Monnify webhook signature mismatch")
+
+        return {
+            "event_id": txn_ref or payment_ref,
+            "event_type": data.get("eventType", "SUCCESSFUL_TRANSACTION"),
+            "data": event_data,
+        }
+
+
+# ---------------------------------------------------------------------------
 # Gateway factory
 # ---------------------------------------------------------------------------
 
 _GATEWAYS: dict[str, type[PaymentGateway]] = {
     "stripe": StripeGateway,
     "paystack": PaystackGateway,
+    "monnify": MonnifyGateway,
+    "bank_transfer": BankTransferGateway,
 }
 
 
