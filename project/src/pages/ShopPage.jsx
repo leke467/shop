@@ -48,13 +48,14 @@ export default function ShopPage() {
   const [reportReason, setReportReason] = useState('scam')
   const [reportDetails, setReportDetails] = useState('')
   const [reporting, setReporting] = useState(false)
-  const [reportSuccess, setReportSuccess] = useState(false)
+      const [reportSuccess, setReportSuccess] = useState(false)
 
   const handleReport = async (e) => {
     e.preventDefault()
     setReporting(true)
     try {
       await shopAPI.reportShop(shopSlug, { reason: reportReason, details: reportDetails })
+        await shopAPI.reportShop(shopSlug, { reason: reportReason, description: reportDetails })
       setReportSuccess(true)
       setTimeout(() => {
         setShowReportModal(false)
@@ -63,7 +64,7 @@ export default function ShopPage() {
       }, 3000)
     } catch (err) {
       console.error('Report failed', err)
-      alert(err.response?.data?.error || 'Failed to report shop. Please try again.')
+      alert(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.')
     } finally {
       setReporting(false)
     }
@@ -327,14 +328,14 @@ export default function ShopPage() {
                           <option value="scam">Scam / Fraud</option>
                           <option value="fake_products">Counterfeit / Fake Products</option>
                           <option value="harassment">Harassment / Abusive Behavior</option>
-                          <option value="inappropriate">Inappropriate Content</option>
+                          <option value="non_delivery">Never received my order</option>
                           <option value="other">Other</option>
                         </select>
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (Optional)</label>
-                        <textarea 
+                        <textarea
                           value={reportDetails}
                           onChange={e => setReportDetails(e.target.value)}
                           rows="4"
