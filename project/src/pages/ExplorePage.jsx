@@ -189,7 +189,7 @@ export default function ExplorePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex gap-8">
         {/* Desktop Sidebar filters */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-24 space-y-6">
+          <div className="sticky top-40 space-y-6">
             {/* Sort */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">Sort by</h3>
