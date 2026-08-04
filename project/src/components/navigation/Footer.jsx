@@ -72,10 +72,17 @@ function Footer() {
         {/* Bottom copyright & legal links */}
         <div className="pt-4 md:pt-2 flex flex-col sm:flex-row justify-between items-center text-[11px] sm:text-xs text-gray-400 gap-2">
           <p>&copy; {currentYear} MultiShop Inc. All rights reserved.</p>
+
           <div className="flex items-center gap-4 text-gray-400">
             <Link to="/privacy" className="hover:text-gray-200 transition">Privacy</Link>
             <Link to="/terms" className="hover:text-gray-200 transition">Terms</Link>
             <Link to="/refund" className="hover:text-gray-200 transition">Refunds</Link>
+          </div>
+
+          <div className="w-full sm:w-auto text-center sm:text-right mt-2 sm:mt-0">
+            <a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-200 transition text-xs">
+              Powered by Apexlabs
+            </a>
           </div>
         </div>
       </div>
