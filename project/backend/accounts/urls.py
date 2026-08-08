@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .cookie_views import CookieLoginView, CookieLogoutView, CookieTokenRefreshView
+from .cookie_views import CookieLoginView, CookieLogoutView, CookieTokenRefreshView, TwoFactorLoginVerifyView
 from .views import (
     AddressDetailView,
     AddressListCreateView,
@@ -9,6 +9,9 @@ from .views import (
     ProfileView,
     RegisterView,
     ResetPasswordView,
+    TwoFactorSetupView,
+    TwoFactorVerifyView,
+    TwoFactorDisableView,
 )
 
 urlpatterns = [
@@ -24,4 +27,9 @@ urlpatterns = [
     path("<int:pk>/change-password/", AdminChangePasswordView.as_view(), name="admin-change-password"),
     path("addresses/", AddressListCreateView.as_view(), name="address-list"),
     path("addresses/<int:pk>/", AddressDetailView.as_view(), name="address-detail"),
+    # 2FA
+    path("2fa/setup/", TwoFactorSetupView.as_view(), name="2fa-setup"),
+    path("2fa/verify/", TwoFactorVerifyView.as_view(), name="2fa-verify"),
+    path("2fa/disable/", TwoFactorDisableView.as_view(), name="2fa-disable"),
+    path("2fa/login-verify/", TwoFactorLoginVerifyView.as_view(), name="2fa-login-verify"),
 ]

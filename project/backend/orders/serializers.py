@@ -1,7 +1,7 @@
 """Orders serializers."""
 from rest_framework import serializers
 
-from .models import Cart, CartItem, Coupon, Order, OrderGroup, OrderItem
+from .models import Cart, CartItem, Coupon, Order, OrderGroup, OrderItem, SellerBankAccount, PayoutRequest
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -96,3 +96,29 @@ class CouponSerializer(serializers.ModelSerializer):
             "valid_from", "valid_until", "minimum_order_value", "is_valid",
         )
         read_only_fields = ("is_valid",)
+
+
+class SellerBankAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerBankAccount
+        fields = (
+            "id", "bank_name", "account_number", "account_name",
+            "bank_code", "is_verified", "is_default", "created_at"
+        )
+        read_only_fields = ("id", "is_verified", "created_at")
+
+
+class PayoutRequestSerializer(serializers.ModelSerializer):
+    bank_account_details = SellerBankAccountSerializer(source="bank_account", read_only=True)
+
+    class Meta:
+        model = PayoutRequest
+        fields = (
+            "id", "amount", "status", "bank_account", "bank_account_details",
+            "provider_reference", "processed_at", "failure_reason", "created_at"
+        )
+        read_only_fields = (
+            "id", "status", "provider_reference", "processed_at",
+            "failure_reason", "created_at", "bank_account_details"
+        )
+

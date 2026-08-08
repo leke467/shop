@@ -152,3 +152,22 @@ class Address(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.full_name}, {self.city} ({self.get_kind_display()})"
+
+
+class TwoFactorAuth(TimeStampedModel):
+    class Methods(models.TextChoices):
+        TOTP = "totp", _("Authenticator App")
+        SMS = "sms", _("SMS")
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="two_factor_auth"
+    )
+    method = models.CharField(
+        max_length=16, choices=Methods.choices, default=Methods.TOTP
+    )
+    is_enabled = models.BooleanField(default=False)
+    totp_secret = models.CharField(max_length=128, blank=True)
+    backup_codes = models.JSONField(default=list, blank=True)
+
+    def __str__(self) -> str:
+        return f"2FA<{self.user.email}>"

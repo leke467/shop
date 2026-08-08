@@ -32,6 +32,13 @@ from .views import (
 )
 
 
+from .analytics_views import (
+    ShopAnalyticsRevenueView,
+    ShopAnalyticsProductsView,
+    ShopAnalyticsCustomersView,
+    ShopAnalyticsOverviewView,
+)
+
 urlpatterns = [
     # Shop CRUD
     path("", ShopListView.as_view(), name="shop-list"),
@@ -83,4 +90,10 @@ urlpatterns = [
 
     # Seller verification (KYC)
     path("<slug:slug>/kyc/", ShopKYCView.as_view(), name="shop-verification"),
+
+    # Analytics
+    path("<slug:slug>/analytics/revenue/", ShopAnalyticsRevenueView.as_view(), name="shop-analytics-revenue"),
+    path("<slug:slug>/analytics/products/", ShopAnalyticsProductsView.as_view(), name="shop-analytics-products"),
+    path("<slug:slug>/analytics/customers/", ShopAnalyticsCustomersView.as_view(), name="shop-analytics-customers"),
+    path("<slug:slug>/analytics/overview/", ShopAnalyticsOverviewView.as_view(), name="shop-analytics-overview"),
 ]

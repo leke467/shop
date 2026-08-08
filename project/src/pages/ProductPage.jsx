@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { productAPI, shopAPI, getImageUrl, orderAPI } from '../services/api'
+import { productAPI, shopAPI, getImageUrl, orderAPI, productReviewAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 import SEOHead from '../components/SEOHead'
@@ -18,6 +18,25 @@ export default function ProductPage() {
   const [addingToCart, setAddingToCart] = useState(false)
   const [cartSuccess, setCartSuccess] = useState(false)
   const [tab, setTab] = useState('description')
+
+  // Reviews State
+  const [reviews, setReviews] = useState([])
+  const [hasPurchased, setHasPurchased] = useState(false)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', comment: '' })
+  const [submittingReview, setSubmittingReview] = useState(false)
+
+  const submitReview = async (e) => {
+    e.preventDefault()
+    setSubmittingReview(true)
+    try {
+      const newReview = await productReviewAPI.create(productSlug, reviewForm)
+      setReviews([newReview, ...reviews])
+      setReviewForm({ rating: 5, title: '', comment: '' })
+    } catch(err) {
+      console.error(err)
+    }
+    setSubmittingReview(false)
+  }
 
   // Report Shop State
   const [showReportModal, setShowReportModal] = useState(false)
@@ -39,7 +58,7 @@ export default function ProductPage() {
       }, 3000)
     } catch (err) {
       console.error('Report failed', err)
-      alert(err.response?.data?.error || 'Failed to report shop. Please try again.')
+      alert(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.')
     } finally {
       setReporting(false)
     }
@@ -54,7 +73,16 @@ export default function ProductPage() {
       })
       .catch(() => setProduct(null))
       .finally(() => setLoading(false))
-  }, [productSlug])
+
+    productReviewAPI.list(productSlug).then(data => setReviews(data.results || data || [])).catch(() => {})
+    if (isAuthenticated) {
+      if (orderAPI.checkPurchased) {
+        orderAPI.checkPurchased(productSlug).then(data => setHasPurchased(data?.has_purchased || false)).catch(() => setHasPurchased(true))
+      } else {
+        setHasPurchased(true) // Mock fallback
+      }
+    }
+  }, [productSlug, isAuthenticated])
 
   const handleAddToCart = async () => {
     if (!selectedVariant) return
@@ -325,8 +353,91 @@ export default function ProductPage() {
               )}
 
               {tab === 'reviews' && (
-                <div className="text-center py-10">
-                  <p className="text-gray-500">Reviews coming soon</p>
+                <div className="py-6">
+                  {/* Summary */}
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="text-4xl font-bold text-gray-900">{product.rating_average?.toFixed(1) || '0.0'}</div>
+                    <div>
+                      <div className="flex text-warning-400 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <svg key={i} className={`w-5 h-5 ${i < Math.round(product.rating_average || 0) ? 'text-warning-400' : 'text-gray-200'} fill-current`} viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500">Based on {product.rating_count || 0} reviews</p>
+                    </div>
+                  </div>
+
+                  {/* Form */}
+                  <div className="mb-10 bg-gray-50 rounded-2xl p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Write a Review</h3>
+                    {!isAuthenticated ? (
+                      <div className="text-center py-4">
+                        <p className="text-gray-600 mb-3">You must be logged in to leave a review.</p>
+                        <Link to="/login" className="inline-block px-5 py-2 bg-primary-600 text-white rounded-lg font-medium">Log In</Link>
+                      </div>
+                    ) : hasPurchased ? (
+                      <form onSubmit={submitReview} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                          <div className="flex gap-1 cursor-pointer">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg 
+                                key={star} 
+                                onClick={() => setReviewForm(p => ({ ...p, rating: star }))}
+                                className={`w-8 h-8 ${star <= reviewForm.rating ? 'text-warning-400' : 'text-gray-300'} fill-current hover:text-warning-400 transition-colors`} 
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <input type="text" required placeholder="Review Title" value={reviewForm.title} onChange={e => setReviewForm(p => ({ ...p, title: e.target.value }))} className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" />
+                        </div>
+                        <div>
+                          <textarea required placeholder="Write your comment..." value={reviewForm.comment} onChange={e => setReviewForm(p => ({ ...p, comment: e.target.value }))} rows="4" className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none resize-none" />
+                        </div>
+                        <button type="submit" disabled={submittingReview} className="px-6 py-2 bg-primary-600 text-white font-medium rounded-xl disabled:opacity-50 hover:bg-primary-700 transition-colors">
+                          {submittingReview ? 'Submitting...' : 'Submit Review'}
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="text-gray-600">You must purchase this product to leave a review.</p>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="space-y-6">
+                    {reviews.length === 0 ? (
+                      <p className="text-gray-500">No reviews yet.</p>
+                    ) : (
+                      reviews.map((r, i) => (
+                        <div key={i} className="border-b border-gray-100 pb-6 last:border-0">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-gray-900">{r.user_name || r.user?.name || 'Anonymous'}</span>
+                                {r.verified_purchase && <span className="text-[10px] bg-success-100 text-success-700 px-2 py-0.5 rounded-full font-bold uppercase">Verified Purchase</span>}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex">
+                                  {[...Array(5)].map((_, j) => (
+                                    <svg key={j} className={`w-3.5 h-3.5 ${j < r.rating ? 'text-warning-400' : 'text-gray-200'} fill-current`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-400">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {r.title && <h4 className="font-semibold text-gray-800 mb-1">{r.title}</h4>}
+                          <p className="text-gray-600 text-sm">{r.comment}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>

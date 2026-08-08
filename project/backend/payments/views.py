@@ -74,8 +74,6 @@ class CheckoutView(APIView):
         ser = CheckoutSerializer(data=request.data)
         if not ser.is_valid():
             logger.error("Checkout validation errors: %s | data=%s", ser.errors, request.data)
-            print("CHECKOUT VALIDATION ERRORS:", ser.errors)
-            print("CHECKOUT DATA RECEIVED:", dict(request.data))
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         d = ser.validated_data
 
@@ -114,6 +112,7 @@ class CheckoutView(APIView):
         response_data = {
             "detail": "Order placed successfully.",
             "order": OrderSerializer(order).data,
+            "vat_amount": str(order.tax_total),
         }
         # Bank transfer (and other out-of-band providers) return payment
         # instructions instead of an immediate capture. Surface them so the

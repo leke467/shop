@@ -13,7 +13,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Address
+import pyotp
+
+from .models import Address, TwoFactorAuth
 from .serializers import (
     AddressSerializer,
     RegisterSerializer,
@@ -141,3 +143,99 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
+
+
+# ---------------------------------------------------------------------------
+# 2FA
+# ---------------------------------------------------------------------------
+
+class TwoFactorSetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        tfa, _ = TwoFactorAuth.objects.get_or_create(user=user)
+        
+        if not tfa.totp_secret:
+            tfa.totp_secret = pyotp.random_base32()
+            tfa.save()
+
+        totp = pyotp.TOTP(tfa.totp_secret)
+        uri = totp.provisioning_uri(name=user.email, issuer_name="Shop")
+        
+        return Response({"secret": tfa.totp_secret, "qr_code_uri": uri})
+
+
+class TwoFactorVerifyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        code = request.data.get("code")
+        
+        if not code:
+            return Response({"detail": "Code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            tfa = user.two_factor_auth
+        except TwoFactorAuth.DoesNotExist:
+            return Response({"detail": "2FA setup not initiated."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if tfa.is_enabled:
+            return Response({"detail": "2FA is already enabled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        totp = pyotp.TOTP(tfa.totp_secret)
+        if totp.verify(code):
+            tfa.is_enabled = True
+            tfa.save()
+            return Response({"detail": "2FA enabled successfully."})
+        
+        return Response({"detail": "Invalid code."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TwoFactorDisableView(APIView):
+    """
+    Disable 2FA for the authenticated user.
+
+    Security (C4): Requires either the current TOTP code OR the user's
+    password to prevent a hijacked session from silently disabling 2FA.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        code = request.data.get("code")
+        password = request.data.get("password")
+
+        if not code and not password:
+            return Response(
+                {"detail": "You must provide your current 2FA code or password to disable 2FA."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            tfa = user.two_factor_auth
+        except TwoFactorAuth.DoesNotExist:
+            return Response({"detail": "2FA is not enabled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not tfa.is_enabled:
+            return Response({"detail": "2FA is not enabled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify identity: TOTP code OR password
+        verified = False
+        if code:
+            totp = pyotp.TOTP(tfa.totp_secret)
+            verified = totp.verify(code)
+        if not verified and password:
+            verified = user.check_password(password)
+        
+        if not verified:
+            return Response(
+                {"detail": "Invalid code or password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        tfa.is_enabled = False
+        tfa.totp_secret = ""
+        tfa.save()
+        return Response({"detail": "2FA disabled successfully."})

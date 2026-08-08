@@ -1,0 +1,5 @@
+{% extends 'notifications/email/base.html' %}
+{% block content %}
+    <p>Hi {{ seller_name }},</p>
+    <p>The product "{{ product_name }}" is running low on stock ({{ stock_count }} left).</p>
+{% endblock %}

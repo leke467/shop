@@ -59,6 +59,11 @@ class CookieLoginView(APIView):
     """
     POST email + password → set HttpOnly JWT cookies + return user profile.
 
+    Security (H2): If 2FA is enabled for the user, password validation
+    succeeds but tokens are NOT issued. Instead, a temporary `2fa_token`
+    is returned. The client must call /api/users/2fa/login-verify/ with
+    both the 2fa_token and the TOTP code to receive actual JWT tokens.
+
     Throttled to 10/min to prevent credential stuffing.
     """
     permission_classes = [AllowAny]
@@ -87,6 +92,32 @@ class CookieLoginView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # H2: Check if 2FA is enabled
+        try:
+            tfa = user.two_factor_auth
+            if tfa.is_enabled:
+                # Issue a short-lived temporary token for the 2FA step.
+                # This token proves password was verified but doesn't grant access.
+                import hashlib, time
+                ts = str(int(time.time()))
+                raw = f"{user.pk}:{ts}:{settings.SECRET_KEY}"
+                token_2fa = hashlib.sha256(raw.encode()).hexdigest()
+
+                # Store in cache (5 minutes TTL) mapping token → user pk + timestamp
+                from django.core.cache import cache
+                cache.set(f"2fa_pending:{token_2fa}", {"user_pk": user.pk, "ts": ts}, 300)
+
+                return Response(
+                    {
+                        "requires_2fa": True,
+                        "2fa_token": token_2fa,
+                        "detail": "Please enter your 2FA code to complete login.",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+        except Exception:
+            pass  # No 2FA configured — proceed normally
+
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
 
@@ -94,6 +125,68 @@ class CookieLoginView(APIView):
             {
                 "user": UserProfileSerializer(user).data,
                 "access": access,  # Also in body for non-browser clients
+            },
+            status=status.HTTP_200_OK,
+        )
+        return _set_auth_cookies(response, access, str(refresh))
+
+
+class TwoFactorLoginVerifyView(APIView):
+    """
+    POST 2fa_token + code → verify TOTP and issue JWT tokens.
+
+    Security (H2): Completes the login flow when 2FA is enabled.
+    """
+    permission_classes = [AllowAny]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        import pyotp
+        from django.core.cache import cache
+        from django.contrib.auth import get_user_model
+
+        token_2fa = request.data.get("2fa_token")
+        code = request.data.get("code")
+
+        if not token_2fa or not code:
+            return Response(
+                {"detail": "2fa_token and code are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Look up the pending 2FA session
+        pending = cache.get(f"2fa_pending:{token_2fa}")
+        if not pending:
+            return Response(
+                {"detail": "2FA session expired or invalid. Please login again."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        User = get_user_model()
+        try:
+            user = User.objects.get(pk=pending["user_pk"])
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            tfa = user.two_factor_auth
+        except Exception:
+            return Response({"detail": "2FA not configured."}, status=status.HTTP_400_BAD_REQUEST)
+
+        totp = pyotp.TOTP(tfa.totp_secret)
+        if not totp.verify(code):
+            return Response({"detail": "Invalid 2FA code."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # 2FA verified — issue tokens and clear the pending session
+        cache.delete(f"2fa_pending:{token_2fa}")
+
+        refresh = RefreshToken.for_user(user)
+        access = str(refresh.access_token)
+
+        response = Response(
+            {
+                "user": UserProfileSerializer(user).data,
+                "access": access,
             },
             status=status.HTTP_200_OK,
         )

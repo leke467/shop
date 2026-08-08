@@ -265,3 +265,41 @@ class ProductReview(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.user}'s review of {self.product.name}"
+
+
+class FlashSale(BaseModel):
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="flash_sales")
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    discount_percentage = models.DecimalField(
+        max_digits=5, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
+    )
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("-start_time",)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class FlashSaleItem(TimeStampedModel):
+    flash_sale = models.ForeignKey(FlashSale, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="flash_sale_items")
+    sale_price = models.DecimalField(
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
+    )
+    original_price = models.DecimalField(
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
+    )
+    quantity_limit = models.PositiveIntegerField(null=True, blank=True)
+    quantity_sold = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("flash_sale", "product")
+
+    def __str__(self) -> str:
+        return f"{self.product.name} in {self.flash_sale.name}"
+

@@ -122,11 +122,16 @@ def checkout(
                     if not shop.allow_manual_delivery:
                         raise CheckoutError(f"Manual delivery is not supported by shop: {shop.name}")
                     shipping_fee = Decimal("0")
+                    markup_amount = Decimal("0")
                 else:
                     zone = DeliveryZone.objects.filter(shop=shop, state=delivery_state, is_active=True).first()
                     if not zone:
                         raise CheckoutError(f"Delivery is not available to {delivery_state} for shop: {shop.name}")
-                    shipping_fee = zone.fee
+                    
+                    from shops.logistics import calculate_shipping_quote
+                    quote = calculate_shipping_quote(zone.fee)
+                    shipping_fee = quote["final_shipping_fee"]
+                    markup_amount = quote["markup_amount"]
 
                 group = OrderGroup.objects.create(
                     order=order,
@@ -134,6 +139,7 @@ def checkout(
                     status=OrderGroup.FulfilmentStatus.PENDING,
                     subtotal=Decimal("0"),
                     shipping_total=shipping_fee,
+                    logistics_markup=markup_amount,
                     delivery_code=OrderGroup.generate_delivery_code(),
                     escrow_status=OrderGroup.EscrowStatus.HELD,
                 )
@@ -161,9 +167,10 @@ def checkout(
 
         # Update order totals.
         order.subtotal = subtotal
+        order.tax_total = (subtotal * Decimal("0.075")).quantize(Decimal("0.01"))
         order.shipping_total = sum(g.shipping_total for g in shops_seen.values())
         order.grand_total = subtotal + order.shipping_total + order.tax_total - order.discount_total
-        order.save(update_fields=["subtotal", "shipping_total", "grand_total"])
+        order.save(update_fields=["subtotal", "tax_total", "shipping_total", "grand_total"])
 
         # --- Reserve inventory ---
         for item in cart_items:

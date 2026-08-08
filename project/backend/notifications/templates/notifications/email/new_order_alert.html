@@ -1,0 +1,5 @@
+{% extends 'notifications/email/base.html' %}
+{% block content %}
+    <p>Hi {{ seller_name }},</p>
+    <p>You have received a new order! Order #{{ order_number }}.</p>
+{% endblock %}

@@ -290,6 +290,10 @@ class OrderGroup(TimeStampedModel):
         max_digits=12, decimal_places=2, default=Decimal("0"),
         help_text="Platform commission deducted from this order group."
     )
+    logistics_markup = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0"),
+        help_text="Platform logistics handling markup collected on shipping."
+    )
     tracking_number = models.CharField(max_length=120, blank=True)
     tracking_url = models.URLField(blank=True)
     shop_notes = models.TextField(blank=True)
@@ -503,3 +507,44 @@ class WalletTransaction(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} {self.amount} → {self.wallet.shop.name}"
+
+# ---------------------------------------------------------------------------
+# Payouts
+# ---------------------------------------------------------------------------
+
+class SellerBankAccount(TimeStampedModel):
+    """A bank account linked to a shop for receiving payouts."""
+
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="bank_accounts")
+    bank_name = models.CharField(max_length=255)
+    account_number = models.CharField(max_length=50)
+    account_name = models.CharField(max_length=255)
+    bank_code = models.CharField(max_length=50)
+    is_verified = models.BooleanField(default=False)
+    is_default = models.BooleanField(default=False)
+
+    def __str__(self) -> str:
+        return f"{self.bank_name} - {self.account_number}"
+
+
+class PayoutRequest(BaseModel):
+    """A request to withdraw funds from a seller's wallet to their bank account."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        PROCESSING = "processing", _("Processing")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Failed")
+
+    wallet = models.ForeignKey(SellerWallet, on_delete=models.CASCADE, related_name="payout_requests")
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    bank_account = models.ForeignKey(SellerBankAccount, on_delete=models.PROTECT, related_name="payouts")
+    provider_reference = models.CharField(max_length=255, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return f"Payout {self.amount} for {self.wallet.shop.name} ({self.get_status_display()})"

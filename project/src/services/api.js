@@ -302,6 +302,105 @@ export const orderAPI = {
   // Shop Orders (for seller dashboard)
   shopOrders: (shopSlug) =>
     api.get(`/orders/shop-orders/${shopSlug}/`).then(r => r.data),
+  updateFulfillmentStatus: (groupId, status) =>
+    api.patch(`/orders/groups/${groupId}/status/`, { status }).then(r => r.data),
+}
+
+// ── Addresses ────────────────────────────────────────────────
+export const addressAPI = {
+  list: () => api.get('/users/addresses/').then(r => r.data),
+  create: (data) => api.post('/users/addresses/', data).then(r => r.data),
+  update: (id, data) => api.patch(`/users/addresses/${id}/`, data).then(r => r.data),
+  delete: (id) => api.delete(`/users/addresses/${id}/`).then(r => r.data),
+}
+
+// ── Blog ─────────────────────────────────────────────────────
+export const blogAPI = {
+  list: (params) => api.get('/blog/', { params }).then(r => r.data),
+  detail: (slug) => api.get(`/blog/${slug}/`).then(r => r.data),
+  create: (data) => api.post('/blog/', data).then(r => r.data),
+  update: (slug, data) => api.patch(`/blog/${slug}/`, data).then(r => r.data),
+  delete: (slug) => api.delete(`/blog/${slug}/`).then(r => r.data),
+  comments: (slug) => api.get(`/blog/${slug}/comments/`).then(r => r.data),
+  addComment: (slug, data) => api.post(`/blog/${slug}/comments/`, data).then(r => r.data),
+}
+
+// ── Messaging ────────────────────────────────────────────────
+export const messagingAPI = {
+  conversations: () => api.get('/messaging/conversations/').then(r => r.data),
+  conversationDetail: (id) => api.get(`/messaging/conversations/${id}/`).then(r => r.data),
+  createConversation: (data) => api.post('/messaging/conversations/', data).then(r => r.data),
+  sendMessage: (conversationId, data) => api.post(`/messaging/conversations/${conversationId}/messages/`, data).then(r => r.data),
+  markAsRead: (conversationId) => api.post(`/messaging/conversations/${conversationId}/read/`).then(r => r.data),
+  unreadCount: () => api.get('/messaging/unread-count/').then(r => r.data),
+}
+
+// ── Analytics (seller dashboard) ─────────────────────────────
+export const analyticsAPI = {
+  revenue: (shopSlug, params) => api.get(`/shops/${shopSlug}/analytics/revenue/`, { params }).then(r => r.data),
+  products: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/products/`).then(r => r.data),
+  customers: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/customers/`).then(r => r.data),
+  overview: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/overview/`).then(r => r.data),
+}
+
+// ── Coupons (seller management) ──────────────────────────────
+export const couponAPI = {
+  list: (shopSlug) => api.get(`/orders/coupons/${shopSlug}/`).then(r => r.data),
+  create: (shopSlug, data) => api.post(`/orders/coupons/${shopSlug}/`, data).then(r => r.data),
+  update: (shopSlug, id, data) => api.patch(`/orders/coupons/${shopSlug}/${id}/`, data).then(r => r.data),
+  delete: (shopSlug, id) => api.delete(`/orders/coupons/${shopSlug}/${id}/`).then(r => r.data),
+  apply: (data) => api.post('/orders/coupon/apply/', data).then(r => r.data),
+}
+
+// ── Payouts ──────────────────────────────────────────────────
+export const payoutAPI = {
+  bankAccounts: (shopSlug) => api.get(`/orders/bank-accounts/`, { params: { shop: shopSlug } }).then(r => r.data),
+  addBankAccount: (data) => api.post('/orders/bank-accounts/', data).then(r => r.data),
+  updateBankAccount: (id, data) => api.patch(`/orders/bank-accounts/${id}/`, data).then(r => r.data),
+  deleteBankAccount: (id) => api.delete(`/orders/bank-accounts/${id}/`).then(r => r.data),
+  requestPayout: (data) => api.post('/orders/payouts/request/', data).then(r => r.data),
+  payoutHistory: (shopSlug) => api.get('/orders/payouts/', { params: { shop: shopSlug } }).then(r => r.data),
+}
+
+// ── Flash Sales ──────────────────────────────────────────────
+export const flashSaleAPI = {
+  active: () => api.get('/products/flash-sales/').then(r => r.data),
+  detail: (id) => api.get(`/products/flash-sales/${id}/`).then(r => r.data),
+  create: (shopSlug, data) => api.post(`/products/flash-sales/shop/${shopSlug}/`, data).then(r => r.data),
+  update: (id, data) => api.patch(`/products/flash-sales/${id}/`, data).then(r => r.data),
+  delete: (id) => api.delete(`/products/flash-sales/${id}/`).then(r => r.data),
+}
+
+// ── Notifications ────────────────────────────────────────────
+export const notificationAPI = {
+  preferences: () => api.get('/notifications/preferences/').then(r => r.data),
+  updatePreferences: (data) => api.patch('/notifications/preferences/', data).then(r => r.data),
+}
+
+// ── 2FA ──────────────────────────────────────────────────────
+export const twoFactorAPI = {
+  setup: () => api.post('/users/2fa/setup/').then(r => r.data),
+  verify: (code) => api.post('/users/2fa/verify/', { code }).then(r => r.data),
+  disable: (code) => api.post('/users/2fa/disable/', { code }).then(r => r.data),
+}
+
+// ── Bulk Import/Export ───────────────────────────────────────
+export const bulkAPI = {
+  importProducts: (shopSlug, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post(`/products/shop/${shopSlug}/import/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(r => r.data)
+  },
+  exportProducts: (shopSlug) => api.get(`/products/shop/${shopSlug}/export/`, { responseType: 'blob' }).then(r => r.data),
+  downloadTemplate: () => api.get('/products/import-template/', { responseType: 'blob' }).then(r => r.data),
+}
+
+// ── Product Reviews ──────────────────────────────────────────
+export const productReviewAPI = {
+  list: (slug) => api.get(`/products/${slug}/reviews/`).then(r => r.data),
+  create: (slug, data) => api.post(`/products/${slug}/reviews/`, data).then(r => r.data),
 }
 
 // ── Image helper ─────────────────────────────────────────────

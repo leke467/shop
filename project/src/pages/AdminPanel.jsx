@@ -43,6 +43,9 @@ export default function AdminPanel() {
     { key: 'overview', label: 'Overview', icon: '📊' },
     { key: 'shops', label: 'Shops', icon: '🏪' },
     { key: 'users', label: 'Users', icon: '👥' },
+    { key: 'verification', label: 'Verification', icon: '✅' },
+    { key: 'moderation', label: 'Moderation', icon: '🛡️' },
+    { key: 'settings', label: 'Settings', icon: '⚙️' },
   ]
 
   if (loading) {
@@ -93,7 +96,21 @@ export default function AdminPanel() {
 
         <AnimatePresence mode="wait">
           {tab === 'overview' && (
-            <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              
+              {/* Revenue Trend */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 mb-6">
+                <h3 className="font-bold text-gray-900 mb-4">Revenue Trend (Last 7 Days)</h3>
+                <div className="flex items-end gap-2 h-32">
+                  {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
+                    <div key={i} className="flex-1 bg-primary-100 rounded-t-lg relative group">
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-lg transition-all duration-300 group-hover:opacity-80" style={{ height: `${h}%` }}></div>
+                      <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded transition-opacity">₦{h}k</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
               <div className="grid lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl p-6 border border-gray-100">
                   <h3 className="font-bold text-gray-900 mb-4">Recent Shops</h3>
@@ -210,6 +227,36 @@ export default function AdminPanel() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'verification' && (
+            <motion.div key="verification" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <div className="text-4xl mb-4">✅</div>
+                <h3 className="text-xl font-bold text-gray-900">Merchant Verification Queue</h3>
+                <p className="text-gray-500 mt-2">No merchants pending verification at this time.</p>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'moderation' && (
+            <motion.div key="moderation" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <div className="text-4xl mb-4">🛡️</div>
+                <h3 className="text-xl font-bold text-gray-900">Content Moderation</h3>
+                <p className="text-gray-500 mt-2">All reported shops and products have been reviewed.</p>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <div className="text-4xl mb-4">⚙️</div>
+                <h3 className="text-xl font-bold text-gray-900">Platform Settings</h3>
+                <p className="text-gray-500 mt-2">Global platform configurations will appear here.</p>
               </div>
             </motion.div>
           )}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 20px; border-radius: 8px; }
+    .header { text-align: center; border-bottom: 1px solid #eeeeee; padding-bottom: 10px; margin-bottom: 20px; }
+    .footer { text-align: center; font-size: 12px; color: #888888; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 10px; }
+    .content { font-size: 16px; color: #333333; line-height: 1.5; }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Our Marketplace</h2>
+        </div>
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+        <div class="footer">
+            <p>&copy; {% now "Y" %} Our Marketplace. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

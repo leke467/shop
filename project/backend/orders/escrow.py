@@ -34,43 +34,57 @@ def confirm_delivery_code(
       3. Mark the order group as DELIVERED.
 
     Returns True on success, raises EscrowError on failure.
+
+    Security: Uses select_for_update() on both the OrderGroup and
+    SellerWallet rows to prevent double-release race conditions (C1).
     """
-    if order_group.escrow_status != OrderGroup.EscrowStatus.HELD:
-        raise EscrowError(
-            f"Cannot confirm delivery: escrow is already "
-            f"{order_group.get_escrow_status_display()}."
+    with transaction.atomic():
+        # Lock the OrderGroup row to prevent concurrent confirmation (C1).
+        locked_group = (
+            OrderGroup.objects
+            .select_for_update()
+            .select_related("shop", "order")
+            .get(pk=order_group.pk)
         )
 
-    # Verify the seller owns this shop.
-    if requesting_user and order_group.shop.owner != requesting_user:
-        raise EscrowError("You are not the owner of this shop.")
+        if locked_group.escrow_status != OrderGroup.EscrowStatus.HELD:
+            raise EscrowError(
+                f"Cannot confirm delivery: escrow is already "
+                f"{locked_group.get_escrow_status_display()}."
+            )
 
-    # Check the code.
-    if code_attempt.strip() != order_group.delivery_code:
-        raise EscrowError("Invalid delivery code.")
+        # Verify the seller owns this shop.
+        if requesting_user and locked_group.shop.owner != requesting_user:
+            raise EscrowError("You are not the owner of this shop.")
 
-    now = timezone.now()
+        # Check the code.
+        if code_attempt.strip() != locked_group.delivery_code:
+            raise EscrowError("Invalid delivery code.")
 
-    with transaction.atomic():
+        now = timezone.now()
+
         # Calculate commission (on subtotal only)
-        commission = order_group.subtotal * (order_group.shop.commission_rate / Decimal("100.0"))
+        commission = locked_group.subtotal * (locked_group.shop.commission_rate / Decimal("100.0"))
         
         # Release escrow.
-        order_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
-        order_group.delivery_code_confirmed_at = now
-        order_group.escrow_released_at = now
-        order_group.status = OrderGroup.FulfilmentStatus.DELIVERED
-        order_group.commission_fee = commission
-        order_group.save(update_fields=[
+        locked_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
+        locked_group.delivery_code_confirmed_at = now
+        locked_group.escrow_released_at = now
+        locked_group.status = OrderGroup.FulfilmentStatus.DELIVERED
+        locked_group.commission_fee = commission
+        locked_group.save(update_fields=[
             "escrow_status", "delivery_code_confirmed_at",
             "escrow_released_at", "status", "commission_fee", "updated_at",
         ])
 
-        # Credit the seller's wallet (Subtotal - Commission + Shipping).
-        release_amount = (order_group.subtotal - commission) + order_group.shipping_total
-        wallet, _created = SellerWallet.objects.get_or_create(
-            shop=order_group.shop,
-            defaults={"currency": order_group.order.currency},
+        # Credit the seller's wallet: (Subtotal - Commission) + (Shipping Total - Logistics Markup).
+        # The seller receives the base delivery fee; the platform retains commission + logistics markup.
+        # Lock the wallet row to prevent concurrent credit (C1).
+        net_shipping = max(Decimal("0.00"), locked_group.shipping_total - getattr(locked_group, "logistics_markup", Decimal("0.00")))
+        release_amount = (locked_group.subtotal - commission) + net_shipping
+        wallet, _created = SellerWallet.objects.select_for_update().get_or_create(
+            shop=locked_group.shop,
+            defaults={"currency": locked_group.order.currency},
         )
         wallet.credit(release_amount)
 
@@ -80,18 +94,18 @@ def confirm_delivery_code(
             kind=WalletTransaction.Kind.ESCROW_RELEASE,
             amount=release_amount,
             balance_after=wallet.balance,
-            reference=str(order_group.order.public_id),
-            notes=f"Delivery confirmed for order #{order_group.order.public_id}",
+            reference=str(locked_group.order.public_id),
+            notes=f"Delivery confirmed for order #{locked_group.order.public_id}",
         )
 
     logger.info(
         "Escrow released: group=%s amount=%s wallet_balance=%s",
-        order_group.pk, release_amount, wallet.balance,
+        locked_group.pk, release_amount, wallet.balance,
     )
     
     # --- Send Notification Email ---
     from core.emails import send_escrow_released_email
-    send_escrow_released_email(order_group, release_amount)
+    send_escrow_released_email(locked_group, release_amount)
     
     return True
 

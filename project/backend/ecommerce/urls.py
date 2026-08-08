@@ -29,6 +29,9 @@ urlpatterns = [
     path("api/search/", include("search.urls")),
 
     path("api/personalization/", include("personalization.urls")),
+    path("api/notifications/", include("notifications.urls")),
+    path("api/blog/", include("blog.urls")),
+    path("api/messaging/", include("messaging.urls")),
     path("api/", include("core.urls")),
 ]
 

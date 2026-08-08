@@ -16,6 +16,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from decimal import Decimal
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
@@ -97,9 +98,13 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
+# ---------------------------------------------------------------------------
+# Database Type Resolution
+# ---------------------------------------------------------------------------
+DB_TYPE = (env("DB_TYPE", "sqlite") or "sqlite").lower()
+
 THIRD_PARTY_APPS = [
     "rest_framework",
-    # "rest_framework_simplejwt.token_blacklist",  # Enable on PostgreSQL (MSSQL migration bug)
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -107,6 +112,11 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
     "django_celery_results",
 ]
+
+# SimpleJWT token_blacklist has a known migration bug on MSSQL (mssql-django 0008_migrate_to_bigautofield).
+# Enable it on PostgreSQL / SQLite (production & testing).
+if DB_TYPE != "mssql":
+    THIRD_PARTY_APPS.append("rest_framework_simplejwt.token_blacklist")
 
 LOCAL_APPS = [
     "core.apps.CoreConfig",
@@ -119,6 +129,9 @@ LOCAL_APPS = [
     "search.apps.SearchConfig",
 
     "personalization.apps.PersonalizationConfig",
+    "notifications.apps.NotificationsConfig",
+    "blog.apps.BlogConfig",
+    "messaging.apps.MessagingConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -164,8 +177,6 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 # Selected via DB_TYPE (sqlite | postgres | mssql). Environment modules may
 # override DATABASES entirely if they need a fixed engine.
-DB_TYPE = (env("DB_TYPE", "sqlite") or "sqlite").lower()
-
 if DB_TYPE in ("sqlite", "sqlite3"):
     DATABASES = {
         "default": {
@@ -260,6 +271,10 @@ REST_FRAMEWORK = {
         # Scoped throttles for sensitive endpoints (login, checkout, etc.).
         "auth": env("THROTTLE_AUTH", "10/min"),
         "checkout": env("THROTTLE_CHECKOUT", "20/min"),
+        # Security-hardened rates (C3, H4, M3)
+        "delivery_code": "5/min",   # C3: Anti-brute-force on 6-digit codes
+        "payout": "3/min",          # M3: Payout withdrawal rate limit
+        "coupon": "15/min",         # H4: Anti-enumeration on coupon codes
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "core.exceptions.api_exception_handler",
@@ -337,6 +352,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "products.tasks.process_all_unprocessed_images",
         "schedule": 1800,  # every 30 minutes
     },
+    "detect-abandoned-carts-hourly": {
+        "task": "orders.tasks.detect_abandoned_carts",
+        "schedule": 3600,  # every hour
+    },
 }
 
 
@@ -406,6 +425,17 @@ PAYMENTS = {
         "REFERENCE_PREFIX": env("BANK_REFERENCE_PREFIX", "MKT"),
     },
 }
+
+# ---------------------------------------------------------------------------
+# Logistics & Delivery (Sendbox, Kwik, Zone Rates)
+# ---------------------------------------------------------------------------
+# Platform handling markup added on top of base shipping quotes (default 3.0 = 3%).
+LOGISTICS_MARKUP_PERCENTAGE = Decimal(env("LOGISTICS_MARKUP_PERCENTAGE", "3.0"))
+
+SENDBOX_API_KEY = env("SENDBOX_API_KEY", "")
+SENDBOX_BASE_URL = env("SENDBOX_BASE_URL", "https://api.sendbox.ng/v1")
+KWIK_API_KEY = env("KWIK_API_KEY", "")
+KWIK_BASE_URL = env("KWIK_BASE_URL", "https://api.kwik.delivery/v1")
 
 
 # ---------------------------------------------------------------------------

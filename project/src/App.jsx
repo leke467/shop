@@ -25,6 +25,11 @@ import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import RefundPage from './pages/RefundPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ProfilePage from './pages/ProfilePage'
+import WishlistPage from './pages/WishlistPage'
+import ShippingGuidePage from './pages/ShippingGuidePage'
+import BlogListPage from './pages/BlogListPage'
+import BlogPostPage from './pages/BlogPostPage'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
@@ -62,6 +67,11 @@ function App() {
                 <Route path="terms" element={<TermsPage />} />
                 <Route path="privacy" element={<PrivacyPage />} />
                 <Route path="refund" element={<RefundPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="wishlist" element={<WishlistPage />} />
+                <Route path="shipping-guide" element={<ShippingGuidePage />} />
+                <Route path="blog" element={<BlogListPage />} />
+                <Route path="blog/:slug" element={<BlogPostPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
+import { messagingAPI } from '../../services/api'
 import Logo from '../Logo'
 
 export default function Navbar() {
@@ -14,12 +15,29 @@ export default function Navbar() {
   const { itemCount } = useCart()
   const { user, isAuthenticated, isAdmin, isSeller, logout } = useUser()
   const menuRef = useRef(null)
+  
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 10)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+  
+  useEffect(() => {
+    if (isAuthenticated) {
+      messagingAPI.unreadCount()
+        .then(res => setUnreadMessages(res.data?.count || res.count || 0))
+        .catch(() => {})
+        
+      const interval = setInterval(() => {
+        messagingAPI.unreadCount()
+          .then(res => setUnreadMessages(res.data?.count || res.count || 0))
+          .catch(() => {})
+      }, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated])
 
   useEffect(() => { setMobileOpen(false); setUserMenuOpen(false) }, [location.pathname])
 
@@ -88,6 +106,13 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative p-2 rounded-xl transition-all hover:bg-gray-100/50">
+              <svg className={`w-5 h-5 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </Link>
+
             {/* Cart */}
             <Link to="/cart" className="relative p-2 rounded-xl transition-all hover:bg-gray-100/50">
               <svg className={`w-5 h-5 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,6 +124,20 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+
+            {/* Messages */}
+            {isAuthenticated && (
+              <Link to="/messages" className="relative p-2 rounded-xl transition-all hover:bg-gray-100/50">
+                <svg className={`w-5 h-5 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-error-500 text-white text-xs font-bold flex items-center justify-center shadow-sm">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* User menu */}
             {isAuthenticated ? (

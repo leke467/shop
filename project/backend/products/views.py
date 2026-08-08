@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from core.permissions import IsOwnerOrReadOnly
 
-from .models import Category, Product, ProductReview
+from .models import Category, Product, ProductReview, FlashSale, FlashSaleItem
 from .serializers import (
     CategorySerializer,
     ProductCreateUpdateSerializer,
@@ -12,6 +12,8 @@ from .serializers import (
     ProductListSerializer,
     ProductReviewSerializer,
     ProductImageSerializer,
+    FlashSaleSerializer,
+    FlashSaleItemSerializer,
 )
 
 
@@ -166,3 +168,182 @@ class ProductImageUploadView(generics.CreateAPIView):
             product = generics.get_object_or_404(Product, slug=lookup, shop__owner=self.request.user)
 
         serializer.save(product=product)
+
+
+# ---------------------------------------------------------------------------
+# Flash Sales
+# ---------------------------------------------------------------------------
+
+class FlashSaleListView(generics.ListAPIView):
+    """Public list of active flash sales."""
+    serializer_class = FlashSaleSerializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        from django.utils import timezone
+        now = timezone.now()
+        qs = FlashSale.objects.filter(is_active=True, start_time__lte=now, end_time__gte=now)
+        shop_slug = self.request.query_params.get("shop")
+        if shop_slug:
+            qs = qs.filter(shop__slug=shop_slug)
+        return qs.prefetch_related("items__product")
+
+
+class ShopFlashSaleListCreateView(generics.ListCreateAPIView):
+    """List and create flash sales for a shop (owner only)."""
+    serializer_class = FlashSaleSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return FlashSale.objects.filter(shop__slug=self.kwargs["slug"], shop__owner=self.request.user)
+    
+    def perform_create(self, serializer):
+        from shops.models import Shop
+        shop = generics.get_object_or_404(Shop, slug=self.kwargs["slug"], owner=self.request.user)
+        serializer.save(shop=shop)
+
+
+class ShopFlashSaleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Manage a specific flash sale."""
+    serializer_class = FlashSaleSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    lookup_field = "public_id"
+    
+    def get_queryset(self):
+        return FlashSale.objects.filter(shop__owner=self.request.user)
+
+
+# ---------------------------------------------------------------------------
+# Bulk Import / Export
+# ---------------------------------------------------------------------------
+
+import csv
+import io
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser
+from django.db import transaction
+
+class BulkProductImportView(APIView):
+    """POST /api/products/shop/<slug>/import/ (accepts CSV file)"""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+    
+    def post(self, request, slug, *args, **kwargs):
+        from shops.models import Shop
+        from .models import ProductVariant, Inventory
+        shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
+        
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"error": "No file provided"}, status=400)
+            
+        decoded_file = file_obj.read().decode('utf-8')
+        io_string = io.StringIO(decoded_file)
+        reader = csv.DictReader(io_string)
+        
+        created_count = 0
+        errors = []
+        
+        try:
+            with transaction.atomic():
+                for row_num, row in enumerate(reader, start=1):
+                    try:
+                        name = row.get("name")
+                        base_price = row.get("base_price")
+                        
+                        if not name or not base_price:
+                            errors.append(f"Row {row_num}: missing name or base_price")
+                            continue
+                            
+                        category_slug = row.get("category_slug")
+                        category = None
+                        if category_slug:
+                            category = Category.objects.filter(slug=category_slug).first()
+                            
+                        compare_price = row.get("compare_at_price")
+                        compare_price = compare_price if compare_price else None
+                        
+                        product = Product.objects.create(
+                            shop=shop,
+                            name=name,
+                            description=row.get("description", ""),
+                            category=category,
+                            base_price=base_price,
+                            compare_at_price=compare_price,
+                            status=Product.Status.DRAFT
+                        )
+                        
+                        variant_name = row.get("variant_name") or "Default"
+                        variant_price = row.get("variant_price") or base_price
+                        sku = row.get("sku", "")
+                        
+                        variant = ProductVariant.objects.create(
+                            product=product,
+                            name=variant_name,
+                            price=variant_price,
+                            sku=sku,
+                            is_default=True
+                        )
+                        
+                        qty = row.get("quantity")
+                        if qty:
+                            Inventory.objects.create(
+                                variant=variant,
+                                quantity=int(qty)
+                            )
+                            
+                        created_count += 1
+                    except Exception as e:
+                        errors.append(f"Row {row_num}: {str(e)}")
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+            
+        return Response({"created_count": created_count, "errors": errors})
+
+class BulkProductExportView(APIView):
+    """GET /api/products/shop/<slug>/export/ (returns CSV)"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, slug, *args, **kwargs):
+        from django.http import HttpResponse
+        from shops.models import Shop
+        shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="products_{slug}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(["name", "description", "category_slug", "base_price", "compare_at_price", "variant_name", "variant_price", "sku", "quantity"])
+        
+        products = Product.objects.filter(shop=shop).prefetch_related("variants__inventory")
+        for product in products:
+            cat_slug = product.category.slug if product.category else ""
+            variant = product.variants.first()
+            if variant:
+                v_name = variant.name
+                v_price = variant.price
+                sku = variant.sku
+                try:
+                    qty = variant.inventory.quantity
+                except:
+                    qty = 0
+            else:
+                v_name = ""
+                v_price = product.base_price
+                sku = ""
+                qty = 0
+                
+            writer.writerow([
+                product.name,
+                product.description,
+                cat_slug,
+                product.base_price,
+                product.compare_at_price or "",
+                v_name,
+                v_price,
+                sku,
+                qty
+            ])
+            
+        return response

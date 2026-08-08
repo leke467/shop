@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shopAPI, productAPI, getImageUrl } from '../services/api'
+import { shopAPI, productAPI, getImageUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import LimitReachedModal, { extractLimitError } from '../components/subscription/LimitReachedModal'
 import CustomDomainManager from '../components/shop/CustomDomainManager'
 import DeliveryZoneManager from '../components/shop/DeliveryZoneManager'
 import { useNotification } from '../context/NotificationContext'
+import CouponsTab from '../components/dashboard/CouponsTab'
+import AnalyticsTab from '../components/dashboard/AnalyticsTab'
+import BlogTab from '../components/dashboard/BlogTab'
+import MessagesTab from '../components/dashboard/MessagesTab'
 
 // Persist the last-selected shop so switching shops survives reloads.
 const SELECTED_SHOP_KEY = 'dashboard.selectedShopSlug'
@@ -142,7 +146,18 @@ export default function ShopDashboard() {
   const [kycSubmitting, setKycSubmitting] = useState(false)
   const [kycLoading, setKycLoading] = useState(false)
 
+  // Payout & Bank States
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [selectedBankId, setSelectedBankId] = useState('')
+  const [bankAccounts, setBankAccounts] = useState([])
+  const [addBankMode, setAddBankMode] = useState(false)
+  const [bankForm, setBankForm] = useState({ bank_name: 'Access Bank', account_number: '', account_name: '', bank_code: '044' })
+  const [payouts, setPayouts] = useState([])
+  const [payoutsLoading, setPayoutsLoading] = useState(false)
 
+  // Bulk Import State
+  const [bulkImporting, setBulkImporting] = useState(false)
 
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
@@ -193,6 +208,18 @@ export default function ShopDashboard() {
       .finally(() => setWalletLoading(false))
   }
 
+  const loadPayoutsAndBanks = (slug) => {
+    setPayoutsLoading(true);
+    Promise.all([
+      payoutAPI.listBanks(slug).catch(() => []),
+      payoutAPI.listPayouts(slug).catch(() => [])
+    ]).then(([banksData, payoutsData]) => {
+      setBankAccounts(banksData);
+      setPayouts(payoutsData);
+      if (banksData.length > 0) setSelectedBankId(banksData[0].id);
+    }).finally(() => setPayoutsLoading(false));
+  }
+
   const loadKYC = (slug) => {
     setKycLoading(true)
     shopAPI.getVerification(slug)
@@ -214,6 +241,7 @@ export default function ShopDashboard() {
     loadTheme(target.slug)
     loadOrders(target.slug)
     loadWallet(target.slug)
+    loadPayoutsAndBanks(target.slug)
     loadKYC(target.slug)
     Promise.resolve(loadProducts(target.slug)).finally(() => setSwitching(false))
   }
@@ -243,6 +271,7 @@ export default function ShopDashboard() {
             loadTheme(selected.slug)
             loadOrders(selected.slug)
             loadWallet(selected.slug)
+            loadPayoutsAndBanks(selected.slug)
             loadKYC(selected.slug)
             return loadProducts(selected.slug)
           }
@@ -327,6 +356,61 @@ export default function ShopDashboard() {
     }
   }
 
+  const handleBulkImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setBulkImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await bulkAPI.importProducts(shop.slug, fd);
+      toast(`Imported ${res.imported_count || 0} products successfully!`);
+      loadProducts(shop.slug);
+    } catch (err) {
+      toast('Bulk import failed', 'error');
+    } finally {
+      setBulkImporting(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddBank = async (e) => {
+    e.preventDefault();
+    try {
+      await payoutAPI.addBank(shop.slug, bankForm);
+      toast('Bank account added successfully!');
+      setAddBankMode(false);
+      setBankForm({ bank_name: 'Access Bank', account_number: '', account_name: '', bank_code: '044' });
+      loadPayoutsAndBanks(shop.slug);
+    } catch (err) {
+      toast('Failed to add bank account', 'error');
+    }
+  };
+
+  const handleDeleteBank = async (id) => {
+    if (!(await confirm('Are you sure you want to delete this bank account?'))) return;
+    try {
+      await payoutAPI.deleteBank(id);
+      toast('Bank account deleted');
+      loadPayoutsAndBanks(shop.slug);
+    } catch (err) {
+      toast('Failed to delete bank account', 'error');
+    }
+  };
+
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    try {
+      await payoutAPI.requestPayout(shop.slug, { amount: withdrawAmount, bank_account_id: selectedBankId });
+      toast('Withdrawal requested successfully!');
+      setWithdrawModalOpen(false);
+      setWithdrawAmount('');
+      loadWallet(shop.slug);
+      loadPayoutsAndBanks(shop.slug);
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Withdrawal request failed', 'error');
+    }
+  };
 
   const handleSaveTheme = async (e) => {
     e.preventDefault()
@@ -415,6 +499,16 @@ export default function ShopDashboard() {
     }
   }
 
+  const handleStatusChange = async (groupId, newStatus) => {
+    try {
+      await orderAPI.updateFulfillmentStatus(groupId, newStatus)
+      setShopOrders(prev => prev.map(o => o.group_id === groupId ? { ...o, status: newStatus } : o))
+      toast(`Order status updated to ${newStatus}`)
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Failed to update order status.', 'error')
+    }
+  }
+
   const handleKYCSubmit = async (e) => {
     e.preventDefault()
     if (!kycForm.verification_legal_name || !kycForm.id_number || !kycForm.document) {
@@ -479,6 +573,10 @@ export default function ShopDashboard() {
     { key: 'orders', label: 'Orders', icon: '📥' },
     { key: 'products', label: 'Products', icon: '📦' },
     { key: 'add-product', label: 'Add Product', icon: '➕' },
+    { key: 'coupons', label: 'Coupons', icon: '🎟️' },
+    { key: 'analytics', label: 'Analytics', icon: '📈' },
+    { key: 'blog', label: 'Blog', icon: '📝' },
+    { key: 'messages', label: 'Messages', icon: '💬' },
     { key: 'theme', label: 'Theme Builder', icon: '🎨' },
     { key: 'wallet', label: 'Wallet', icon: '💳' },
     { key: 'settings', label: 'Settings', icon: '⚙️' },
@@ -634,11 +732,21 @@ export default function ShopDashboard() {
                           <p className="text-xs text-gray-500 mt-0.5">Placed on {new Date(order.created_at).toLocaleString()}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${
-                            order.status === 'delivered' ? 'bg-success-100 text-success-700' : 'bg-primary-100 text-primary-700'
-                          }`}>
-                            Fulfillment: {order.status}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-gray-500 font-medium">Status:</span>
+                            <select
+                              value={order.status}
+                              onChange={(e) => handleStatusChange(order.group_id, e.target.value)}
+                              className="text-xs px-2.5 py-1 rounded-lg font-semibold bg-gray-100 border border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="accepted">Accepted</option>
+                              <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
                           <span className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${
                             order.escrow_status === 'released' ? 'bg-success-100 text-success-700' :
                             order.escrow_status === 'disputed' ? 'bg-error-100 text-error-700 font-bold animate-pulse' :
@@ -752,13 +860,77 @@ export default function ShopDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-warning-50 border border-warning-200 rounded-2xl p-5 flex gap-4">
-                      <div className="text-2xl">💡</div>
-                      <div>
-                        <h5 className="font-semibold text-warning-850 text-sm">Need a payout transfer?</h5>
-                        <p className="text-xs text-warning-700 mt-1 leading-relaxed">
-                          Payout processing is currently managed by platform administrators. To request a manual withdrawal of your available balance directly to your bank account, please contact payout support with your shop slug (<strong>{shop.slug}</strong>).
-                        </p>
+                    <div className="space-y-6">
+                      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-900">Request Payout</h4>
+                          <p className="text-sm text-gray-500">Withdraw your available balance to your bank account.</p>
+                        </div>
+                        <button onClick={() => {
+                          if (bankAccounts.length === 0) {
+                            toast('Please add a bank account first', 'error');
+                            setAddBankMode(true);
+                          } else {
+                            setWithdrawModalOpen(true);
+                          }
+                        }} className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors whitespace-nowrap">
+                          Withdraw Funds
+                        </button>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="text-lg font-bold text-gray-900">Bank Accounts</h4>
+                          <button onClick={() => setAddBankMode(!addBankMode)} className="text-sm text-primary-600 font-semibold hover:underline">
+                            {addBankMode ? 'Cancel' : '+ Add Bank Account'}
+                          </button>
+                        </div>
+                        
+                        {addBankMode && (
+                          <form onSubmit={handleAddBank} className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Bank</label>
+                                <select required value={bankForm.bank_name} onChange={e => {
+                                  const name = e.target.value;
+                                  const codes = {'Access Bank': '044', 'Zenith Bank': '057', 'GTBank': '058', 'First Bank': '011', 'UBA': '033'};
+                                  setBankForm({...bankForm, bank_name: name, bank_code: codes[name] || ''});
+                                }} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                  <option value="Access Bank">Access Bank</option>
+                                  <option value="Zenith Bank">Zenith Bank</option>
+                                  <option value="GTBank">GTBank</option>
+                                  <option value="First Bank">First Bank</option>
+                                  <option value="UBA">UBA</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Account Number</label>
+                                <input required type="text" maxLength={10} value={bankForm.account_number} onChange={e => setBankForm({...bankForm, account_number: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500" placeholder="10-digit number" />
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Account Name</label>
+                                <input required type="text" value={bankForm.account_name} onChange={e => setBankForm({...bankForm, account_name: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500" placeholder="John Doe" />
+                              </div>
+                            </div>
+                            <button type="submit" className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-semibold transition-colors">Save Bank Account</button>
+                          </form>
+                        )}
+
+                        <div className="space-y-3">
+                          {bankAccounts.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No bank accounts added yet.</p>
+                          ) : (
+                            bankAccounts.map(b => (
+                              <div key={b.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl bg-gray-50">
+                                <div>
+                                  <p className="font-semibold text-gray-900 text-sm">{b.bank_name}</p>
+                                  <p className="text-xs text-gray-500">{b.account_number} • {b.account_name}</p>
+                                </div>
+                                <button onClick={() => handleDeleteBank(b.id)} className="text-error-600 text-sm hover:underline font-medium">Delete</button>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -800,6 +972,69 @@ export default function ShopDashboard() {
                       </table>
                     )}
                   </div>
+
+                  {/* Payout History */}
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="p-5 border-b border-gray-100">
+                      <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider">Payout History</h4>
+                    </div>
+                    {payouts.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-gray-400">No payouts requested yet</div>
+                    ) : (
+                      <table className="w-full">
+                        <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                          <tr>
+                            <th className="text-left px-6 py-3">Date</th>
+                            <th className="text-left px-6 py-3">Amount</th>
+                            <th className="text-left px-6 py-3">Status</th>
+                            <th className="text-right px-6 py-3">Bank</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-sm">
+                          {payouts.map((p, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</td>
+                              <td className="px-6 py-4 font-bold text-gray-900">₦{Number(p.amount).toLocaleString()}</td>
+                              <td className="px-6 py-4">
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.status === 'completed' ? 'bg-success-100 text-success-700' : p.status === 'pending' ? 'bg-warning-100 text-warning-700' : 'bg-error-100 text-error-700'}`}>{p.status}</span>
+                              </td>
+                              <td className="px-6 py-4 text-right text-xs text-gray-500">{p.bank_name} • {p.account_number}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  {/* Withdraw Modal */}
+                  <AnimatePresence>
+                    {withdrawModalOpen && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                          <h3 className="text-xl font-bold text-gray-900 mb-4">Withdraw Funds</h3>
+                          <form onSubmit={handleWithdraw} className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-1">Select Bank Account</label>
+                              <select required value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                                {bankAccounts.map(b => (
+                                  <option key={b.id} value={b.id}>{b.bank_name} - {b.account_number}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-1">Amount (₦)</label>
+                              <input required type="number" min="1000" max={wallet?.balance || 0} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/30" placeholder="0.00" />
+                              <p className="text-xs text-gray-500 mt-1">Available balance: ₦{Number(wallet?.balance || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                              <button type="button" onClick={() => setWithdrawModalOpen(false)} className="px-5 py-2.5 text-gray-600 font-semibold hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                              <button type="submit" disabled={!withdrawAmount || Number(withdrawAmount) > Number(wallet?.balance || 0)} className="px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50">Confirm Withdrawal</button>
+                            </div>
+                          </form>
+                        </motion.div>
+                      </div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </motion.div>
@@ -813,10 +1048,38 @@ export default function ShopDashboard() {
                   <h3 className="text-xl font-bold text-gray-900">No products yet</h3>
                   <p className="text-gray-500 mt-2">Add your first product to start selling</p>
                   <button onClick={() => { setTab('add-product'); setEditingProduct(null); setProductForm({ name: '', description: '', base_price: '', status: 'active' }); }} className="mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Add Product</button>
+                  
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <p className="text-sm text-gray-500 mb-3">Or import multiple products at once</p>
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors">
+                      {bulkImporting ? 'Importing...' : 'Bulk Import CSV'}
+                      <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} disabled={bulkImporting} />
+                    </label>
+                  </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  <table className="w-full">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <h3 className="font-bold text-gray-900">Your Products</h3>
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => {
+                        const csvContent = "data:text/csv;charset=utf-8,Name,Description,Price,Status\nExample Product,Great description,15000,active";
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", "product_template.csv");
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                      }} className="text-sm text-primary-600 hover:underline font-medium">Download Template</button>
+                      <label className="cursor-pointer px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-sm transition-colors">
+                        {bulkImporting ? 'Importing...' : 'Bulk Import CSV'}
+                        <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} disabled={bulkImporting} />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Product</th>
@@ -850,6 +1113,7 @@ export default function ShopDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
                 </div>
               )}
             </motion.div>
@@ -903,6 +1167,30 @@ export default function ShopDashboard() {
                   </motion.button>
                 </form>
               </div>
+            </motion.div>
+          )}
+
+          {tab === 'coupons' && (
+            <motion.div key="coupons" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <CouponsTab shop={shop} />
+            </motion.div>
+          )}
+
+          {tab === 'analytics' && (
+            <motion.div key="analytics" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <AnalyticsTab shop={shop} />
+            </motion.div>
+          )}
+
+          {tab === 'blog' && (
+            <motion.div key="blog" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <BlogTab shop={shop} />
+            </motion.div>
+          )}
+
+          {tab === 'messages' && (
+            <motion.div key="messages" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <MessagesTab shop={shop} />
             </motion.div>
           )}
 

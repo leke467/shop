@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { orderAPI, shopAPI, getImageUrl } from '../services/api'
+import { orderAPI, shopAPI, getImageUrl, couponAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 import SEOHead from '../components/SEOHead'
@@ -91,7 +91,35 @@ export default function CartPage() {
   const [noteSending, setNoteSending] = useState(false)
   const [noteSent, setNoteSent] = useState({}) // { shopSlug: true }
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponError, setCouponError] = useState('')
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
+
   const subtotal = total || 0
+  const vatAmount = subtotal * 0.075
+  const discountAmount = appliedCoupon?.discount_amount || 0
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return
+    setApplyingCoupon(true)
+    setCouponError('')
+    try {
+      const shopSlug = shopSlugs[0]
+      const result = await couponAPI.apply({ code: couponCode, shop_slug: shopSlug })
+      setAppliedCoupon(result)
+    } catch (err) {
+      setCouponError(err.response?.data?.detail || 'Invalid coupon code')
+    }
+    setApplyingCoupon(false)
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode('')
+    setCouponError('')
+  }
 
   // Get unique shop slugs and settings from cart items
   const { shopSlugs, shopSettings } = useMemo(() => {
@@ -159,7 +187,7 @@ export default function CartPage() {
     }, 0)
   }, [deliveryFees, manualDeliverySelected])
 
-  const grandTotal = subtotal + (selectedState ? totalDeliveryFee : 0)
+  const grandTotal = subtotal + vatAmount - discountAmount + (selectedState ? totalDeliveryFee : 0)
   
   const unresolvedShops = unavailableShops.filter(slug => !manualDeliverySelected[slug])
   const canCheckout = selectedState && unresolvedShops.length === 0 && !deliveryLoading
@@ -205,9 +233,9 @@ export default function CartPage() {
             customerEmail: checkoutForm.email || user?.email,
             paymentReference: reference,
             paymentDescription: `Order ${result.order?.public_id || ''}`,
-            contractCode: monnifyData.contractCode || '8757701677',
+            contractCode: monnifyData.contractCode || '286935449446',
             apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
-            isTestMode: true,
+            isTestMode: (monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
             onComplete: function(response) {
               setCheckoutLoading(true)
               orderAPI.verifyMonnify(reference)
@@ -450,6 +478,42 @@ export default function CartPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 text-sm min-w-0">
                   <div className="flex justify-between items-center gap-2"><span className="text-gray-500 truncate">Subtotal ({items.length} items)</span><span className="font-semibold flex-shrink-0">₦{subtotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between items-center gap-2 mt-2"><span className="text-gray-500 truncate">VAT (7.5%)</span><span className="font-semibold flex-shrink-0">₦{vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center gap-2 mt-2"><span className="text-success-600 truncate">Discount</span><span className="font-semibold text-success-600 flex-shrink-0">-₦{discountAmount.toLocaleString()}</span></div>
+                  )}
+
+                  {/* Coupon */}
+                  <div className="pt-3 border-t border-gray-100 min-w-0 mt-3">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Promo Code</label>
+                    {!appliedCoupon ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                          placeholder="Enter code"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={applyingCoupon || !couponCode}
+                          className="px-4 py-2 bg-gray-900 text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                          {applyingCoupon ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center bg-success-50 p-2 rounded-lg border border-success-200">
+                        <div>
+                          <p className="text-sm font-semibold text-success-700">Code applied: {couponCode}</p>
+                          <p className="text-xs text-success-600">-₦{discountAmount.toLocaleString()}</p>
+                        </div>
+                        <button type="button" onClick={handleRemoveCoupon} className="text-xs text-error-600 font-semibold hover:underline">Remove</button>
+                      </div>
+                    )}
+                    {couponError && <p className="text-xs text-error-600 mt-1">{couponError}</p>}
+                  </div>
 
                   {/* Delivery state selector */}
                   <div className="pt-3 border-t border-gray-100 min-w-0">
@@ -650,25 +714,19 @@ export default function CartPage() {
 
                     {/* Payment provider */}
                     <div>
-                      <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 block">Payment</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 block">Payment Method</label>
+                      <div className="grid grid-cols-1 gap-2">
                         {[
-                          { id: 'monnify', label: '⚡ Moniepoint / Monnify' },
-                          { id: 'paystack', label: '🏦 Paystack' },
-                          { id: 'bank_transfer', label: '🏧 Bank Transfer' },
-                          { id: 'stripe', label: '💳 Stripe' },
+                          { id: 'monnify', label: '⚡ Moniepoint / Monnify (Cards, Bank Transfer, USSD)' },
                         ].map(p => (
                           <button
                             key={p.id}
                             type="button"
                             onClick={() => setCheckoutForm(prev => ({ ...prev, provider: p.id }))}
-                            className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium border-2 transition-all text-left ${
-                              checkoutForm.provider === p.id
-                                ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold'
-                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                            }`}
+                            className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold border-2 transition-all text-left flex items-center justify-between border-primary-500 bg-primary-50 text-primary-700`}
                           >
-                            {p.label}
+                            <span>{p.label}</span>
+                            <span className="text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full font-medium">Selected</span>
                           </button>
                         ))}
                       </div>

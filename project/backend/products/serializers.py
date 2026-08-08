@@ -8,6 +8,8 @@ from .models import (
     ProductImage,
     ProductReview,
     ProductVariant,
+    FlashSale,
+    FlashSaleItem,
 )
 from subscriptions.services import is_user_locked
 
@@ -145,3 +147,27 @@ class ProductReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
+
+
+class FlashSaleItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    
+    class Meta:
+        model = FlashSaleItem
+        fields = (
+            "id", "flash_sale", "product", "product_name", 
+            "sale_price", "original_price", "quantity_limit", "quantity_sold"
+        )
+        read_only_fields = ("id", "quantity_sold")
+
+
+class FlashSaleSerializer(serializers.ModelSerializer):
+    items = FlashSaleItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FlashSale
+        fields = (
+            "id", "public_id", "shop", "name", "description", 
+            "discount_percentage", "start_time", "end_time", "is_active", "items"
+        )
+        read_only_fields = ("id", "public_id", "shop")
