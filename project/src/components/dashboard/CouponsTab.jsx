@@ -13,7 +13,8 @@ export default function CouponsTab({ shop }) {
   const loadCoupons = async () => {
     try {
       const data = await couponAPI.list(shop.slug);
-      setCoupons(data || []);
+      const list = Array.isArray(data) ? data : (data?.results || []);
+      setCoupons(list);
     } catch (e) {
       console.error(e);
       setCoupons([]);

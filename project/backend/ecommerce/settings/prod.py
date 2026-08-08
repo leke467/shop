@@ -21,7 +21,7 @@ if not ALLOWED_HOSTS:
     raise RuntimeError("ALLOWED_HOSTS must be set in production.")
 
 # Default to PostgreSQL in production unless explicitly overridden.
-if (env("DB_TYPE", "postgres") or "postgres").lower() not in ("postgres", "postgresql"):
+if (env("DB_ENGINE", env("DB_TYPE", "postgres")) or "postgres").lower() not in ("postgres", "postgresql"):
     # Allow overrides but nudge toward the supported prod engine.
     pass
 

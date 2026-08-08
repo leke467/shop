@@ -99,9 +99,11 @@ DJANGO_APPS = [
 ]
 
 # ---------------------------------------------------------------------------
-# Database Type Resolution
+# Database Engine Resolution
 # ---------------------------------------------------------------------------
-DB_TYPE = (env("DB_TYPE", "sqlite") or "sqlite").lower()
+# Prefer DB_ENGINE for parity with the example settings file, but keep DB_TYPE
+# as a fallback so existing local env files continue to work.
+DB_ENGINE = (env("DB_ENGINE", env("DB_TYPE", "sqlite")) or "sqlite").lower()
 
 THIRD_PARTY_APPS = [
     "rest_framework",
@@ -115,7 +117,7 @@ THIRD_PARTY_APPS = [
 
 # SimpleJWT token_blacklist has a known migration bug on MSSQL (mssql-django 0008_migrate_to_bigautofield).
 # Enable it on PostgreSQL / SQLite (production & testing).
-if DB_TYPE != "mssql":
+if DB_ENGINE != "mssql":
     THIRD_PARTY_APPS.append("rest_framework_simplejwt.token_blacklist")
 
 LOCAL_APPS = [
@@ -175,16 +177,16 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
-# Selected via DB_TYPE (sqlite | postgres | mssql). Environment modules may
+# Selected via DB_ENGINE (sqlite | postgres | mssql). Environment modules may
 # override DATABASES entirely if they need a fixed engine.
-if DB_TYPE in ("sqlite", "sqlite3"):
+if DB_ENGINE in ("sqlite", "sqlite3"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": env("DB_NAME", str(BASE_DIR / "db.sqlite3")),
         }
     }
-elif DB_TYPE in ("postgres", "postgresql"):
+elif DB_ENGINE in ("postgres", "postgresql"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -198,7 +200,7 @@ elif DB_TYPE in ("postgres", "postgresql"):
             "CONN_HEALTH_CHECKS": True,
         }
     }
-elif DB_TYPE == "mssql":
+elif DB_ENGINE == "mssql":
     _mssql_options = {"driver": env("DB_DRIVER", "ODBC Driver 17 for SQL Server")}
     if env_bool("DB_TRUST_SERVER_CERTIFICATE", False):
         _mssql_options["TrustServerCertificate"] = "yes"
@@ -214,7 +216,7 @@ elif DB_TYPE == "mssql":
         _mssql["PORT"] = env("DB_PORT")
     DATABASES = {"default": _mssql}
 else:
-    raise ValueError(f"Unsupported DB_TYPE: {DB_TYPE!r}")
+    raise ValueError(f"Unsupported DB_ENGINE: {DB_ENGINE!r}")
 
 
 # ---------------------------------------------------------------------------

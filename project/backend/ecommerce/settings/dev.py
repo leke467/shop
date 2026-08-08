@@ -2,7 +2,7 @@
 Development settings.
 
 Defaults to the local MSSQL instance configured in ``.env`` but honours any
-``DB_TYPE`` override. Security is relaxed for local convenience only.
+``DB_ENGINE`` override. Security is relaxed for local convenience only.
 """
 from __future__ import annotations
 
