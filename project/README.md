@@ -111,6 +111,33 @@ celery -A ecommerce beat --loglevel=info
 
 ---
 
+## 💾 Database Fixtures & Seeding
+
+The repository includes a complete serialized database dump containing **1,517 pre-populated objects** to quickly set up a fully working marketplace environment.
+
+* **File Location:** [`project/backend/seed_data.json`](file:///c:/Users/Leke/Documents/GitHub/shop/project/backend/seed_data.json)
+* **File Size:** `~847 KB` (Formatted UTF-8 JSON)
+* **What the Dump Contains:**
+  - **Shops & Merchants:** Sample registered storefronts, seller profiles, logos, themes, and layouts.
+  - **Products & Inventory:** Product variants, categories, SKUs, pricing, and stock inventory counts.
+  - **Subscriptions & Tiers:** SaaS plan tiers (Free, Growth, Pro) with feature limits.
+  - **Delivery & Logistics:** Nigerian state delivery zones (`DeliveryZone`) and state rates.
+  - **Users & Security:** Superuser accounts, buyer/seller profiles, saved addresses, and 2FA models.
+  - **Orders & Transactions:** Historical orders, order groups, delivery codes, and escrow records.
+
+### How to Seed / Restore Data:
+```bash
+cd project/backend
+
+# 1. Run migrations first to create table schemas
+python manage.py migrate
+
+# 2. Load the JSON fixture into the database
+python manage.py loaddata seed_data.json
+```
+
+---
+
 ## 🔒 Security Architecture
 - **Escrow Row-Locking (`select_for_update`)**: Prevents race conditions on delivery code releases & seller wallet payouts.
 - **HttpOnly JWT Cookies**: Protection against XSS token theft.
