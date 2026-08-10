@@ -62,16 +62,16 @@ function Footer() {
           <div>
             <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Support</h4>
             <ul className="space-y-1.5 text-gray-400 text-xs sm:text-sm">
-              <li>📍 Tech City, Country</li>
-              <li>✉️ support@multishop.com</li>
-              <li>📞 +1 (555) 123-4567</li>
+              <li>📍 Lagos, Nigeria</li>
+              <li>✉️ support@multishopng.com</li>
+              <li>🌐 www.multishopng.com</li>
             </ul>
           </div>
         </div>
 
         {/* Bottom copyright & legal links */}
         <div className="pt-4 md:pt-2 flex flex-col sm:flex-row justify-between items-center text-[11px] sm:text-xs text-gray-400 gap-2">
-          <p>&copy; {currentYear} MultiShop Inc. All rights reserved.</p>
+          <p>&copy; {currentYear} MultiShopNG (multishopng.com). All rights reserved.</p>
 
           <div className="flex items-center gap-4 text-gray-400">
             <Link to="/privacy" className="hover:text-gray-200 transition">Privacy</Link>

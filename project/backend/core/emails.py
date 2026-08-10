@@ -4,7 +4,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FROM_EMAIL = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@multishop.local')
+DEFAULT_FROM_EMAIL = getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@multishopng.com')
 
 def send_order_placed_buyer_email(order, order_groups):
     """
@@ -27,7 +27,7 @@ def send_order_placed_buyer_email(order, order_groups):
         "",
         "If you have any issues, you can open a dispute from your dashboard.",
         "Thanks,",
-        "The Multishop Team"
+        "The MultiShopNG Team (multishopng.com)"
     ])
     
     body = "\n".join(body_lines)

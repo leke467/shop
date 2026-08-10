@@ -39,8 +39,8 @@ export default function InstallPrompt() {
               📱
             </div>
             <div className="flex-1">
-              <h4 className="font-bold text-gray-900">Install MultiShop</h4>
-              <p className="text-sm text-gray-500">Get the best experience on your device</p>
+              <h4 className="font-bold text-gray-900">Install MultiShopNG</h4>
+              <p className="text-xs text-gray-500">Shop from verified Nigerian sellers at multishopng.com</p>
             </div>
             <div className="flex flex-col gap-2">
               <button onClick={handleInstall} className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">

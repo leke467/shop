@@ -1,6 +1,6 @@
-# 🛍️ MultiShop — Nigerian Multi-Vendor E-Commerce Marketplace (Shopify Replica)
+# 🛍️ MultiShopNG (multishopng.com) — Nigerian Multi-Vendor E-Commerce Marketplace
 
-A full-stack, enterprise-grade multi-vendor e-commerce platform built for the Nigerian market. Features seller storefront dashboards, 6-digit delivery code escrow, Paystack & manual bank transfer payment gateways, automated 7.5% VAT calculation, 3% logistics handling markup, 2FA security, Celery background tasks, and custom store page builders.
+A full-stack, enterprise-grade multi-vendor e-commerce platform built for the Nigerian market at **multishopng.com**. Features seller storefront dashboards, 6-digit delivery code escrow, Paystack & manual bank transfer payment gateways, automated 7.5% VAT calculation, 3% logistics handling markup, 2FA security, Celery background tasks, and custom store page builders.
 
 ---
 

@@ -1,6 +1,8 @@
 {
-  "name": "MultiShop - Nigerian Marketplace",
-  "short_name": "MultiShop",
+  "name": "MultiShopNG - Nigerian Marketplace",
+  "short_name": "MultiShopNG",
+  "description": "Nigeria's premier multi-vendor marketplace at multishopng.com",
+  "start_url": "https://multishopng.com",
   "background_color": "#0f172a",
   "theme_color": "#0d9488",
   "display": "standalone",
