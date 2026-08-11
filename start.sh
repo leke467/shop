@@ -3,12 +3,21 @@ set -e
 
 echo "==> Starting Railway Production Startup Script for MultiShopNG..."
 
-# Change to Django project backend directory
-cd "$(dirname "$0")/project/backend"
+# Navigate to Django backend folder
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}/project/backend"
 
-# Environment variable mappings
-if [ -n "$SECRET_KEY" ] && [ -z "$DJANGO_SECRET_KEY" ]; then
+# Ensure DJANGO_SECRET_KEY is present
+if [ -z "$DJANGO_SECRET_KEY" ] && [ -z "$SECRET_KEY" ]; then
+    export DJANGO_SECRET_KEY="railway-prod-key-$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9')"
+    echo "==> Auto-generated runtime DJANGO_SECRET_KEY for security."
+elif [ -n "$SECRET_KEY" ] && [ -z "$DJANGO_SECRET_KEY" ]; then
     export DJANGO_SECRET_KEY="$SECRET_KEY"
+fi
+
+# Ensure ALLOWED_HOSTS includes Railway domains if not specified
+if [ -z "$ALLOWED_HOSTS" ]; then
+    export ALLOWED_HOSTS="*,localhost,127.0.0.1,.railway.app,.up.railway.app,multishopng.com"
 fi
 
 if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
