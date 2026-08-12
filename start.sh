@@ -37,7 +37,11 @@ if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
 fi
 
 echo "==> Running Database Migrations..."
-python manage.py migrate --noinput || echo "Warning: Migration check had warnings"
+python manage.py migrate accounts --noinput || true
+python manage.py migrate --fake-initial --noinput || echo "Warning: Migration check had warnings"
+
+echo "==> Populating Initial Database Seed Fixtures..."
+python manage.py loaddata seed_data.json || echo "Notice: Seed data already loaded or skipped."
 
 echo "==> Collecting Static Files..."
 python manage.py collectstatic --noinput || echo "Warning: Collectstatic had warnings"
