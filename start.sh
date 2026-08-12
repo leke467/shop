@@ -36,28 +36,11 @@ if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
     export DJANGO_SETTINGS_MODULE="ecommerce.settings.prod"
 fi
 
-echo "==> Preparing Database Setup & Migrations..."
-python -c "
-import os, django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '${DJANGO_SETTINGS_MODULE:-ecommerce.settings.prod}')
-django.setup()
-from django.db import connection
-try:
-    with connection.cursor() as cursor:
-        cursor.execute(\"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'django_migrations');\")
-        migs_exist = cursor.fetchone()[0]
-        if migs_exist:
-            cursor.execute(\"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'accounts_user');\")
-            user_table_exists = cursor.fetchone()[0]
-            if not user_table_exists:
-                cursor.execute(\"DROP TABLE django_migrations CASCADE;\")
-                print('==> Cleared orphan migration table for clean initial setup.')
-except Exception as e:
-    print('==> Migration check note:', e)
-" || true
+echo "==> Pre-populating PostgreSQL migration history..."
+python fix_db.py || true
 
 echo "==> Running Full Database Migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --fake-initial --noinput
 
 echo "==> Populating Initial Database Seed Fixtures..."
 python manage.py loaddata seed_data.json || echo "Notice: Seed data already loaded or skipped."
