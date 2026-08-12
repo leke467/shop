@@ -12,8 +12,9 @@ django-cors-headers==4.3.1
 # --- Configuration ---
 python-dotenv==1.0.1
 
-# --- Database drivers ---
+# --- Database drivers & helpers ---
 psycopg2-binary==2.9.12
+dj-database-url==2.3.0
 
 # --- Caching / message broker client ---
 redis==5.2.1

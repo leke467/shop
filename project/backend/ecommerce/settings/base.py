@@ -180,8 +180,21 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
+
 db_url = env("DATABASE_URL", env("POSTGRES_URL", env("DATABASE_PRIVATE_URL", "")))
-if db_url:
+if db_url and dj_database_url:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=db_url,
+            conn_max_age=int(env("DB_CONN_MAX_AGE", "60")),
+            conn_health_checks=True,
+        )
+    }
+elif db_url:
     from urllib.parse import urlparse
     url = urlparse(db_url)
     DATABASES = {
@@ -196,11 +209,17 @@ if db_url:
             "CONN_HEALTH_CHECKS": True,
         }
     }
-elif DB_ENGINE in ("sqlite", "sqlite3"):
+elif env("PGDATABASE", ""):
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": env("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("PGDATABASE"),
+            "USER": env("PGUSER", "postgres"),
+            "PASSWORD": env("PGPASSWORD", ""),
+            "HOST": env("PGHOST", "localhost"),
+            "PORT": env("PGPORT", "5432"),
+            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "60")),
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 elif DB_ENGINE in ("postgres", "postgresql"):
@@ -212,9 +231,15 @@ elif DB_ENGINE in ("postgres", "postgresql"):
             "PASSWORD": env("DB_PASSWORD", ""),
             "HOST": env("DB_HOST", "localhost"),
             "PORT": env("DB_PORT", "5432"),
-            # Persistent connections reduce per-request connection overhead at scale.
             "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "60")),
             "CONN_HEALTH_CHECKS": True,
+        }
+    }
+elif DB_ENGINE in ("sqlite", "sqlite3"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": env("DB_NAME", str(BASE_DIR / "db.sqlite3")),
         }
     }
 elif DB_ENGINE == "mssql":

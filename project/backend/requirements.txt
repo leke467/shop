@@ -18,6 +18,7 @@ python-dotenv==1.0.1
 # --- Database drivers ---
 # PostgreSQL (production)
 psycopg2-binary==2.9.12
+dj-database-url==2.3.0
 # Microsoft SQL Server (local development)
 mssql-django==1.7.3
 pyodbc==5.3.0
