@@ -1,0 +1,12 @@
+[build]
+  base = "project"
+  command = "npm run build"
+  publish = "project/dist"
+
+[build.environment]
+  VITE_API_URL = "https://shop-production-8258.up.railway.app"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
