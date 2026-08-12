@@ -27,21 +27,41 @@ def fix_migration_history():
         migs_exist = cursor.fetchone()[0]
 
         if migs_exist:
-            # Check for inconsistent history state: accounts.0001_initial present without auth.0012
-            cursor.execute("SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'accounts' AND name = '0001_initial');")
-            acc_exists = cursor.fetchone()[0]
+            # Check if actual application tables exist
+            cursor.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'accounts_user');")
+            user_table_exists = cursor.fetchone()[0]
 
-            cursor.execute("SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'auth' AND name = '0012_alter_user_first_name_max_length');")
-            auth_exists = cursor.fetchone()[0]
-
-            if acc_exists and not auth_exists:
-                print("==> Inconsistent migration history detected! Resetting django_migrations table for clean execution...")
+            if not user_table_exists:
+                # Fresh setup: drop orphan django_migrations so migrate runs fresh
+                print("==> Initial setup: dropping orphan django_migrations table for clean migration...")
                 cursor.execute("DROP TABLE IF EXISTS django_migrations CASCADE;")
+            else:
+                # Existing database: ensure unique index and insert auth/contenttypes dependencies
+                cursor.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS django_migrations_app_name_uniq 
+                    ON django_migrations (app, name);
+                """)
+                cursor.execute("SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'auth' AND name = '0012_alter_user_first_name_max_length');")
+                auth_exists = cursor.fetchone()[0]
+                if not auth_exists:
+                    print("==> Reconciling missing auth dependencies in django_migrations...")
+                    cursor.execute("INSERT INTO django_migrations (app, name, applied) VALUES ('contenttypes', '0001_initial', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING;")
+                    cursor.execute("INSERT INTO django_migrations (app, name, applied) VALUES ('contenttypes', '0002_touch_inconsistent_content_types', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING;")
+                    auth_migs = [
+                        '0001_initial', '0002_alter_permission_name_max_length', '0003_alter_user_email_max_length',
+                        '0004_alter_user_username_opts', '0005_alter_user_last_login_null', '0006_require_contenttypes_0002',
+                        '0007_alter_validators_add_error_messages', '0008_alter_user_username_max_length',
+                        '0009_alter_user_last_name_max_length', '0010_alter_group_name_max_length',
+                        '0011_update_proxy_permissions', '0012_alter_user_first_name_max_length'
+                    ]
+                    for am in auth_migs:
+                        cursor.execute(f"INSERT INTO django_migrations (app, name, applied) VALUES ('auth', '{am}', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING;")
 
+        print("==> PostgreSQL migration check completed successfully.")
         cursor.close()
         conn.close()
     except Exception as e:
-        print(f"==> Database reset note: {e}")
+        print(f"==> Database repair note: {e}")
 
 if __name__ == "__main__":
     fix_migration_history()
