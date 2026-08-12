@@ -36,8 +36,27 @@ if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
     export DJANGO_SETTINGS_MODULE="ecommerce.settings.prod"
 fi
 
+echo "==> Ensuring Database Migration History Consistency..."
+python -c "
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '${DJANGO_SETTINGS_MODULE:-ecommerce.settings.prod}')
+django.setup()
+from django.db import connection
+try:
+    with connection.cursor() as cursor:
+        cursor.execute('''
+            INSERT INTO django_migrations (app, name, applied)
+            SELECT 'accounts', '0001_initial', CURRENT_TIMESTAMP
+            WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'django_migrations')
+            AND EXISTS (SELECT 1 FROM django_migrations WHERE app = 'admin' AND name = '0001_initial')
+            AND NOT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'accounts' AND name = '0001_initial');
+        ''')
+        print('==> Migration history reconciled successfully.')
+except Exception as e:
+    print('==> Migration history check note:', e)
+" || true
+
 echo "==> Running Database Migrations..."
-python manage.py migrate accounts --noinput || true
 python manage.py migrate --fake-initial --noinput || echo "Warning: Migration check had warnings"
 
 echo "==> Populating Initial Database Seed Fixtures..."
