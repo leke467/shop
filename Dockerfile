@@ -26,6 +26,9 @@ COPY . /app/
 # Ensure start.sh script is executable
 RUN chmod +x /app/start.sh
 
+# Set working directory directly to Django backend where manage.py lives
+WORKDIR /app/project/backend
+
 EXPOSE 8000
 
 CMD ["/app/start.sh"]

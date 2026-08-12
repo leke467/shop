@@ -3,9 +3,21 @@ set -e
 
 echo "==> Starting Railway Production Startup Script for MultiShopNG..."
 
-# Navigate to Django backend folder
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}/project/backend"
+# Robust manage.py location discovery
+if [ -f "/app/project/backend/manage.py" ]; then
+    cd /app/project/backend
+elif [ -f "./project/backend/manage.py" ]; then
+    cd ./project/backend
+elif [ -f "./manage.py" ]; then
+    echo "==> Already in backend directory: $(pwd)"
+else
+    MANAGE_PATH=$(find /app / -name "manage.py" 2>/dev/null | head -n 1)
+    if [ -n "$MANAGE_PATH" ]; then
+        cd "$(dirname "$MANAGE_PATH")"
+    fi
+fi
+
+echo "==> Working Directory: $(pwd)"
 
 # Ensure DJANGO_SECRET_KEY is present
 if [ -z "$DJANGO_SECRET_KEY" ] && [ -z "$SECRET_KEY" ]; then
