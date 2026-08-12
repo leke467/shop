@@ -40,7 +40,7 @@ echo "==> Pre-populating PostgreSQL migration history..."
 python fix_db.py || true
 
 echo "==> Running Full Database Migrations..."
-python manage.py migrate --fake-initial --noinput
+python manage.py migrate --noinput
 
 echo "==> Populating Initial Database Seed Fixtures..."
 python manage.py loaddata seed_data.json || echo "Notice: Seed data already loaded or skipped."
