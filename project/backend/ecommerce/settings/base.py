@@ -410,6 +410,8 @@ CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com"
 )
 CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.workers\.dev$",
+    r"^https://.*\.pages\.dev$",
     r"^https://.*\.netlify\.app$",
     r"^https://.*\.railway\.app$",
 ]
