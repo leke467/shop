@@ -178,9 +178,25 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
-# Selected via DB_ENGINE (sqlite | postgres | mssql). Environment modules may
-# override DATABASES entirely if they need a fixed engine.
-if DB_ENGINE in ("sqlite", "sqlite3"):
+# Database
+# ---------------------------------------------------------------------------
+db_url = env("DATABASE_URL", env("POSTGRES_URL", env("DATABASE_PRIVATE_URL", "")))
+if db_url:
+    from urllib.parse import urlparse
+    url = urlparse(db_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql" if "postgres" in url.scheme else "django.db.backends.sqlite3",
+            "NAME": url.path.lstrip("/") or env("DB_NAME", "db.sqlite3"),
+            "USER": url.username or "",
+            "PASSWORD": url.password or "",
+            "HOST": url.hostname or "localhost",
+            "PORT": str(url.port or 5432),
+            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "60")),
+            "CONN_HEALTH_CHECKS": True,
+        }
+    }
+elif DB_ENGINE in ("sqlite", "sqlite3"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
