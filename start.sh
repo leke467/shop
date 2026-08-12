@@ -36,7 +36,7 @@ if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
     export DJANGO_SETTINGS_MODULE="ecommerce.settings.prod"
 fi
 
-echo "==> Ensuring Database Migration History Consistency..."
+echo "==> Reconciling Database Migration Dependencies..."
 python -c "
 import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', '${DJANGO_SETTINGS_MODULE:-ecommerce.settings.prod}')
@@ -54,18 +54,37 @@ try:
         ''')
         cursor.execute('''
             INSERT INTO django_migrations (app, name, applied)
-            SELECT 'accounts', '0001_initial', CURRENT_TIMESTAMP
-            WHERE NOT EXISTS (
-                SELECT 1 FROM django_migrations WHERE app = 'accounts' AND name = '0001_initial'
-            );
+            SELECT 'contenttypes', '0001_initial', CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'contenttypes' AND name = '0001_initial');
+            INSERT INTO django_migrations (app, name, applied)
+            SELECT 'contenttypes', '0002_touch_inconsistent_content_types', CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'contenttypes' AND name = '0002_touch_inconsistent_content_types');
         ''')
-        print('==> Migration history reconciled successfully.')
+        auth_migs = [
+            '0001_initial', '0002_alter_permission_name_max_length', '0003_alter_user_email_max_length',
+            '0004_alter_user_username_opts', '0005_alter_user_last_login_null', '0006_require_contenttypes_0002',
+            '0007_alter_validators_add_error_messages', '0008_alter_user_username_max_length',
+            '0009_alter_user_last_name_max_length', '0010_alter_group_name_max_length',
+            '0011_update_proxy_permissions', '0012_alter_user_first_name_max_length'
+        ]
+        for am in auth_migs:
+            cursor.execute(f'''
+                INSERT INTO django_migrations (app, name, applied)
+                SELECT 'auth', '{am}', CURRENT_TIMESTAMP
+                WHERE NOT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'auth' AND name = '{am}');
+            ''')
+        cursor.execute('''
+            INSERT INTO django_migrations (app, name, applied)
+            SELECT 'accounts', '0001_initial', CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'accounts' AND name = '0001_initial');
+        ''')
+        print('==> Migration dependency tree reconciled successfully.')
 except Exception as e:
-    print('==> Migration history reconciliation note:', e)
+    print('==> Migration reconciliation note:', e)
 " || true
 
-echo "==> Running Database Migrations..."
-python manage.py migrate --fake-initial --noinput || echo "Warning: Migration check had warnings"
+echo "==> Running Full Database Migrations..."
+python manage.py migrate --fake-initial --noinput
 
 echo "==> Populating Initial Database Seed Fixtures..."
 python manage.py loaddata seed_data.json || echo "Notice: Seed data already loaded or skipped."
