@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { searchAPI, getImageUrl } from '../services/api'
@@ -8,22 +8,24 @@ function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
   return (
     <Link to={`/product/${product.slug || product.public_id}`}>
-      <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300" whileHover={{ y: -4 }}>
-        <div className="aspect-square bg-gray-100 relative overflow-hidden">
-          {img ? (
-            <img src={getImageUrl(typeof img === 'string' ? img : (img.medium || img.image))} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 h-full flex flex-col justify-between" whileHover={{ y: -4 }}>
+        <div>
+          <div className="aspect-square bg-gray-100 relative overflow-hidden">
+            {img ? (
+              <img src={getImageUrl(typeof img === 'string' ? img : (img.medium || img.image))} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+            )}
+            <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
+              <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
             </div>
-          )}
-          <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
-            <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
           </div>
-        </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{product.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">{product.shop_name || ''}</p>
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{product.name}</h3>
+            <p className="text-sm text-gray-500 mt-1">{product.shop_name || ''}</p>
+          </div>
         </div>
       </motion.div>
     </Link>
@@ -56,7 +58,6 @@ export default function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
   
-  // Use URL parameter for type, fallback to searchParam, then 'all'
   const initialType = (exploreType && ['all', 'products', 'shops'].includes(exploreType)) ? exploreType : (searchParams.get('type') || 'all')
   const [type, setType] = useState(initialType)
   
@@ -64,12 +65,20 @@ export default function ExplorePage() {
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest')
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '')
-  const [results, setResults] = useState({ products: null, shops: null, facets: null })
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
 
+  const [categories, setCategories] = useState([])
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [facets, setFacets] = useState(null)
+  const [shopList, setShopList] = useState([])
+
+  // Endless Scroll States:
+  const [productList, setProductList] = useState([])
+  const [totalProductCount, setTotalProductCount] = useState(0)
   const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const observerTarget = useRef(null)
   const pageSize = 24
 
   // Load categories once
@@ -84,26 +93,83 @@ export default function ExplorePage() {
     }
   }, [exploreType])
 
-  // Reset page when filters or query change
-  useEffect(() => {
-    setPage(1)
-  }, [query, category, sort, minPrice, maxPrice, type])
+  // Core Search & Load Function
+  const fetchProducts = useCallback(async (pageToFetch = 1, isAppending = false) => {
+    if (isAppending) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
 
-  // Search effect
-  const doSearch = useCallback(() => {
-    setLoading(true)
-    const params = { q: query, type, sort, page, page_size: pageSize }
+    const params = { q: query, type, sort, page: pageToFetch, page_size: pageSize }
     if (category) params.category = category
     if (minPrice) params.min_price = minPrice
     if (maxPrice) params.max_price = maxPrice
 
-    searchAPI.search(params)
-      .then(data => setResults(data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [query, type, category, sort, minPrice, maxPrice, page])
+    try {
+      const data = await searchAPI.search(params)
+      const newItems = (data.products?.results || []).filter(p => !p.is_locked)
+      const count = data.products?.count || 0
 
-  useEffect(() => { doSearch() }, [doSearch])
+      setFacets(data.facets)
+      setShopList((data.shops?.results || []).filter(s => !s.is_locked))
+      setTotalProductCount(count)
+
+      if (isAppending) {
+        setProductList(prev => {
+          const existingIds = new Set(prev.map(p => p.id || p.public_id || p.slug))
+          const uniqueNew = newItems.filter(p => !existingIds.has(p.id || p.public_id || p.slug))
+          const combined = [...prev, ...uniqueNew]
+          setHasMore(combined.length < count && newItems.length > 0)
+          return combined
+        })
+      } else {
+        setProductList(newItems)
+        setHasMore(newItems.length < count && newItems.length > 0)
+      }
+    } catch (err) {
+      console.error('Failed to load products:', err)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [query, type, category, sort, minPrice, maxPrice])
+
+  // Reset and fetch initial page when filters change
+  useEffect(() => {
+    setPage(1)
+    setProductList([])
+    fetchProducts(1, false)
+  }, [query, category, sort, minPrice, maxPrice, type])
+
+  // Handle Load More (Next Page)
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return
+    const nextPage = page + 1
+    setPage(nextPage)
+    fetchProducts(nextPage, true)
+  }, [loading, loadingMore, hasMore, page, fetchProducts])
+
+  // Intersection Observer for Automatic Jumia-style Endless Scrolling
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.2, rootMargin: '300px' }
+    )
+
+    const target = observerTarget.current
+    if (target) observer.observe(target)
+
+    return () => {
+      if (target) observer.unobserve(target)
+    }
+  }, [hasMore, loading, loadingMore, loadMore])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -111,7 +177,9 @@ export default function ExplorePage() {
     if (query) params.set('q', query)
     setSearchParams(params)
     navigate(`/explore/${type === 'all' ? '' : type}?${params.toString()}`)
-    doSearch()
+    setPage(1)
+    setProductList([])
+    fetchProducts(1, false)
   }
 
   const sortOptions = [
@@ -122,16 +190,13 @@ export default function ExplorePage() {
     { value: 'popular', label: 'Most Popular' },
   ]
 
-  const productList = (results.products?.results || []).filter(p => !p.is_locked)
-  const shopList = (results.shops?.results || []).filter(s => !s.is_locked)
-  const facets = results.facets
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <SEOHead title="Explore Marketplace" description="Search and discover products and shops." />
+      <SEOHead title="Explore Marketplace | MultiShopNG" description="Search and discover products and shops." />
+
       {/* Header/Search Bar */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white border-b border-gray-100 sticky top-16 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3 w-full">
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:flex-1 min-w-0">
               <div className="flex-1 relative min-w-0">
@@ -143,13 +208,13 @@ export default function ExplorePage() {
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Search..."
+                  placeholder="Search products, brands, categories..."
                   className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all min-w-0 text-sm sm:text-base"
                 />
               </div>
               <button
                 type="submit"
-                className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-sm hover:shadow-lg transition-all duration-300 flex-shrink-0"
+                className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-sm hover:shadow-lg transition-all duration-300 flex-shrink-0"
               >
                 Search
               </button>
@@ -183,7 +248,7 @@ export default function ExplorePage() {
                     navigate(`/explore/${t === 'all' ? '' : t}?${params.toString()}`)
                   }}
                   className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all text-center ${
-                    type === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    type === t ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -236,7 +301,7 @@ export default function ExplorePage() {
 
             {/* Price range */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Price range</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">Price range (₦)</h3>
               <div className="flex items-center gap-2">
                 <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
@@ -248,131 +313,15 @@ export default function ExplorePage() {
           </div>
         </aside>
 
-        {/* Mobile Filter Drawer / Modal */}
-        <AnimatePresence>
-          {filtersOpen && (
-            <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }} 
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-                onClick={() => setFiltersOpen(false)} 
-              />
-              <motion.div 
-                initial={{ y: '100%' }} 
-                animate={{ y: 0 }} 
-                exit={{ y: '100%' }} 
-                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-                className="relative bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto z-10 shadow-2xl flex flex-col space-y-5"
-              >
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900">Filter Results</h3>
-                  <button 
-                    onClick={() => setFiltersOpen(false)}
-                    className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-
-                {/* Sort */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 text-sm mb-2">Sort by</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {sortOptions.map(s => (
-                      <button
-                        key={s.value}
-                        type="button"
-                        onClick={() => setSort(s.value)}
-                        className={`px-3 py-2 rounded-xl text-xs font-medium border text-center transition-all ${
-                          sort === s.value ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-gray-200 text-gray-600'
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Categories */}
-                {facets?.categories?.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm mb-2">Category</h4>
-                    <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
-                      <button 
-                        onClick={() => setCategory('')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          !category ? 'bg-primary-600 text-white font-semibold' : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        All Categories
-                      </button>
-                      {facets.categories.map(c => (
-                        <button 
-                          key={c.id} 
-                          onClick={() => setCategory(String(c.id))}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            category === String(c.id) ? 'bg-primary-600 text-white font-semibold' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {c.name} ({c.count})
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Price range */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 text-sm mb-2">Price Range (₦)</h4>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="number" 
-                      placeholder="Min" 
-                      value={minPrice} 
-                      onChange={e => setMinPrice(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border" 
-                    />
-                    <span className="text-gray-400">—</span>
-                    <input 
-                      type="number" 
-                      placeholder="Max" 
-                      value={maxPrice} 
-                      onChange={e => setMaxPrice(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 box-border" 
-                    />
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-3 border-t border-gray-100 flex gap-3">
-                  <button 
-                    onClick={() => { setCategory(''); setMinPrice(''); setMaxPrice(''); setSort('newest'); }}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-xs sm:text-sm"
-                  >
-                    Reset All
-                  </button>
-                  <button 
-                    onClick={() => setFiltersOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-xs sm:text-sm shadow-md"
-                  >
-                    Show Results
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
         {/* Results */}
         <main className="flex-1 min-w-0">
           {/* Result count */}
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-gray-500">
-              {loading ? 'Searching…' : (
+            <p className="text-sm text-gray-600 font-medium">
+              {loading ? 'Loading catalog…' : (
                 <>
-                  {(results.products?.count || 0) + (results.shops?.count || 0)} results
+                  Showing <span className="font-bold text-gray-900">{productList.length}</span> of{' '}
+                  <span className="font-bold text-gray-900">{totalProductCount}</span> products
                   {query && <> for "<span className="font-medium text-gray-900">{query}</span>"</>}
                 </>
               )}
@@ -381,7 +330,7 @@ export default function ExplorePage() {
 
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-              {[...Array(9)].map((_, i) => (
+              {[...Array(12)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
                   <div className="aspect-square bg-gray-200" />
                   <div className="p-4 space-y-2"><div className="h-4 bg-gray-200 rounded w-3/4" /><div className="h-3 bg-gray-200 rounded w-1/2" /></div>
@@ -393,75 +342,50 @@ export default function ExplorePage() {
               {/* Shops */}
               {shopList.length > 0 && (type === 'all' || type === 'shops') && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({results.shops?.count || shopList.length})</span></h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({shopList.length})</span></h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {shopList.map(s => <ShopCard key={s.slug || s.public_id} shop={s} />)}
                   </div>
                 </div>
               )}
 
-              {/* Products */}
+              {/* Products Grid */}
               {productList.length > 0 && (type === 'all' || type === 'products') && (
                 <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      🛒 Products <span className="text-sm font-normal text-gray-400">({results.products?.count || productList.length} Total)</span>
-                    </h3>
-                    {results.products?.count > pageSize && (
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, results.products.count)} of {results.products.count}
-                      </span>
-                    )}
-                  </div>
-
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                    {productList.map(p => <ProductCard key={p.slug || p.public_id} product={p} />)}
+                    {productList.map((p, index) => (
+                      <ProductCard key={`${p.slug || p.public_id}-${index}`} product={p} />
+                    ))}
                   </div>
 
-                  {/* Pagination Controls */}
-                  {results.products?.count > pageSize && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-200 mt-8">
-                      <p className="text-sm text-gray-500 font-medium">
-                        Page {page} of {Math.ceil((results.products.count || 1) / pageSize)}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          disabled={page <= 1}
-                          onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                          className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                        >
-                          Previous
-                        </button>
+                  {/* Sentinel element for automatic endless scroll */}
+                  <div ref={observerTarget} className="h-10 my-4" />
 
-                        {Array.from({ length: Math.ceil((results.products.count || 1) / pageSize) }, (_, i) => i + 1)
-                          .filter(p => p === 1 || p === Math.ceil((results.products.count || 1) / pageSize) || Math.abs(p - page) <= 2)
-                          .map((p, idx, arr) => (
-                            <React.Fragment key={p}>
-                              {idx > 0 && p - arr[idx - 1] > 1 && (
-                                <span className="px-1 text-gray-400 text-sm">…</span>
-                              )}
-                              <button
-                                onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${
-                                  page === p
-                                    ? 'bg-primary-600 text-white shadow-md'
-                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                                }`}
-                              >
-                                {p}
-                              </button>
-                            </React.Fragment>
-                          ))}
-
-                        <button
-                          disabled={page >= Math.ceil((results.products.count || 1) / pageSize)}
-                          onClick={() => { setPage(p => Math.min(Math.ceil((results.products.count || 1) / pageSize), p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                          className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                        >
-                          Next
-                        </button>
-                      </div>
+                  {/* Loading spinner during endless scroll */}
+                  {loadingMore && (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+                      <span className="ml-3 text-sm text-gray-600 font-medium">Loading more products...</span>
                     </div>
+                  )}
+
+                  {/* Manual Fallback Load More Button */}
+                  {hasMore && !loadingMore && (
+                    <div className="text-center pt-6 pb-12">
+                      <button
+                        onClick={loadMore}
+                        className="px-8 py-3.5 rounded-2xl bg-white border border-gray-300 shadow-sm text-gray-800 font-bold hover:bg-gray-50 hover:shadow-md transition-all duration-300 inline-flex items-center gap-2"
+                      >
+                        <span>Load More Products</span>
+                        <span className="text-xs text-gray-400 font-normal">({productList.length} of {totalProductCount})</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {!hasMore && productList.length > 0 && (
+                    <p className="text-center text-xs text-gray-400 py-8 border-t border-gray-200/60 mt-8">
+                      ✓ You have viewed all {totalProductCount} products!
+                    </p>
                   )}
                 </div>
               )}
