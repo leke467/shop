@@ -103,6 +103,51 @@ function ProductCard({ product }) {
 function Hero({ onSearch }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
+  const [dynamicCategories, setDynamicCategories] = useState([])
+
+  useEffect(() => {
+    searchAPI.categories()
+      .then(res => setDynamicCategories(res || []))
+      .catch(() => {})
+  }, [])
+
+  const defaultCategories = [
+    { value: 'all', label: 'All Departments' },
+    { value: 'shops', label: '🏪 All Shops' },
+    { value: 'arts-crafts', label: 'Arts & Crafts' },
+    { value: 'automotive', label: 'Automotive' },
+    { value: 'baby', label: 'Baby' },
+    { value: 'beauty', label: 'Beauty & Personal Care' },
+    { value: 'books', label: 'Books' },
+    { value: 'boys-fashion', label: "Boys' Fashion" },
+    { value: 'computers', label: 'Computers & Tech' },
+    { value: 'deals', label: '⚡ Hot Deals' },
+    { value: 'electronics', label: 'Electronics' },
+    { value: 'girls-fashion', label: "Girls' Fashion" },
+    { value: 'health', label: 'Health & Household' },
+    { value: 'home-kitchen', label: 'Home & Kitchen' },
+    { value: 'industrial', label: 'Industrial & Scientific' },
+    { value: 'luggage', label: 'Luggage & Travel' },
+    { value: 'mens-fashion', label: "Men's Fashion" },
+    { value: 'movies-tv', label: 'Movies & TV' },
+    { value: 'music', label: 'Music & Audio' },
+    { value: 'pet-supplies', label: 'Pet Supplies' },
+    { value: 'sports', label: 'Sports & Outdoors' },
+    { value: 'tools', label: 'Tools & Home Improvement' },
+    { value: 'toys-games', label: 'Toys & Games' },
+    { value: 'video-games', label: 'Video Games' },
+    { value: 'womens-fashion', label: "Women's Fashion" },
+  ]
+
+  // Combine default categories with any dynamic categories from DB
+  const allCategories = [
+    ...defaultCategories,
+    ...dynamicCategories.filter(dc => !defaultCategories.some(c => c.value === (dc.slug || String(dc.id)))).map(dc => ({
+      value: dc.slug || String(dc.id),
+      label: dc.name
+    }))
+  ]
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-primary-950 to-secondary-950 pt-24 pb-32">
       {/* Animated background shapes */}
@@ -154,15 +199,13 @@ function Hero({ onSearch }) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="h-full appearance-none bg-transparent pl-3.5 pr-8 py-3 text-xs md:text-sm font-semibold text-gray-700 cursor-pointer focus:outline-none"
+                  className="h-full appearance-none bg-transparent pl-3.5 pr-8 py-3 text-xs md:text-sm font-semibold text-gray-700 cursor-pointer focus:outline-none max-w-[160px] truncate"
                 >
-                  <option value="all">All</option>
-                  <option value="fashion">Fashion</option>
-                  <option value="electronics">Electronics</option>
-                  <option value="home">Home & Garden</option>
-                  <option value="beauty">Beauty</option>
-                  <option value="art">Art & Craft</option>
-                  <option value="shops">Shops</option>
+                  {allCategories.map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
                 </select>
                 <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
                   ▼

@@ -91,13 +91,33 @@ export default function Navbar() {
               <select
                 value={navCategory}
                 onChange={e => setNavCategory(e.target.value)}
-                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2.5 py-2 focus:outline-none cursor-pointer"
+                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2 py-2 focus:outline-none cursor-pointer max-w-[120px] truncate"
               >
-                <option value="all">All</option>
-                <option value="fashion">Fashion</option>
+                <option value="all">All Departments</option>
+                <option value="shops">🏪 All Shops</option>
+                <option value="arts-crafts">Arts & Crafts</option>
+                <option value="automotive">Automotive</option>
+                <option value="baby">Baby</option>
+                <option value="beauty">Beauty & Personal Care</option>
+                <option value="books">Books</option>
+                <option value="boys-fashion">Boys' Fashion</option>
+                <option value="computers">Computers & Tech</option>
+                <option value="deals">⚡ Hot Deals</option>
                 <option value="electronics">Electronics</option>
-                <option value="home">Home</option>
-                <option value="shops">Shops</option>
+                <option value="girls-fashion">Girls' Fashion</option>
+                <option value="health">Health & Household</option>
+                <option value="home-kitchen">Home & Kitchen</option>
+                <option value="industrial">Industrial & Scientific</option>
+                <option value="luggage">Luggage & Travel</option>
+                <option value="mens-fashion">Men's Fashion</option>
+                <option value="movies-tv">Movies & TV</option>
+                <option value="music">Music & Audio</option>
+                <option value="pet-supplies">Pet Supplies</option>
+                <option value="sports">Sports & Outdoors</option>
+                <option value="tools">Tools & Home Improvement</option>
+                <option value="toys-games">Toys & Games</option>
+                <option value="video-games">Video Games</option>
+                <option value="womens-fashion">Women's Fashion</option>
               </select>
               <input
                 type="text"
