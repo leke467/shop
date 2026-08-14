@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Q, Sum
@@ -43,7 +44,7 @@ class AdminOverviewView(APIView):
         total_products = Product.objects.count()
 
         top_products_qs = (
-            Product.objects.annotate(sales_count=Count("order_items"))
+            Product.objects.annotate(sales_count=Count("variants__order_items"))
             .order_by("-sales_count")[:5]
         )
         top_products = [
@@ -100,15 +101,16 @@ class AdminOrderListView(APIView):
         escrow_param = request.query_params.get("escrow_status")
         search = request.query_params.get("search")
 
-        if status_param:
-            qs = qs.filter(status=status_param)
-        if escrow_param:
-            qs = qs.filter(escrow_status=escrow_param)
-        if search:
+        if status_param and status_param.strip():
+            qs = qs.filter(status=status_param.strip())
+        if escrow_param and escrow_param.strip():
+            qs = qs.filter(escrow_status=escrow_param.strip())
+        if search and search.strip():
+            s = search.strip()
             qs = qs.filter(
-                Q(order__public_id__icontains=search) |
-                Q(order__user__email__icontains=search) |
-                Q(shop__name__icontains=search)
+                Q(order__public_id__icontains=s) |
+                Q(order__user__email__icontains=s) |
+                Q(shop__name__icontains=s)
             )
 
         orders_data = [
@@ -159,10 +161,11 @@ class AdminProductListView(APIView):
         search = request.query_params.get("search")
         approved_filter = request.query_params.get("is_approved")
 
-        if search:
-            qs = qs.filter(Q(name__icontains=search) | Q(shop__name__icontains=search))
-        if approved_filter is not None:
-            qs = qs.filter(is_approved=approved_filter.lower() in ["true", "1"])
+        if search and search.strip():
+            s = search.strip()
+            qs = qs.filter(Q(name__icontains=s) | Q(shop__name__icontains=s))
+        if approved_filter is not None and approved_filter.strip() != "":
+            qs = qs.filter(is_approved=approved_filter.lower().strip() in ["true", "1"])
 
         products_data = [
             {
@@ -209,10 +212,11 @@ class AdminUserListView(APIView):
         role_filter = request.query_params.get("role")
         search = request.query_params.get("search")
 
-        if role_filter:
-            qs = qs.filter(role=role_filter)
-        if search:
-            qs = qs.filter(Q(email__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
+        if role_filter and role_filter.strip():
+            qs = qs.filter(role=role_filter.strip())
+        if search and search.strip():
+            s = search.strip()
+            qs = qs.filter(Q(email__icontains=s) | Q(first_name__icontains=s) | Q(last_name__icontains=s))
 
         users_data = [
             {
