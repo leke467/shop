@@ -31,6 +31,7 @@ import ShippingGuidePage from './pages/ShippingGuidePage'
 import BlogListPage from './pages/BlogListPage'
 import BlogPostPage from './pages/BlogPostPage'
 import ReferralDashboard from './pages/ReferralDashboard'
+import ReferralProgramPage from './pages/ReferralProgramPage'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
@@ -62,6 +63,7 @@ function App() {
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="admin/dashboard" element={<AdminPanel />} />
                 <Route path="referrals" element={<ReferralDashboard />} />
+                <Route path="referral-program" element={<ReferralProgramPage />} />
 
                 <Route path="cart" element={<CartPage />} />
                 <Route path="login" element={<LoginPage />} />

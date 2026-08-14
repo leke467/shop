@@ -73,7 +73,7 @@ export default function Navbar() {
             {[
               { to: '/', label: 'Home' },
               { to: '/explore/products', label: 'Explore' },
-              { to: '/referrals', label: 'Referrals' },
+              { to: '/referral-program', label: 'Referrals' },
               { to: '/pricing', label: 'Pricing' },
             ].map(link => (
               <Link

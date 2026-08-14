@@ -80,7 +80,7 @@ export default function ReferralDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pt-24 sm:pt-28 px-4 sm:px-8 pb-8">
       <SEOHead title="Referral & Affiliate Partner Program | MultiShopNG" />
 
       <div className="max-w-6xl mx-auto space-y-8">
