@@ -218,7 +218,7 @@ function Hero({ onSearch }) {
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search Amazon style on MultiShop..."
+                placeholder="Search products, brands, categories..."
                 className="flex-1 min-w-0 bg-white text-gray-900 placeholder-gray-400 px-4 py-3 md:py-4 text-base md:text-lg font-medium focus:outline-none"
               />
 

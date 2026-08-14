@@ -85,13 +85,13 @@ export default function Navbar() {
             <Logo size="md" isDarkBg={!isScrolled && isHome} />
           </Link>
 
-          {/* Amazon-Style Header Search Bar */}
-          <form onSubmit={handleNavSearch} className="hidden md:flex items-center flex-1 max-w-md mx-4">
+          {/* Header Search Bar */}
+          <form onSubmit={handleNavSearch} className="hidden md:flex items-center flex-1 max-w-2xl mx-6">
             <div className="flex items-stretch w-full bg-white rounded-xl shadow-xs border border-gray-300 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
               <select
                 value={navCategory}
                 onChange={e => setNavCategory(e.target.value)}
-                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2 py-2 focus:outline-none cursor-pointer max-w-[120px] truncate"
+                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2.5 py-2 focus:outline-none cursor-pointer max-w-[130px] truncate"
               >
                 <option value="all">All Departments</option>
                 <option value="shops">🏪 All Shops</option>
@@ -123,8 +123,8 @@ export default function Navbar() {
                 type="text"
                 value={navQuery}
                 onChange={e => setNavQuery(e.target.value)}
-                placeholder="Search Amazon style..."
-                className="flex-1 min-w-0 px-3 py-2 text-xs text-gray-900 bg-white focus:outline-none font-medium"
+                placeholder="Search products, brands, categories..."
+                className="flex-1 min-w-0 px-3.5 py-2 text-xs md:text-sm text-gray-900 bg-white focus:outline-none font-medium"
               />
               <button
                 type="submit"
