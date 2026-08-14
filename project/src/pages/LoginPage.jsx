@@ -89,8 +89,10 @@ export default function LoginPage() {
         >
           {/* Logo / brand */}
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-secondary-600 text-white text-2xl font-bold mb-4 shadow-lg shadow-primary-500/30">
-              M
+            <div className="inline-flex items-center justify-center mb-4">
+              <Link to="/">
+                <Logo size="lg" />
+              </Link>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Sign in</h2>
             <p className="mt-2 text-gray-500">Enter your credentials to access your account</p>

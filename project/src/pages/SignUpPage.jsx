@@ -23,8 +23,8 @@ export default function SignUpPage() {
       setError('Passwords do not match')
       return
     }
-    if (form.password.length < 10) {
-      setError('Password must be at least 10 characters')
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
     setError('')
@@ -58,7 +58,9 @@ export default function SignUpPage() {
         >
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4">
-              <Logo size="lg" />
+              <Link to="/">
+                <Logo size="lg" />
+              </Link>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Create account</h2>
             <p className="mt-2 text-gray-500">Join thousands of buyers and sellers</p>
