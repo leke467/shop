@@ -1,9 +1,12 @@
 """
-Logistics pricing service — Sendbox, Kwik Delivery, and Zone rate calculator.
+Logistics pricing service — State Zone Rate Calculator.
 
 Calculates shipping rates for orders with configurable platform handling
 markup (e.g. 2–5%, default 3.0%), providing transparent breakdown between
 base carrier cost and platform handling revenue.
+
+Third-party external courier integrations (Sendbox, Kwik) are disabled by default.
+Set ENABLE_THIRD_PARTY_COURIERS = True in settings when ready to activate live APIs.
 """
 from __future__ import annotations
 
@@ -19,7 +22,7 @@ def calculate_shipping_quote(base_fee: Decimal | float | int, apply_markup: bool
     """
     Calculate shipping fee with platform handling markup.
 
-    :param base_fee: Base courier fee (from DeliveryZone, Sendbox, or Kwik API)
+    :param base_fee: Base delivery fee (from DeliveryZone / state pricing)
     :param apply_markup: If True, applies LOGISTICS_MARKUP_PERCENTAGE (default 3.0%)
     :return: dict with base_fee, markup_amount, markup_percentage, and final_shipping_fee
     """
@@ -46,13 +49,11 @@ def calculate_shipping_quote(base_fee: Decimal | float | int, apply_markup: bool
 
 def get_sendbox_quote(origin_state: str, destination_state: str, weight_kg: float = 1.0) -> dict:
     """
-    Fetch live delivery quote from Sendbox API and apply platform markup.
-    Falls back to zone rate calculation if API key is not yet configured.
+    Fetch delivery quote. Third-party courier APIs are currently disabled.
+    Uses platform state zone rate calculation.
     """
-    api_key = getattr(settings, "SENDBOX_API_KEY", "")
-    if not api_key:
-        logger.info("Sendbox API key not configured. Using platform zone estimate.")
-        # Default baseline estimate based on state
+    enabled = getattr(settings, "ENABLE_THIRD_PARTY_COURIERS", False)
+    if not enabled or not getattr(settings, "SENDBOX_API_KEY", ""):
         base_fee = Decimal("2500.00") if origin_state.lower() != destination_state.lower() else Decimal("1500.00")
         return calculate_shipping_quote(base_fee)
 
@@ -60,7 +61,7 @@ def get_sendbox_quote(origin_state: str, destination_state: str, weight_kg: floa
     try:
         url = f"{settings.SENDBOX_BASE_URL.rstrip('/')}/shipping/quote"
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {settings.SENDBOX_API_KEY}",
             "Content-Type": "application/json",
         }
         payload = {
@@ -76,17 +77,17 @@ def get_sendbox_quote(origin_state: str, destination_state: str, weight_kg: floa
     except Exception as e:
         logger.warning("Sendbox API error: %s. Falling back to default calculation.", e)
 
-    base_fee = Decimal("2000.00")
+    base_fee = Decimal("2500.00") if origin_state.lower() != destination_state.lower() else Decimal("1500.00")
     return calculate_shipping_quote(base_fee)
 
 
 def get_kwik_quote(origin_address: str, destination_address: str, vehicle_type: str = "bike") -> dict:
     """
-    Fetch live delivery quote from Kwik Delivery API and apply platform markup.
+    Fetch delivery quote. Third-party courier APIs are currently disabled.
+    Uses platform zone rate calculation.
     """
-    api_key = getattr(settings, "KWIK_API_KEY", "")
-    if not api_key:
-        logger.info("Kwik Delivery API key not configured. Using platform zone estimate.")
+    enabled = getattr(settings, "ENABLE_THIRD_PARTY_COURIERS", False)
+    if not enabled or not getattr(settings, "KWIK_API_KEY", ""):
         base_fee = Decimal("1800.00")
         return calculate_shipping_quote(base_fee)
 
@@ -94,7 +95,7 @@ def get_kwik_quote(origin_address: str, destination_address: str, vehicle_type: 
     try:
         url = f"{settings.KWIK_BASE_URL.rstrip('/')}/deliveries/cost"
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {settings.KWIK_API_KEY}",
             "Content-Type": "application/json",
         }
         payload = {

@@ -490,6 +490,7 @@ PAYMENTS = {
 # ---------------------------------------------------------------------------
 # Platform handling markup added on top of base shipping quotes (default 3.0 = 3%).
 LOGISTICS_MARKUP_PERCENTAGE = Decimal(env("LOGISTICS_MARKUP_PERCENTAGE", "3.0"))
+ENABLE_THIRD_PARTY_COURIERS = env_bool("ENABLE_THIRD_PARTY_COURIERS", False)
 
 SENDBOX_API_KEY = env("SENDBOX_API_KEY", "")
 SENDBOX_BASE_URL = env("SENDBOX_BASE_URL", "https://api.sendbox.ng/v1")
