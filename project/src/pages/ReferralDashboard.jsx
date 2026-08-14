@@ -32,9 +32,15 @@ export default function ReferralDashboard() {
     }
   }
 
+  const getEffectiveReferralUrl = () => {
+    if (!stats?.code) return stats?.referral_url || ''
+    return `${window.location.origin}/signup?ref=${stats.code}`
+  }
+
   const handleCopyLink = () => {
-    if (!stats?.referral_url) return
-    navigator.clipboard.writeText(stats.referral_url)
+    const url = getEffectiveReferralUrl()
+    if (!url) return
+    navigator.clipboard.writeText(url)
     setCopied(true)
     toast('Referral link copied to clipboard!', 'success')
     setTimeout(() => setCopied(false), 2500)
@@ -58,8 +64,9 @@ export default function ReferralDashboard() {
   }
 
   const getWhatsAppShareUrl = () => {
+    const url = getEffectiveReferralUrl()
     const text = encodeURIComponent(
-      `Start your online store or shop on MultiShopNG! Use my link to register: ${stats?.referral_url || ''}`
+      `Start your online store or shop on MultiShopNG! Use my link to register: ${url}`
     )
     return `https://api.whatsapp.com/send?text=${text}`
   }
@@ -109,7 +116,7 @@ export default function ReferralDashboard() {
             <input
               type="text"
               readOnly
-              value={stats?.referral_url || ''}
+              value={getEffectiveReferralUrl()}
               className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 font-mono text-sm focus:outline-none"
             />
             <button

@@ -26,11 +26,19 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_referral_url(self, obj) -> str:
+        from django.conf import settings
+        from urllib.parse import urlparse
+
+        frontend_base = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
         request = self.context.get("request")
-        base = "https://multishopng.com"
         if request:
-            base = f"{request.scheme}://{request.get_host()}"
-        return f"{base}/register?ref={obj.code}"
+            origin = request.META.get("HTTP_ORIGIN") or request.META.get("HTTP_REFERER")
+            if origin:
+                parsed = urlparse(origin)
+                if parsed.scheme and parsed.netloc:
+                    frontend_base = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+        return f"{frontend_base}/signup?ref={obj.code}"
 
 
 class ReferralEarningSerializer(serializers.ModelSerializer):
