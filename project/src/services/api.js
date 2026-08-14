@@ -33,6 +33,15 @@ api.interceptors.response.use(
   async error => {
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
+      // Don't attempt refresh loop if the failed endpoint was login, register, or refresh itself
+      if (
+        original.url.includes('/users/login/') ||
+        original.url.includes('/users/register/') ||
+        original.url.includes('/users/token/refresh/')
+      ) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
