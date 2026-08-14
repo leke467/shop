@@ -194,68 +194,45 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <SEOHead title="Explore Marketplace | MultiShopNG" description="Search and discover products and shops." />
 
-      {/* Header/Search Bar */}
+      {/* Filter Sub-bar */}
       <div className="bg-white border-b border-gray-100 sticky top-16 z-30 shadow-xs">
-        <div className="max-w-[1720px] mx-auto px-4 sm:px-8 py-4">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3 w-full">
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:flex-1 min-w-0">
-              <div className="flex-1 relative min-w-0">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  id="explore-search"
-                  type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Search products, brands, categories..."
-                  className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all min-w-0 text-sm sm:text-base"
-                />
-              </div>
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
+          {/* Mobile Filter toggle */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="lg:hidden px-3.5 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center gap-1.5 text-xs font-semibold text-gray-700 flex-shrink-0 relative"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>Filters</span>
+            {(category || minPrice || maxPrice || sort !== 'newest') && (
+              <span className="w-2 h-2 rounded-full bg-primary-600" />
+            )}
+          </button>
+          
+          {/* Type toggle: All | Products | Shops */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto flex-shrink-0 ml-auto">
+            {['all', 'products', 'shops'].map(t => (
               <button
-                type="submit"
-                className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold text-sm hover:shadow-lg transition-all duration-300 flex-shrink-0"
-              >
-                Search
-              </button>
-              {/* Filter toggle (mobile) */}
-              <button
+                key={t}
                 type="button"
-                onClick={() => setFiltersOpen(true)}
-                className="lg:hidden px-3 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center gap-1.5 text-xs font-semibold text-gray-700 flex-shrink-0 relative"
+                onClick={() => {
+                  setType(t)
+                  const params = new URLSearchParams()
+                  if (query) params.set('q', query)
+                  setSearchParams(params)
+                  navigate(`/explore/${t === 'all' ? '' : t}?${params.toString()}`)
+                }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${
+                  type === t ? 'bg-white shadow text-gray-900 font-bold' : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 00-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                <span>Filters</span>
-                {(category || minPrice || maxPrice || sort !== 'newest') && (
-                  <span className="w-2 h-2 rounded-full bg-primary-600" />
-                )}
+                {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
-            </div>
-            
-            {/* Type toggle */}
-            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start bg-gray-100 rounded-xl p-1 overflow-x-auto flex-shrink-0">
-              {['all', 'products', 'shops'].map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setType(t)
-                    const params = new URLSearchParams()
-                    if (query) params.set('q', query)
-                    setSearchParams(params)
-                    navigate(`/explore/${t === 'all' ? '' : t}?${params.toString()}`)
-                  }}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all text-center ${
-                    type === t ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
-          </form>
+            ))}
+          </div>
         </div>
       </div>
 
