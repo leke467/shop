@@ -134,6 +134,7 @@ LOCAL_APPS = [
     "notifications.apps.NotificationsConfig",
     "blog.apps.BlogConfig",
     "messaging.apps.MessagingConfig",
+    "referrals.apps.ReferralsConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -498,6 +499,12 @@ SENDBOX_API_KEY = env("SENDBOX_API_KEY", "")
 SENDBOX_BASE_URL = env("SENDBOX_BASE_URL", "https://api.sendbox.ng/v1")
 KWIK_API_KEY = env("KWIK_API_KEY", "")
 KWIK_BASE_URL = env("KWIK_BASE_URL", "https://api.kwik.delivery/v1")
+
+# ---------------------------------------------------------------------------
+# Referral & Affiliate Program Settings
+# ---------------------------------------------------------------------------
+SUBSCRIPTION_REFERRAL_BONUS = Decimal(env("SUBSCRIPTION_REFERRAL_BONUS", "500.00"))
+COMMISSION_REFERRAL_SHARE = Decimal(env("COMMISSION_REFERRAL_SHARE", "20.0"))
 
 
 # ---------------------------------------------------------------------------

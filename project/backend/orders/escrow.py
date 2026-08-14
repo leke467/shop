@@ -103,6 +103,13 @@ def confirm_delivery_code(
         locked_group.pk, release_amount, wallet.balance,
     )
     
+    # --- Trigger Referral Commission Reward ---
+    try:
+        from referrals.services import process_order_referral_reward
+        process_order_referral_reward(locked_group)
+    except Exception as ref_err:
+        logger.warning("Referral order reward failed for group %s: %s", locked_group.pk, ref_err)
+
     # --- Send Notification Email ---
     from core.emails import send_escrow_released_email
     send_escrow_released_email(locked_group, release_amount)

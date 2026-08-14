@@ -29,7 +29,7 @@ import ProfilePage from './pages/ProfilePage'
 import WishlistPage from './pages/WishlistPage'
 import ShippingGuidePage from './pages/ShippingGuidePage'
 import BlogListPage from './pages/BlogListPage'
-import BlogPostPage from './pages/BlogPostPage'
+import ReferralDashboard from './pages/ReferralDashboard'
 
 // Context
 import { ShopProvider } from './context/ShopContext'
@@ -59,6 +59,8 @@ function App() {
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="subscription" element={<SubscriptionDashboard />} />
                 <Route path="admin" element={<AdminPanel />} />
+                <Route path="admin/dashboard" element={<AdminPanel />} />
+                <Route path="referrals" element={<ReferralDashboard />} />
 
                 <Route path="cart" element={<CartPage />} />
                 <Route path="login" element={<LoginPage />} />

@@ -32,6 +32,8 @@ urlpatterns = [
     path("api/notifications/", include("notifications.urls")),
     path("api/blog/", include("blog.urls")),
     path("api/messaging/", include("messaging.urls")),
+    path("api/referrals/", include("referrals.urls")),
+    path("api/admin/", include("core.admin_urls")),
     path("api/", include("core.urls")),
 ]
 

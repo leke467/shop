@@ -403,6 +403,28 @@ export const productReviewAPI = {
   create: (slug, data) => api.post(`/products/${slug}/reviews/`, data).then(r => r.data),
 }
 
+// ── Referral System ──────────────────────────────────────────
+export const referralAPI = {
+  myStats: () => api.get('/referrals/me/').then(r => r.data),
+  trackClick: (code) => api.post('/referrals/click/', { code }).then(r => r.data),
+  setCustomCode: (custom_code) => api.post('/referrals/custom-code/', { custom_code }).then(r => r.data),
+}
+
+// ── Superadmin Dashboard ─────────────────────────────────────
+export const adminDashboardAPI = {
+  overview: () => api.get('/admin/overview/').then(r => r.data),
+  orders: (params) => api.get('/admin/orders/', { params }).then(r => r.data),
+  updateOrder: (id, data) => api.patch(`/admin/orders/${id}/`, data).then(r => r.data),
+  products: (params) => api.get('/admin/products/', { params }).then(r => r.data),
+  updateProduct: (id, data) => api.patch(`/admin/products/${id}/`, data).then(r => r.data),
+  users: (params) => api.get('/admin/users/', { params }).then(r => r.data),
+  updateUser: (id, data) => api.patch(`/admin/users/${id}/`, data).then(r => r.data),
+  payments: () => api.get('/admin/payments/').then(r => r.data),
+  disputes: () => api.get('/admin/disputes/').then(r => r.data),
+  resolveDispute: (id, data) => api.patch(`/admin/disputes/${id}/`, data).then(r => r.data),
+  referrals: () => api.get('/admin/referrals/').then(r => r.data),
+}
+
 // ── Image helper ─────────────────────────────────────────────
 export const getImageUrl = (path) => {
   if (!path) return ''

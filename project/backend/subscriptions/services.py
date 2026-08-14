@@ -380,7 +380,7 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
 
     end_date = None if plan.is_free else now + timedelta(days=30 * months)
 
-    return UserSubscription.objects.create(
+    sub = UserSubscription.objects.create(
         user=user,
         plan=plan,
         status=UserSubscription.Status.ACTIVE,
@@ -389,8 +389,17 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
         payment_reference=payment_reference,
         provider_subscription_code=provider_subscription_code,
         provider_customer_code=provider_customer_code,
-        auto_renew=auto_renew and not plan.is_free,
+        auto_renew=auto_renew if not plan.is_free else False,
     )
+
+    if not plan.is_free:
+        try:
+            from referrals.services import process_subscription_referral_reward
+            process_subscription_referral_reward(sub)
+        except Exception as ref_err:
+            logger.warning("Subscription referral reward failed for user %s: %s", user.email, ref_err)
+
+    return sub
 
 
 def initiate_paystack_upgrade(user, plan: SubscriptionPlan, *,
