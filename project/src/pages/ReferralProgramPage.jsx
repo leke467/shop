@@ -65,7 +65,7 @@ export default function ReferralProgramPage() {
           >
             Earn Real Money by Sharing <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-              Nigeria's #1 Marketplace Engine
+              MultiShopNG Marketplace
             </span>
           </motion.h1>
 
