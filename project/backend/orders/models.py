@@ -303,6 +303,10 @@ class OrderGroup(TimeStampedModel):
         max_length=6, blank=True,
         help_text="6-digit code the buyer shares with the seller to confirm delivery.",
     )
+
+    @property
+    def total_price(self) -> Decimal:
+        return self.subtotal + self.shipping_total
     escrow_status = models.CharField(
         max_length=16,
         choices=EscrowStatus.choices,

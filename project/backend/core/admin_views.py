@@ -36,8 +36,11 @@ class AdminOverviewView(APIView):
         total_orders = OrderGroup.objects.count()
         total_revenue_agg = OrderGroup.objects.filter(
             status=OrderGroup.FulfilmentStatus.DELIVERED
-        ).aggregate(total=Sum("total_price"))
-        total_revenue = total_revenue_agg["total"] or Decimal("0.00")
+        ).aggregate(
+            sub=Sum("subtotal"),
+            ship=Sum("shipping_total")
+        )
+        total_revenue = (total_revenue_agg["sub"] or Decimal("0.00")) + (total_revenue_agg["ship"] or Decimal("0.00"))
 
         total_users = User.objects.count()
         total_shops = Shop.objects.count()
@@ -69,11 +72,15 @@ class AdminOverviewView(APIView):
             )
             day_rev_agg = day_orders.filter(
                 status=OrderGroup.FulfilmentStatus.DELIVERED
-            ).aggregate(sum=Sum("total_price"))
+            ).aggregate(
+                sub=Sum("subtotal"),
+                ship=Sum("shipping_total")
+            )
+            day_total = (day_rev_agg["sub"] or Decimal("0.00")) + (day_rev_agg["ship"] or Decimal("0.00"))
 
             daily_revenue.append({
                 "date": day_start.strftime("%b %d"),
-                "revenue": float(day_rev_agg["sum"] or 0),
+                "revenue": float(day_total),
                 "orders_count": day_orders.count(),
             })
 
@@ -165,7 +172,8 @@ class AdminProductListView(APIView):
             s = search.strip()
             qs = qs.filter(Q(name__icontains=s) | Q(shop__name__icontains=s))
         if approved_filter is not None and approved_filter.strip() != "":
-            qs = qs.filter(is_approved=approved_filter.lower().strip() in ["true", "1"])
+            is_app = approved_filter.lower().strip() in ["true", "1"]
+            qs = qs.filter(status=Product.Status.ACTIVE if is_app else Product.Status.DRAFT)
 
         products_data = [
             {
@@ -174,9 +182,9 @@ class AdminProductListView(APIView):
                 "slug": p.slug,
                 "shop_name": p.shop.name if p.shop else "Platform",
                 "base_price": str(p.base_price),
-                "is_approved": p.is_approved,
-                "is_active": p.is_active,
-                "stock": p.variants.aggregate(s=Sum("quantity"))["s"] or 0,
+                "is_approved": p.status == Product.Status.ACTIVE,
+                "is_active": p.status == Product.Status.ACTIVE,
+                "stock": p.variants.aggregate(s=Sum("inventory__quantity"))["s"] or 0,
                 "created_at": p.created_at,
             }
             for p in qs[:100]
@@ -190,14 +198,14 @@ class AdminProductListView(APIView):
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if "is_approved" in request.data:
-            p.is_approved = bool(request.data["is_approved"])
+            p.status = Product.Status.ACTIVE if request.data["is_approved"] else Product.Status.DRAFT
         if "is_active" in request.data:
-            p.is_active = bool(request.data["is_active"])
+            p.status = Product.Status.ACTIVE if request.data["is_active"] else Product.Status.DRAFT
         if "base_price" in request.data:
             p.base_price = Decimal(str(request.data["base_price"]))
 
         p.save()
-        return Response({"status": "updated", "id": p.id, "is_approved": p.is_approved, "is_active": p.is_active})
+        return Response({"status": "updated", "id": p.id, "is_approved": p.status == Product.Status.ACTIVE, "is_active": p.status == Product.Status.ACTIVE})
 
 
 class AdminUserListView(APIView):
