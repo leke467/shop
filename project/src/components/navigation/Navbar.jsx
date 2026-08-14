@@ -78,20 +78,20 @@ export default function Navbar() {
         ? 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm'
         : 'bg-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link to="/">
+          <Link to="/" className="flex-shrink-0">
             <Logo size="md" isDarkBg={!isScrolled && isHome} />
           </Link>
 
           {/* Header Search Bar */}
-          <form onSubmit={handleNavSearch} className="hidden md:flex items-center flex-1 max-w-2xl mx-6">
+          <form onSubmit={handleNavSearch} className="hidden md:flex items-center flex-1 max-w-4xl lg:max-w-5xl mx-2 lg:mx-6">
             <div className="flex items-stretch w-full bg-white rounded-xl shadow-xs border border-gray-300 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
               <select
                 value={navCategory}
                 onChange={e => setNavCategory(e.target.value)}
-                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2.5 py-2 focus:outline-none cursor-pointer max-w-[130px] truncate"
+                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-3 py-2 focus:outline-none cursor-pointer max-w-[150px] truncate"
               >
                 <option value="all">All Departments</option>
                 <option value="shops">🏪 All Shops</option>
