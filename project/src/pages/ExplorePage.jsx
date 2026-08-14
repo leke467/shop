@@ -69,6 +69,9 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  const [page, setPage] = useState(1)
+  const pageSize = 24
+
   // Load categories once
   useEffect(() => {
     searchAPI.categories().then(setCategories).catch(() => {})
@@ -81,10 +84,15 @@ export default function ExplorePage() {
     }
   }, [exploreType])
 
+  // Reset page when filters or query change
+  useEffect(() => {
+    setPage(1)
+  }, [query, category, sort, minPrice, maxPrice, type])
+
   // Search effect
   const doSearch = useCallback(() => {
     setLoading(true)
-    const params = { q: query, type, sort, page_size: 24 }
+    const params = { q: query, type, sort, page, page_size: pageSize }
     if (category) params.category = category
     if (minPrice) params.min_price = minPrice
     if (maxPrice) params.max_price = maxPrice
@@ -93,7 +101,7 @@ export default function ExplorePage() {
       .then(data => setResults(data))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [query, type, category, sort, minPrice, maxPrice])
+  }, [query, type, category, sort, minPrice, maxPrice, page])
 
   useEffect(() => { doSearch() }, [doSearch])
 
@@ -395,10 +403,66 @@ export default function ExplorePage() {
               {/* Products */}
               {productList.length > 0 && (type === 'all' || type === 'products') && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🛒 Products <span className="text-sm font-normal text-gray-400">({results.products?.count || productList.length})</span></h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      🛒 Products <span className="text-sm font-normal text-gray-400">({results.products?.count || productList.length} Total)</span>
+                    </h3>
+                    {results.products?.count > pageSize && (
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, results.products.count)} of {results.products.count}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                     {productList.map(p => <ProductCard key={p.slug || p.public_id} product={p} />)}
                   </div>
+
+                  {/* Pagination Controls */}
+                  {results.products?.count > pageSize && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-200 mt-8">
+                      <p className="text-sm text-gray-500 font-medium">
+                        Page {page} of {Math.ceil((results.products.count || 1) / pageSize)}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={page <= 1}
+                          onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Previous
+                        </button>
+
+                        {Array.from({ length: Math.ceil((results.products.count || 1) / pageSize) }, (_, i) => i + 1)
+                          .filter(p => p === 1 || p === Math.ceil((results.products.count || 1) / pageSize) || Math.abs(p - page) <= 2)
+                          .map((p, idx, arr) => (
+                            <React.Fragment key={p}>
+                              {idx > 0 && p - arr[idx - 1] > 1 && (
+                                <span className="px-1 text-gray-400 text-sm">…</span>
+                              )}
+                              <button
+                                onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${
+                                  page === p
+                                    ? 'bg-primary-600 text-white shadow-md'
+                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            </React.Fragment>
+                          ))}
+
+                        <button
+                          disabled={page >= Math.ceil((results.products.count || 1) / pageSize)}
+                          onClick={() => { setPage(p => Math.min(Math.ceil((results.products.count || 1) / pageSize), p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
