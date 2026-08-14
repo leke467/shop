@@ -196,7 +196,7 @@ export default function ExplorePage() {
 
       {/* Header/Search Bar */}
       <div className="bg-white border-b border-gray-100 sticky top-16 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-8 py-4">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3 w-full">
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:flex-1 min-w-0">
               <div className="flex-1 relative min-w-0">
@@ -225,7 +225,7 @@ export default function ExplorePage() {
                 className="lg:hidden px-3 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center gap-1.5 text-xs font-semibold text-gray-700 flex-shrink-0 relative"
               >
                 <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 00-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 <span>Filters</span>
                 {(category || minPrice || maxPrice || sort !== 'newest') && (
@@ -259,19 +259,19 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex gap-8">
-        {/* Desktop Sidebar filters */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-40 space-y-6">
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-8 py-6 sm:py-8 flex gap-6">
+        {/* Desktop Compact Sidebar filters */}
+        <aside className="hidden lg:block w-52 xl:w-56 flex-shrink-0">
+          <div className="sticky top-40 space-y-4">
             {/* Sort */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Sort by</h3>
-              <div className="space-y-2">
+            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Sort by</h3>
+              <div className="space-y-1.5">
                 {sortOptions.map(s => (
                   <label key={s.value} className="flex items-center gap-2 cursor-pointer group">
                     <input type="radio" name="sort" value={s.value} checked={sort === s.value} onChange={() => setSort(s.value)}
-                      className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
-                    <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{s.label}</span>
+                      className="w-3.5 h-3.5 text-primary-600 focus:ring-primary-500 border-gray-300" />
+                    <span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors">{s.label}</span>
                   </label>
                 ))}
               </div>
@@ -279,20 +279,20 @@ export default function ExplorePage() {
 
             {/* Categories */}
             {facets?.categories?.length > 0 && (
-              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Categories</h3>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                   <button onClick={() => setCategory('')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${!category ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs transition-all ${!category ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>
                     All Categories
                   </button>
                   {facets.categories.map(c => (
                     <button key={c.id} onClick={() => setCategory(String(c.id))}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between ${
-                        category === String(c.id) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                      className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs transition-all flex items-center justify-between ${
+                        category === String(c.id) ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
                       }`}>
-                      <span>{c.name}</span>
-                      <span className="text-xs text-gray-400">{c.count}</span>
+                      <span className="truncate">{c.name}</span>
+                      <span className="text-[10px] text-gray-400 font-mono ml-1">{c.count}</span>
                     </button>
                   ))}
                 </div>
@@ -300,14 +300,14 @@ export default function ExplorePage() {
             )}
 
             {/* Price range */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Price range (₦)</h3>
-              <div className="flex items-center gap-2">
+            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Price range (₦)</h3>
+              <div className="flex items-center gap-1.5">
                 <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
-                <span className="text-gray-400">—</span>
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                <span className="text-gray-400 text-xs">—</span>
                 <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
               </div>
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function ExplorePage() {
         {/* Results */}
         <main className="flex-1 min-w-0">
           {/* Result count */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5">
             <p className="text-sm text-gray-600 font-medium">
               {loading ? 'Loading catalog…' : (
                 <>
@@ -329,7 +329,7 @@ export default function ExplorePage() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
               {[...Array(12)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
                   <div className="aspect-square bg-gray-200" />
@@ -343,16 +343,16 @@ export default function ExplorePage() {
               {shopList.length > 0 && (type === 'all' || type === 'shops') && (
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({shopList.length})</span></h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                     {shopList.map(s => <ShopCard key={s.slug || s.public_id} shop={s} />)}
                   </div>
                 </div>
               )}
 
-              {/* Products Grid */}
+              {/* Products Grid — 4 items per row on Desktop! */}
               {productList.length > 0 && (type === 'all' || type === 'products') && (
                 <div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
                     {productList.map((p, index) => (
                       <ProductCard key={`${p.slug || p.public_id}-${index}`} product={p} />
                     ))}
