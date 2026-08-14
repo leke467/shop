@@ -93,7 +93,7 @@ export default function Navbar() {
                 onChange={e => setNavCategory(e.target.value)}
                 className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-3 py-2 focus:outline-none cursor-pointer max-w-[150px] truncate"
               >
-                <option value="all">All Departments</option>
+                <option value="all">All Categories</option>
                 <option value="shops">🏪 All Shops</option>
                 <option value="arts-crafts">Arts & Crafts</option>
                 <option value="automotive">Automotive</option>

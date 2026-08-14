@@ -112,7 +112,7 @@ function Hero({ onSearch }) {
   }, [])
 
   const defaultCategories = [
-    { value: 'all', label: 'All Departments' },
+    { value: 'all', label: 'All Categories' },
     { value: 'shops', label: '🏪 All Shops' },
     { value: 'arts-crafts', label: 'Arts & Crafts' },
     { value: 'automotive', label: 'Automotive' },
