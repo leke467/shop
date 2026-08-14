@@ -297,9 +297,9 @@ export default function SignUpPage() {
             transition={{ delay: 0.5, duration: 0.6 }}
           >
             {[
-              { num: '10K+', label: 'Active Buyers' },
-              { num: '500+', label: 'Unique Shops' },
-              { num: '50K+', label: 'Products' },
+              { num: '₦500', label: 'Per Referral' },
+              { num: '20%', label: 'Commission Share' },
+              { num: '100%', label: 'Escrow Protected' },
             ].map(s => (
               <div key={s.label} className="text-center">
                 <div className="text-3xl font-bold">{s.num}</div>

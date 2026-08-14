@@ -41,11 +41,24 @@ export default function LoginPage() {
           animate={{ y: [0, 30, 0], x: [0, -20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
+        {/* Floating Referral Partner Card */}
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 rotate-12"
-          animate={{ rotate: [12, -5, 12] }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-        />
+          className="absolute bottom-16 right-10 w-72 p-5 rounded-3xl bg-white/15 backdrop-blur-xl border border-white/25 shadow-2xl space-y-2 text-white z-20"
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎁</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-300">Partner Rewards</span>
+          </div>
+          <p className="text-sm font-bold leading-snug">
+            Earn <span className="text-emerald-300 font-extrabold">₦500 Cash</span> per vendor subscription + <span className="text-amber-300 font-extrabold">20% commission share</span>!
+          </p>
+          <div className="pt-1 flex items-center gap-1.5 text-xs text-white/90 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Direct Monnify Bank Withdrawals</span>
+          </div>
+        </motion.div>
         <div className="relative z-10 flex flex-col justify-center p-16 text-white">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -70,7 +83,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            {['Personalized Feed', 'Secure Checkout', '500+ Shops'].map((item) => (
+            {['🎁 ₦500 Referral Bonus', '📈 20% Commission Share', '🔒 Escrow Protection', '⚡ Instant Monnify Payouts'].map((item) => (
               <span key={item} className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-sm font-medium border border-white/20">
                 {item}
               </span>
