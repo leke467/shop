@@ -17,6 +17,23 @@ export default function Navbar() {
   const menuRef = useRef(null)
   
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [navQuery, setNavQuery] = useState('')
+  const [navCategory, setNavCategory] = useState('all')
+
+  const handleNavSearch = (e) => {
+    e.preventDefault()
+    if (!navQuery.trim()) return
+    const params = new URLSearchParams()
+    params.set('q', navQuery.trim())
+    if (navCategory && navCategory !== 'all') {
+      if (navCategory === 'shops') {
+        navigate(`/explore/shops?${params.toString()}`)
+        return
+      }
+      params.set('category', navCategory)
+    }
+    navigate(`/explore/products?${params.toString()}`)
+  }
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 10)
@@ -67,6 +84,38 @@ export default function Navbar() {
           <Link to="/">
             <Logo size="md" isDarkBg={!isScrolled && isHome} />
           </Link>
+
+          {/* Amazon-Style Header Search Bar */}
+          <form onSubmit={handleNavSearch} className="hidden md:flex items-center flex-1 max-w-md mx-4">
+            <div className="flex items-stretch w-full bg-white rounded-xl shadow-xs border border-gray-300 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 overflow-hidden">
+              <select
+                value={navCategory}
+                onChange={e => setNavCategory(e.target.value)}
+                className="bg-gray-100 border-r border-gray-200 text-xs font-semibold text-gray-700 px-2.5 py-2 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All</option>
+                <option value="fashion">Fashion</option>
+                <option value="electronics">Electronics</option>
+                <option value="home">Home</option>
+                <option value="shops">Shops</option>
+              </select>
+              <input
+                type="text"
+                value={navQuery}
+                onChange={e => setNavQuery(e.target.value)}
+                placeholder="Search Amazon style..."
+                className="flex-1 min-w-0 px-3 py-2 text-xs text-gray-900 bg-white focus:outline-none font-medium"
+              />
+              <button
+                type="submit"
+                className="bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold px-3.5 flex items-center justify-center transition-colors"
+              >
+                <svg className="w-4 h-4 text-slate-950 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+          </form>
 
           {/* Center nav */}
           <div className="hidden md:flex items-center gap-1">

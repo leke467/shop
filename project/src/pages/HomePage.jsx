@@ -133,33 +133,71 @@ function Hero({ onSearch }) {
           </p>
         </motion.div>
 
-        {/* Search bar */}
+        {/* Amazon-Style Search Bar */}
         <motion.form
-          className="mt-10 max-w-2xl mx-auto"
+          className="mt-10 max-w-3xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          onSubmit={(e) => { e.preventDefault(); onSearch(query) }}
+          onSubmit={(e) => { e.preventDefault(); onSearch(query, category) }}
         >
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 via-accent-500 to-secondary-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500" />
-            <div className="relative flex items-center bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
-              <svg className="w-5 h-5 text-gray-400 ml-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            {/* Outer Glow */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 rounded-2xl blur-md opacity-40 group-hover:opacity-70 transition duration-500" />
+            
+            {/* Main Amazon Bar */}
+            <div className="relative flex items-stretch bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-amber-400 focus-within:ring-4 focus-within:ring-amber-500/40">
+              
+              {/* Category Dropdown Pill */}
+              <div className="relative flex-shrink-0 bg-gray-100 border-r border-gray-200 hover:bg-gray-200 transition-colors">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="h-full appearance-none bg-transparent pl-3.5 pr-8 py-3 text-xs md:text-sm font-semibold text-gray-700 cursor-pointer focus:outline-none"
+                >
+                  <option value="all">All</option>
+                  <option value="fashion">Fashion</option>
+                  <option value="electronics">Electronics</option>
+                  <option value="home">Home & Garden</option>
+                  <option value="beauty">Beauty</option>
+                  <option value="art">Art & Craft</option>
+                  <option value="shops">Shops</option>
+                </select>
+                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
+                  ▼
+                </div>
+              </div>
+
+              {/* Main Text Input */}
               <input
                 id="home-search"
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search..."
-                className="flex-1 min-w-0 bg-transparent text-white placeholder-gray-400 px-3 py-3 md:px-4 md:py-4 text-base md:text-lg focus:outline-none"
+                placeholder="Search Amazon style on MultiShop..."
+                className="flex-1 min-w-0 bg-white text-gray-900 placeholder-gray-400 px-4 py-3 md:py-4 text-base md:text-lg font-medium focus:outline-none"
               />
+
+              {/* Clear button if typed */}
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="px-3 text-gray-400 hover:text-gray-600 text-sm font-bold focus:outline-none"
+                >
+                  ✕
+                </button>
+              )}
+
+              {/* Amazon Amber Search Action Button */}
               <button
                 type="submit"
-                className="mr-2 px-4 py-2 md:px-6 md:py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold text-xs md:text-sm hover:shadow-lg transition-all duration-300 flex-shrink-0"
+                className="px-6 md:px-8 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 active:from-amber-600 active:to-amber-700 text-slate-950 font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all flex-shrink-0 shadow-md"
               >
-                Search
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-slate-950 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span className="hidden sm:inline font-extrabold tracking-wide">Search</span>
               </button>
             </div>
           </div>
@@ -231,8 +269,17 @@ export default function HomePage() {
     }).finally(() => setLoading(false))
   }, [isAuthenticated])
 
-  const handleSearch = (query) => {
-    navigate(`/explore/products?q=${encodeURIComponent(query)}`)
+  const handleSearch = (query, category = 'all') => {
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (category && category !== 'all') {
+      if (category === 'shops') {
+        navigate(`/explore/shops?${params.toString()}`)
+        return
+      }
+      params.set('category', category)
+    }
+    navigate(`/explore/products?${params.toString()}`)
   }
 
   const displayItems = browseMode === 'shops' ? shops : products
