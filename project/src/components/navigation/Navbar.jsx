@@ -73,9 +73,9 @@ export default function Navbar() {
             {[
               { to: '/', label: 'Home' },
               { to: '/explore/products', label: 'Explore' },
+              { to: '/referrals', label: 'Referrals' },
               { to: '/pricing', label: 'Pricing' },
             ].map(link => (
-
               <Link
                 key={link.to}
                 to={link.to}
@@ -96,10 +96,10 @@ export default function Navbar() {
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              <Link to="/admin/dashboard" className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 isScrolled || !isHome ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}>
-                Admin
+                Admin Panel
               </Link>
             )}
           </div>
@@ -169,9 +169,20 @@ export default function Navbar() {
                         <p className="text-sm font-semibold text-gray-900">{user?.first_name} {user?.last_name}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       </div>
-                      <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                        <span>📊</span> Dashboard
+                      <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>👤</span> My Profile
                       </Link>
+                      <Link to="/referrals" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>🎁</span> Refer & Earn
+                      </Link>
+                      <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <span>📊</span> Vendor Dashboard
+                      </Link>
+                      {isAdmin && (
+                        <Link to="/admin/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                          <span>🛡️</span> Admin Panel
+                        </Link>
+                      )}
                       <Link to="/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                         <span>🛍️</span> My Orders
                       </Link>
