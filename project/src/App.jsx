@@ -29,6 +29,7 @@ import ProfilePage from './pages/ProfilePage'
 import WishlistPage from './pages/WishlistPage'
 import ShippingGuidePage from './pages/ShippingGuidePage'
 import BlogListPage from './pages/BlogListPage'
+import BlogPostPage from './pages/BlogPostPage'
 import ReferralDashboard from './pages/ReferralDashboard'
 
 // Context
