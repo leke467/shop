@@ -31,3 +31,15 @@ class IsSuperadminOnly(permissions.BasePermission):
                 getattr(user, "role", None) == "admin"
             )
         )
+
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Permission check: allow read-only access to anyone, but only allow
+    write access (update/delete) to the owner of the object.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return obj.owner == request.user
