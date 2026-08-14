@@ -134,7 +134,7 @@ export default function AdminPanel() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col md:flex-row pt-16">
       <SEOHead title="Superadmin Control Center | MultiShopNG" />
 
       {/* Dark Sidebar */}

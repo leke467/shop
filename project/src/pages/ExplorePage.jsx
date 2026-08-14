@@ -70,6 +70,8 @@ export default function ExplorePage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [facets, setFacets] = useState(null)
   const [shopList, setShopList] = useState([])
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [minRating, setMinRating] = useState(0)
 
   // Endless Scroll States:
   const [productList, setProductList] = useState([])
@@ -182,13 +184,27 @@ export default function ExplorePage() {
     fetchProducts(1, false)
   }
 
-  const sortOptions = [
+  const productSortOptions = [
     { value: 'newest', label: 'Newest' },
     { value: 'price_asc', label: 'Price: Low → High' },
     { value: 'price_desc', label: 'Price: High → Low' },
     { value: 'rating', label: 'Top Rated' },
     { value: 'popular', label: 'Most Popular' },
   ]
+
+  const shopSortOptions = [
+    { value: 'newest', label: 'Newest Shops' },
+    { value: 'rating', label: 'Top Rated' },
+    { value: 'popular', label: 'Most Popular' },
+  ]
+
+  const sortOptions = type === 'shops' ? shopSortOptions : productSortOptions
+
+  const filteredShops = shopList.filter(s => {
+    if (verifiedOnly && !s.is_verified) return false
+    if (minRating > 0 && (s.rating_average || 0) < minRating) return false
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -207,7 +223,7 @@ export default function ExplorePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
             <span>Filters</span>
-            {(category || minPrice || maxPrice || sort !== 'newest') && (
+            {(category || minPrice || maxPrice || verifiedOnly || minRating > 0 || sort !== 'newest') && (
               <span className="w-2 h-2 rounded-full bg-primary-600" />
             )}
           </button>
@@ -254,6 +270,49 @@ export default function ExplorePage() {
               </div>
             </div>
 
+            {/* Shop Specific Filters */}
+            {type === 'shops' && (
+              <>
+                {/* Merchant Status */}
+                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Merchant Status</h3>
+                  <label className="flex items-center gap-2 cursor-pointer group text-xs text-gray-700 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={verifiedOnly}
+                      onChange={e => setVerifiedOnly(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span>Verified Only (✓)</span>
+                  </label>
+                </div>
+
+                {/* Rating Filter */}
+                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Minimum Rating</h3>
+                  <div className="space-y-1.5">
+                    {[
+                      { val: 0, label: 'All Ratings' },
+                      { val: 4, label: '⭐ 4.0 & above' },
+                      { val: 4.5, label: '⭐ 4.5 & above' },
+                    ].map(r => (
+                      <label key={r.val} className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="minRating"
+                          value={r.val}
+                          checked={minRating === r.val}
+                          onChange={() => setMinRating(r.val)}
+                          className="w-3.5 h-3.5 text-primary-600 focus:ring-primary-500 border-gray-300"
+                        />
+                        <span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors">{r.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Categories */}
             {facets?.categories?.length > 0 && (
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -276,17 +335,19 @@ export default function ExplorePage() {
               </div>
             )}
 
-            {/* Price range */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-              <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Price range (₦)</h3>
-              <div className="flex items-center gap-1.5">
-                <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
-                <span className="text-gray-400 text-xs">—</span>
-                <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+            {/* Price range — Only shown for Products / All */}
+            {type !== 'shops' && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider mb-2.5">Price range (₦)</h3>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                  <span className="text-gray-400 text-xs">—</span>
+                  <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </aside>
 
@@ -297,8 +358,8 @@ export default function ExplorePage() {
             <p className="text-sm text-gray-600 font-medium">
               {loading ? 'Loading catalog…' : (
                 <>
-                  Showing <span className="font-bold text-gray-900">{productList.length}</span> of{' '}
-                  <span className="font-bold text-gray-900">{totalProductCount}</span> products
+                  Showing <span className="font-bold text-gray-900">{type === 'shops' ? filteredShops.length : productList.length}</span> of{' '}
+                  <span className="font-bold text-gray-900">{type === 'shops' ? shopList.length : totalProductCount}</span> {type === 'shops' ? 'shops' : 'products'}
                   {query && <> for "<span className="font-medium text-gray-900">{query}</span>"</>}
                 </>
               )}
@@ -317,11 +378,11 @@ export default function ExplorePage() {
           ) : (
             <div className="space-y-12">
               {/* Shops */}
-              {shopList.length > 0 && (type === 'all' || type === 'shops') && (
+              {filteredShops.length > 0 && (type === 'all' || type === 'shops') && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({shopList.length})</span></h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">🏪 Shops <span className="text-sm font-normal text-gray-400">({filteredShops.length})</span></h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                    {shopList.map(s => <ShopCard key={s.slug || s.public_id} shop={s} />)}
+                    {filteredShops.map(s => <ShopCard key={s.slug || s.public_id} shop={s} />)}
                   </div>
                 </div>
               )}
