@@ -457,8 +457,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 # Payments (provider-agnostic; keys resolved per environment)
 # ---------------------------------------------------------------------------
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER", "monnify")
+
 PAYMENTS = {
-    "DEFAULT_CURRENCY": env("PAYMENTS_DEFAULT_CURRENCY", "USD"),
+    "DEFAULT_CURRENCY": env("PAYMENTS_DEFAULT_CURRENCY", "NGN"),
     "STRIPE": {
         "SECRET_KEY": env("STRIPE_SECRET_KEY", ""),
         "PUBLISHABLE_KEY": env("STRIPE_PUBLISHABLE_KEY", ""),

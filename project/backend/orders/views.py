@@ -407,20 +407,30 @@ class PayoutRequestCreateView(generics.CreateAPIView):
             
             payout = serializer.save(wallet=wallet, status=PayoutRequest.Status.PROCESSING)
             
-            service = PaystackTransferService()
+            from .payouts import get_payout_service, MonnifyTransferService
+            service = get_payout_service()
             try:
-                recipient_code = service.create_transfer_recipient(
-                    name=bank_account.account_name,
-                    account_number=bank_account.account_number,
-                    bank_code=bank_account.bank_code
-                )
-                transfer_data = service.initiate_transfer(
-                    amount=float(amount),
-                    recipient_code=recipient_code,
-                    reason=f"Payout for {shop.name}"
-                )
+                if isinstance(service, MonnifyTransferService):
+                    transfer_data = service.initiate_transfer(
+                        amount=float(amount),
+                        account_number=bank_account.account_number,
+                        bank_code=bank_account.bank_code,
+                        narration=f"Payout for {shop.name}"
+                    )
+                else:
+                    recipient_code = service.create_transfer_recipient(
+                        name=bank_account.account_name,
+                        account_number=bank_account.account_number,
+                        bank_code=bank_account.bank_code
+                    )
+                    transfer_data = service.initiate_transfer(
+                        amount=float(amount),
+                        recipient_code=recipient_code,
+                        reason=f"Payout for {shop.name}"
+                    )
                 payout.provider_reference = transfer_data.get("reference", "")
-                payout.save(update_fields=["provider_reference"])
+                payout.status = PayoutRequest.Status.COMPLETED
+                payout.save(update_fields=["provider_reference", "status"])
             except Exception as e:
                 payout.status = PayoutRequest.Status.FAILED
                 payout.failure_reason = str(e)
@@ -430,7 +440,7 @@ class PayoutRequestCreateView(generics.CreateAPIView):
                 wallet.balance += amount
                 wallet.total_withdrawn -= amount
                 wallet.save(update_fields=["balance", "total_withdrawn", "updated_at"])
-                raise serializers.ValidationError({"detail": "Transfer failed to initiate."})
+                raise serializers.ValidationError({"detail": f"Transfer failed to initiate: {e}"})
 
 
 # ---------------------------------------------------------------------------
