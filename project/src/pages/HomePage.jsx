@@ -102,6 +102,7 @@ function ProductCard({ product }) {
 // ── Hero ─────────────────────────────────────────────────────
 function Hero({ onSearch }) {
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState('all')
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-primary-950 to-secondary-950 pt-24 pb-32">
       {/* Animated background shapes */}
