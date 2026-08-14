@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = 'http://localhost:5173'
+const BASE_URL = 'https://shop.adeleke467.workers.dev'
 
-test.describe('MultiShopNG E2E Playwright Autonomous Audit', () => {
+test.describe('MultiShopNG Production Playwright Autonomous Audit', () => {
   test('1. Audit Homepage and Core Navigation', async ({ page }) => {
     await page.goto(`${BASE_URL}/`)
     await expect(page).toHaveTitle(/MultiShopNG|Shop|Explore/i)

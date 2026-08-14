@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: '.',
   testMatch: 'e2e_audit.spec.js',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'https://shop.adeleke467.workers.dev',
     headless: true,
   },
 })
