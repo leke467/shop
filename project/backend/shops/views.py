@@ -65,7 +65,7 @@ class ShopListView(generics.ListAPIView):
 
 
 class ShopDetailView(generics.RetrieveAPIView):
-    """Public detail view by slug (includes theme + layout)."""
+    """Public detail view by slug or verified custom domain (includes theme + layout)."""
 
     serializer_class = ShopDetailSerializer
     permission_classes = [AllowAny]
@@ -78,6 +78,25 @@ class ShopDetailView(generics.RetrieveAPIView):
                 Q(status=Shop.Status.ACTIVE) | Q(owner=self.request.user)
             )
         return Shop.objects.filter(status=Shop.Status.ACTIVE)
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        val = self.kwargs[lookup_url_kwarg]
+
+        obj = queryset.filter(slug=val).first()
+        if not obj:
+            obj = queryset.filter(
+                custom_domain=val.lower(),
+                custom_domain_status=Shop.DomainStatus.VERIFIED
+            ).first()
+
+        if not obj:
+            from django.http import Http404
+            raise Http404("No Shop matches the given query.")
+
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class ShopCreateView(generics.CreateAPIView):
@@ -428,6 +447,27 @@ class ShopCustomDomainVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(dns_instructions(shop))
+
+
+class ShopByDomainView(APIView):
+    """GET /api/shops/by-domain/?domain=shop.example.com → look up shop by verified custom domain."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        domain = request.query_params.get("domain", "").strip().lower()
+        if not domain:
+            return Response({"detail": "Domain parameter required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        shop = Shop.objects.filter(
+            custom_domain=domain,
+            custom_domain_status=Shop.DomainStatus.VERIFIED,
+            status=Shop.Status.ACTIVE,
+        ).first()
+        if not shop:
+            return Response({"detail": "Shop not found for this domain."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ShopDetailSerializer(shop, context={"request": request})
+        return Response(serializer.data)
 
 
 # ---------------------------------------------------------------------------

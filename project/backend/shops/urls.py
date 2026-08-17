@@ -17,6 +17,7 @@ from .views import (
     SectionBlockListCreateView,
     ShopBrandingUploadView,
     ShopCreateView,
+    ShopByDomainView,
     ShopCustomDomainVerifyView,
     ShopCustomDomainView,
     ShopDeleteView,
@@ -56,6 +57,7 @@ urlpatterns = [
     path("<slug:slug>/branding/", ShopBrandingUploadView.as_view(), name="shop-branding"),
 
     # Custom domain (feature-gated)
+    path("by-domain/", ShopByDomainView.as_view(), name="shop-by-domain"),
     path("<slug:slug>/domain/", ShopCustomDomainView.as_view(), name="shop-domain"),
     path("<slug:slug>/domain/verify/", ShopCustomDomainVerifyView.as_view(), name="shop-domain-verify"),
 

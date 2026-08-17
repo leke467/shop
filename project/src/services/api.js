@@ -129,6 +129,8 @@ export const shopAPI = {
     api.post(`/shops/${slug}/domain/verify/`).then(r => r.data),
   removeCustomDomain: (slug) =>
     api.delete(`/shops/${slug}/domain/`).then(r => r.data),
+  getByDomain: (domain) =>
+    api.get(`/shops/by-domain/`, { params: { domain } }).then(r => r.data),
 
 
   // Layouts
