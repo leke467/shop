@@ -32,19 +32,81 @@ function ProductCard({ product }) {
   )
 }
 
+function getShopTemplateMeta(shop) {
+  const tid = (shop?.template_id || shop?.template || '').toLowerCase()
+  const isHoney = tid === 'honeyspicy' || tid === 'honey' || shop?.name?.toLowerCase().includes('honey')
+
+  if (isHoney) {
+    return {
+      isPremium: true,
+      gradient: 'from-amber-400 via-orange-400 to-amber-600',
+      cardStyle: 'border-2 border-amber-400 shadow-md shadow-amber-500/10 hover:shadow-2xl hover:shadow-amber-500/25 hover:border-amber-500 bg-gradient-to-b from-amber-50/40 via-white to-white',
+      premiumBadge: '👑 PREMIUM STORE',
+    }
+  }
+
+  // Standard/Normal stores: clean, minimal card
+  return {
+    isPremium: false,
+    gradient: 'from-primary-400 to-secondary-500',
+    cardStyle: 'border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 bg-white',
+  }
+}
+
 function ShopCard({ shop }) {
+  const meta = getShopTemplateMeta(shop)
+
   return (
-    <Link to={`/shop/${shop.slug}`}>
-      <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300" whileHover={{ y: -4 }}>
-        <div className="h-28 bg-gradient-to-br from-primary-400 to-secondary-500 relative">
-          {shop.banner && <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />}
+    <Link to={`/${shop.slug}`}>
+      <motion.div 
+        className={`group rounded-2xl overflow-hidden ${meta.cardStyle} transition-all duration-300 flex flex-col h-full relative`} 
+        whileHover={{ y: -4 }}
+      >
+        {/* Banner with Template Styling */}
+        <div className={`h-32 relative overflow-hidden bg-gradient-to-r ${meta.gradient}`}>
+          {shop.banner && (
+            <img 
+              src={getImageUrl(shop.banner)} 
+              alt="" 
+              className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" 
+            />
+          )}
+          
+          {/* Top Left Premium Badge */}
+          {meta.isPremium && (
+            <div className="absolute top-2.5 left-2.5 z-10">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-black/75 text-amber-300 border border-amber-400/60 backdrop-blur-md shadow-xs">
+                {meta.premiumBadge || '👑 PREMIUM STORE'}
+              </span>
+            </div>
+          )}
+
+          {/* Optional Shop Logo Overlay */}
+          {shop.logo && (
+            <div className="absolute -bottom-4 left-4 w-12 h-12 rounded-xl border-2 border-white bg-white overflow-hidden shadow-md">
+              <img src={getImageUrl(shop.logo)} alt="" className="w-full h-full object-cover" />
+            </div>
+          )}
         </div>
-        <div className="p-4 pt-2">
-          <h3 className="font-bold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{shop.name}</h3>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-1">{shop.tagline || ''}</p>
-          <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-            <span>⭐ {Number(shop.rating_average || 0).toFixed(1)}</span>
-            <span>{shop.product_count || 0} products</span>
+
+        {/* Content */}
+        <div className={`p-4 ${shop.logo ? 'pt-6' : 'pt-4'} flex-1 flex flex-col justify-between`}>
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-base truncate group-hover:text-amber-600 transition-colors">
+              {shop.name}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+              {shop.tagline || shop.description || ''}
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1 font-bold text-amber-500">
+              ⭐ {Number(shop.rating_average || shop.rating || 0).toFixed(1)}
+            </span>
+            <span className="font-medium text-gray-400">
+              {shop.product_count || 0} products
+            </span>
           </div>
         </div>
       </motion.div>
@@ -137,11 +199,22 @@ export default function ExplorePage() {
     }
   }, [query, type, category, sort, minPrice, maxPrice])
 
-  // Reset and fetch initial page when filters change
+  // Sync query state with URL searchParams live
   useEffect(() => {
-    setPage(1)
-    setProductList([])
-    fetchProducts(1, false)
+    const qFromUrl = searchParams.get('q') || ''
+    if (qFromUrl !== query) {
+      setQuery(qFromUrl)
+    }
+  }, [searchParams])
+
+  // Reset and fetch initial page as user types (with short 150ms debounce for live search)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      setProductList([])
+      fetchProducts(1, false)
+    }, 150)
+    return () => clearTimeout(timer)
   }, [query, category, sort, minPrice, maxPrice, type])
 
   // Handle Load More (Next Page)
@@ -173,15 +246,21 @@ export default function ExplorePage() {
     }
   }, [hasMore, loading, loadingMore, loadMore])
 
+  const handleQueryChange = (e) => {
+    const val = e.target.value
+    setQuery(val)
+    const params = new URLSearchParams(searchParams)
+    if (val) {
+      params.set('q', val)
+    } else {
+      params.delete('q')
+    }
+    setSearchParams(params, { replace: true })
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
-    const params = new URLSearchParams()
-    if (query) params.set('q', query)
-    setSearchParams(params)
-    navigate(`/explore/${type === 'all' ? '' : type}?${params.toString()}`)
-    setPage(1)
-    setProductList([])
-    fetchProducts(1, false)
+    handleQueryChange({ target: { value: query } })
   }
 
   const productSortOptions = [
@@ -252,7 +331,7 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <div className="max-w-[1720px] mx-auto px-4 sm:px-8 py-6 sm:py-8 flex gap-6">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-8 py-6 sm:py-8 flex items-start gap-6">
         {/* Desktop Compact Sidebar filters */}
         <aside className="hidden lg:block w-52 xl:w-56 flex-shrink-0">
           <div className="sticky top-40 space-y-4">
@@ -429,10 +508,10 @@ export default function ExplorePage() {
               )}
 
               {productList.length === 0 && shopList.length === 0 && (
-                <div className="text-center py-20">
+                <div className="w-full bg-white rounded-3xl p-12 border border-gray-100 shadow-xs text-center py-20">
                   <div className="text-6xl mb-4">🔍</div>
                   <h3 className="text-xl font-bold text-gray-900">No results found</h3>
-                  <p className="text-gray-500 mt-2">Try different keywords or browse all categories</p>
+                  <p className="text-gray-500 mt-2 text-sm">Try different keywords or browse all categories</p>
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
@@ -11,6 +11,8 @@ import CouponsTab from '../components/dashboard/CouponsTab'
 import AnalyticsTab from '../components/dashboard/AnalyticsTab'
 import BlogTab from '../components/dashboard/BlogTab'
 import MessagesTab from '../components/dashboard/MessagesTab'
+import TemplatesTab from '../components/dashboard/TemplatesTab'
+import TemplateCustomizerModal from '../components/dashboard/TemplateCustomizerModal'
 
 // Persist the last-selected shop so switching shops survives reloads.
 const SELECTED_SHOP_KEY = 'dashboard.selectedShopSlug'
@@ -116,7 +118,39 @@ const COLOR_PRESETS = [
   }
 ]
 
+const NIGERIAN_BANKS = [
+  { name: 'Access Bank', code: '044' },
+  { name: 'Guaranty Trust Bank (GTBank)', code: '058' },
+  { name: 'Zenith Bank', code: '057' },
+  { name: 'United Bank for Africa (UBA)', code: '033' },
+  { name: 'First Bank of Nigeria', code: '011' },
+  { name: 'Stanbic IBTC Bank', code: '221' },
+  { name: 'Sterling Bank', code: '232' },
+  { name: 'Fidelity Bank', code: '070' },
+  { name: 'Union Bank of Nigeria', code: '032' },
+  { name: 'First City Monument Bank (FCMB)', code: '214' },
+  { name: 'Wema Bank / ALAT', code: '035' },
+  { name: 'Polaris Bank', code: '076' },
+  { name: 'Ecobank Nigeria', code: '050' },
+  { name: 'Kuda Bank', code: '50211' },
+  { name: 'OPay / Paycom', code: '999992' },
+  { name: 'PalmPay', code: '999991' },
+  { name: 'Moniepoint Microfinance Bank', code: '50515' },
+  { name: 'Carbon', code: '565' },
+  { name: 'Providus Bank', code: '101' },
+  { name: 'Taj Bank', code: '302' },
+  { name: 'Jaiz Bank', code: '301' },
+  { name: 'VFD Microfinance Bank', code: '566' },
+  { name: 'Rubies MFB', code: '125' },
+  { name: 'Titan Trust Bank', code: '102' },
+  { name: 'Keystone Bank', code: '082' },
+  { name: 'Unity Bank', code: '215' },
+  { name: 'SunTrust Bank', code: '100' },
+  { name: 'FairMoney MFB', code: '51318' }
+]
+
 export default function ShopDashboard() {
+  const [searchParams] = useSearchParams()
   const { isAuthenticated, loading: userLoading } = useUser()
   const navigate = useNavigate()
   const [shops, setShops] = useState([])          // all shops the user owns
@@ -124,7 +158,7 @@ export default function ShopDashboard() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState(false)
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(searchParams.get('tab') || 'overview')
   const [productForm, setProductForm] = useState({ name: '', description: '', base_price: '', status: 'active' })
   const [editingProduct, setEditingProduct] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -158,6 +192,7 @@ export default function ShopDashboard() {
 
   // Bulk Import State
   const [bulkImporting, setBulkImporting] = useState(false)
+  const [showManageModal, setShowManageModal] = useState(false)
 
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
@@ -178,6 +213,51 @@ export default function ShopDashboard() {
     custom_css: '',
   })
 
+  // Store Info Form State
+  const [shopNameForm, setShopNameForm] = useState({
+    name: '',
+    tagline: '',
+    description: '',
+    phone: '',
+    email: '',
+    address: '',
+  })
+  const [savingShopInfo, setSavingShopInfo] = useState(false)
+
+  useEffect(() => {
+    if (shop) {
+      setShopNameForm({
+        name: shop.name || '',
+        tagline: shop.tagline || '',
+        description: shop.description || '',
+        phone: shop.phone || '',
+        email: shop.email || '',
+        address: shop.address || '',
+      })
+    }
+  }, [shop])
+
+  const handleSaveShopDetails = async (e) => {
+    e.preventDefault()
+    if (!shopNameForm.name.trim()) {
+      toast('Store name cannot be empty', 'error')
+      return
+    }
+
+    setSavingShopInfo(true)
+    try {
+      const updated = await shopAPI.update(shop.slug, shopNameForm)
+      setShop(updated)
+      setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+      toast('Store details updated successfully! 🎉')
+    } catch (err) {
+      console.error('Failed to update shop details:', err)
+      toast(err.response?.data?.detail || err.response?.data?.name?.[0] || 'Failed to update store details.', 'error')
+    } finally {
+      setSavingShopInfo(false)
+    }
+  }
+
   const loadTheme = (slug) => {
     shopAPI.getTheme(slug)
       .then(t => {
@@ -187,10 +267,23 @@ export default function ShopDashboard() {
   }
 
   // Load the products for a given shop into state.
-  const loadProducts = (slug) =>
-    productAPI.list({ shop: slug, page_size: 100 })
-      .then(data => setProducts(data?.results || data || []))
-      .catch(() => setProducts([]))
+  const loadProducts = (slug) => {
+    if (!slug) return Promise.resolve([])
+    return productAPI.list({ shop: slug, page_size: 100 })
+      .then(data => {
+        const items = Array.isArray(data) ? data : (data?.results || [])
+        setProducts(items)
+        return items
+      })
+      .catch((err) => {
+        console.error('Failed to load products for shop:', slug, err)
+        setTimeout(() => {
+          productAPI.list({ shop: slug, page_size: 100 })
+            .then(data => setProducts(Array.isArray(data) ? data : (data?.results || [])))
+            .catch(() => {})
+        }, 1000)
+      })
+  }
 
   const loadOrders = (slug) => {
     setOrdersLoading(true)
@@ -214,9 +307,11 @@ export default function ShopDashboard() {
       payoutAPI.listBanks(slug).catch(() => []),
       payoutAPI.listPayouts(slug).catch(() => [])
     ]).then(([banksData, payoutsData]) => {
-      setBankAccounts(banksData);
-      setPayouts(payoutsData);
-      if (banksData.length > 0) setSelectedBankId(banksData[0].id);
+      const banks = Array.isArray(banksData) ? banksData : (banksData?.results || banksData?.data || []);
+      const payoutsArr = Array.isArray(payoutsData) ? payoutsData : (payoutsData?.results || payoutsData?.data || []);
+      setBankAccounts(banks);
+      setPayouts(payoutsArr);
+      if (banks.length > 0) setSelectedBankId(banks[0].id);
     }).finally(() => setPayoutsLoading(false));
   }
 
@@ -361,13 +456,15 @@ export default function ShopDashboard() {
     if (!file) return;
     setBulkImporting(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await bulkAPI.importProducts(shop.slug, fd);
-      toast(`Imported ${res.imported_count || 0} products successfully!`);
+      const res = await bulkAPI.importProducts(shop.slug, file);
+      const count = res.imported_count || res.created_count || 0;
+      toast(`Imported ${count} products successfully!`);
+      if (res.errors && res.errors.length > 0) {
+        toast(`Note: ${res.errors.length} row(s) had formatting issues.`, 'warning');
+      }
       loadProducts(shop.slug);
     } catch (err) {
-      toast('Bulk import failed', 'error');
+      toast(err.response?.data?.error || err.response?.data?.detail || 'Bulk import failed', 'error');
     } finally {
       setBulkImporting(false);
       e.target.value = '';
@@ -376,14 +473,22 @@ export default function ShopDashboard() {
 
   const handleAddBank = async (e) => {
     e.preventDefault();
+    if (!bankForm.account_number || bankForm.account_number.length !== 10) {
+      toast('Please enter a valid 10-digit NUBAN account number', 'error');
+      return;
+    }
+    if (!bankForm.account_name.trim()) {
+      toast('Account name is required', 'error');
+      return;
+    }
     try {
-      await payoutAPI.addBank(shop.slug, bankForm);
+      await payoutAPI.addBank(shop.slug, { ...bankForm, shop: shop.slug });
       toast('Bank account added successfully!');
       setAddBankMode(false);
       setBankForm({ bank_name: 'Access Bank', account_number: '', account_name: '', bank_code: '044' });
       loadPayoutsAndBanks(shop.slug);
     } catch (err) {
-      toast('Failed to add bank account', 'error');
+      toast(err.response?.data?.detail || 'Failed to add bank account', 'error');
     }
   };
 
@@ -400,15 +505,28 @@ export default function ShopDashboard() {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    if (!selectedBankId) {
+      toast('Please select a bank account to receive funds', 'error');
+      return;
+    }
+    const amountNum = Number(withdrawAmount);
+    if (!amountNum || amountNum < 1000) {
+      toast('Minimum withdrawal amount is ₦1,000', 'error');
+      return;
+    }
+    if (amountNum > Number(wallet?.balance || 0)) {
+      toast('Withdrawal amount exceeds your available balance', 'error');
+      return;
+    }
     try {
-      await payoutAPI.requestPayout(shop.slug, { amount: withdrawAmount, bank_account_id: selectedBankId });
+      await payoutAPI.requestPayout(shop.slug, { amount: amountNum, bank_account: selectedBankId });
       toast('Withdrawal requested successfully!');
       setWithdrawModalOpen(false);
       setWithdrawAmount('');
       loadWallet(shop.slug);
       loadPayoutsAndBanks(shop.slug);
     } catch (err) {
-      toast(err.response?.data?.detail || 'Withdrawal request failed', 'error');
+      toast(err.response?.data?.detail || err.response?.data?.amount?.[0] || 'Withdrawal request failed', 'error');
     }
   };
 
@@ -578,6 +696,7 @@ export default function ShopDashboard() {
     { key: 'blog', label: 'Blog', icon: '📝' },
     { key: 'messages', label: 'Messages', icon: '💬' },
     { key: 'theme', label: 'Theme Builder', icon: '🎨' },
+    { key: 'templates', label: 'Templates', icon: '✨' },
     { key: 'wallet', label: 'Wallet', icon: '💳' },
     { key: 'settings', label: 'Settings', icon: '⚙️' },
   ]
@@ -646,6 +765,9 @@ export default function ShopDashboard() {
               key={t.key}
               onClick={() => {
                 setTab(t.key)
+                if ((t.key === 'products' || t.key === 'overview') && shop?.slug) {
+                  loadProducts(shop.slug)
+                }
                 if (t.key === 'add-product') {
                   setEditingProduct(null)
                   setProductForm({ name: '', description: '', base_price: '', status: 'active' })
@@ -891,16 +1013,22 @@ export default function ShopDashboard() {
                             <div className="grid sm:grid-cols-2 gap-4 mb-4">
                               <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Bank</label>
-                                <select required value={bankForm.bank_name} onChange={e => {
-                                  const name = e.target.value;
-                                  const codes = {'Access Bank': '044', 'Zenith Bank': '057', 'GTBank': '058', 'First Bank': '011', 'UBA': '033'};
-                                  setBankForm({...bankForm, bank_name: name, bank_code: codes[name] || ''});
-                                }} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                                  <option value="Access Bank">Access Bank</option>
-                                  <option value="Zenith Bank">Zenith Bank</option>
-                                  <option value="GTBank">GTBank</option>
-                                  <option value="First Bank">First Bank</option>
-                                  <option value="UBA">UBA</option>
+                                <select
+                                  required
+                                  value={bankForm.bank_name}
+                                  onChange={e => {
+                                    const selectedBank = NIGERIAN_BANKS.find(b => b.name === e.target.value);
+                                    setBankForm({
+                                      ...bankForm,
+                                      bank_name: selectedBank ? selectedBank.name : e.target.value,
+                                      bank_code: selectedBank ? selectedBank.code : ''
+                                    });
+                                  }}
+                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm bg-white text-gray-900"
+                                >
+                                  {NIGERIAN_BANKS.map(b => (
+                                    <option key={b.name} value={b.name}>{b.name}</option>
+                                  ))}
                                 </select>
                               </div>
                               <div>
@@ -978,7 +1106,7 @@ export default function ShopDashboard() {
                     <div className="p-5 border-b border-gray-100">
                       <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider">Payout History</h4>
                     </div>
-                    {payouts.length === 0 ? (
+                    {(!Array.isArray(payouts) || payouts.length === 0) ? (
                       <div className="p-8 text-center text-sm text-gray-400">No payouts requested yet</div>
                     ) : (
                       <table className="w-full">
@@ -991,7 +1119,7 @@ export default function ShopDashboard() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
-                          {payouts.map((p, idx) => (
+                          {(Array.isArray(payouts) ? payouts : []).map((p, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 transition-colors">
                               <td className="px-6 py-4 text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</td>
                               <td className="px-6 py-4 font-bold text-gray-900">₦{Number(p.amount).toLocaleString()}</td>
@@ -1201,7 +1329,15 @@ export default function ShopDashboard() {
                 <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 mb-1">Theme Builder</h3>
-                    <p className="text-sm text-gray-500">Design your shop's premium look and feel</p>
+                    <p className="text-sm text-gray-500 mb-4">Design your shop's look, colors, and content</p>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowManageModal(true)}
+                      className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-2 mb-2"
+                    >
+                      <span>⚙️</span> Manage Storefront Content & Texts
+                    </button>
                   </div>
 
                   {/* Presets */}
@@ -1460,6 +1596,14 @@ export default function ShopDashboard() {
             </motion.div>
           )}
 
+          {tab === 'templates' && (
+            <motion.div key="templates" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="bg-white rounded-2xl p-8 border border-gray-100">
+                <TemplatesTab shop={shop} onShopUpdate={setShop} />
+              </div>
+            </motion.div>
+          )}
+
           {tab === 'settings' && (
             <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div className="bg-white rounded-2xl p-8 border border-gray-100 max-w-2xl">
@@ -1470,15 +1614,97 @@ export default function ShopDashboard() {
                     <h4 className="font-semibold text-gray-900">🎨 Theme & Branding</h4>
                     <p className="text-sm text-gray-500 mt-1">Customize colors, logo, and banner</p>
                   </div>
-                  <div className="p-5 rounded-xl border border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-3">📋 Shop Info</h4>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between"><span className="text-gray-500">Name</span><span className="font-medium">{shop.name}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Slug</span><span className="font-medium text-gray-400">{shop.slug}</span></div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-500">Status</span>
+                  {/* Store Details & Name Form */}
+                  <form onSubmit={handleSaveShopDetails} className="p-6 rounded-2xl border border-gray-200 bg-white shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                          <span>🏷️</span> Store Profile & Details
+                        </h4>
+                        <p className="text-xs text-gray-500">Update your store name, tagline, description, and contact info</p>
+                      </div>
+                      <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg">slug: /{shop.slug}</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Store Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={shopNameForm.name}
+                          onChange={(e) => setShopNameForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g. Honey Spicy"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none font-semibold text-gray-900 bg-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Store Tagline / Slogan</label>
+                          <input
+                            type="text"
+                            value={shopNameForm.tagline}
+                            onChange={(e) => setShopNameForm(prev => ({ ...prev, tagline: e.target.value }))}
+                            placeholder="e.g. Delicious Gourmet Treats & Snacks"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-gray-900 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Store Phone Number</label>
+                          <input
+                            type="tel"
+                            value={shopNameForm.phone}
+                            onChange={(e) => setShopNameForm(prev => ({ ...prev, phone: e.target.value }))}
+                            placeholder="e.g. 08012345678"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-gray-900 bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Store Description</label>
+                        <textarea
+                          rows={3}
+                          value={shopNameForm.description}
+                          onChange={(e) => setShopNameForm(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Tell customers about your store, products, and vision..."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-gray-900 bg-white resize-y"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Manual Delivery Toggle */}
+                    <div className="flex justify-between items-center py-2 border-t border-gray-100 mt-2">
+                      <div className="flex flex-col">
+                        <span className="text-gray-900 font-medium text-xs">Manual Delivery</span>
+                        <span className="text-[11px] text-gray-500">Allow buyers to arrange delivery directly with you</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const updated = await shopAPI.update(shop.slug, { allow_manual_delivery: !shop.allow_manual_delivery })
+                            setShop(updated)
+                            setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+                            toast(`Manual delivery ${updated.allow_manual_delivery ? 'enabled' : 'disabled'}`)
+                          } catch (err) {
+                            toast('Failed to update manual delivery setting', 'error')
+                          }
+                        }}
+                        className={`w-11 h-6 rounded-full transition-colors relative flex items-center ${shop.allow_manual_delivery ? 'bg-primary-500' : 'bg-gray-200'
+                          }`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm absolute transition-transform ${shop.allow_manual_delivery ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
+                      </button>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500">Status:</span>
                         <select
-                          className="input py-1 px-2 text-sm w-32"
+                          className="input py-1 px-2 text-xs w-28 font-semibold"
                           value={shop.status}
                           onChange={(e) => handleShopStatusChange(e.target.value)}
                         >
@@ -1489,37 +1715,15 @@ export default function ShopDashboard() {
                         </select>
                       </div>
 
-                      {/* Manual Delivery Toggle */}
-                      <div className="flex justify-between items-center py-2 border-t border-gray-100 mt-2">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900 font-medium">Manual Delivery</span>
-                          <span className="text-xs text-gray-500">Allow buyers to arrange delivery directly with you</span>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const updated = await shopAPI.update(shop.slug, { allow_manual_delivery: !shop.allow_manual_delivery })
-                              setShop(updated)
-                              setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
-                              toast(`Manual delivery ${updated.allow_manual_delivery ? 'enabled' : 'disabled'}`)
-                            } catch (err) {
-                              toast('Failed to update manual delivery setting', 'error')
-                            }
-                          }}
-                          className={`w-11 h-6 rounded-full transition-colors relative flex items-center ${shop.allow_manual_delivery ? 'bg-primary-500' : 'bg-gray-200'
-                            }`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full shadow-sm absolute transition-transform ${shop.allow_manual_delivery ? 'translate-x-6' : 'translate-x-1'
-                            }`} />
-                        </button>
-                      </div>
-
-                      <div className="flex justify-between border-t border-gray-100 pt-3 mt-3">
-                        <span className="text-gray-500">Currency</span>
-                        <span className="font-medium">{shop.currency || 'USD'}</span>
-                      </div>
+                      <button
+                        type="submit"
+                        disabled={savingShopInfo}
+                        className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2"
+                      >
+                        {savingShopInfo ? 'Saving...' : '💾 Save Store Details'}
+                      </button>
                     </div>
-                  </div>
+                  </form>
 
 
 
@@ -1648,6 +1852,16 @@ export default function ShopDashboard() {
       {limitInfo && (
         <LimitReachedModal info={limitInfo} onClose={() => setLimitInfo(null)} />
       )}
+
+      <TemplateCustomizerModal
+        shop={shop}
+        isOpen={showManageModal}
+        onClose={() => setShowManageModal(false)}
+        onSaveSuccess={(updated) => {
+          setShop(updated)
+          setShops(prev => prev.map(s => s.slug === updated.slug ? updated : s))
+        }}
+      />
     </div>
   )
 }

@@ -45,7 +45,9 @@ export default function PricingPage() {
       .finally(() => setLoading(false))
   }, [isAuthenticated])
 
-  const handleUpgrade = async (plan) => {
+  const [selectedPlanForPayment, setSelectedPlanForPayment] = useState(null)
+
+  const handleUpgrade = async (plan, provider = '') => {
     setError('')
     if (!isAuthenticated) {
       navigate('/login')
@@ -55,18 +57,27 @@ export default function PricingPage() {
       window.location.href = 'mailto:sales@marketplace.example?subject=Enterprise%20Plan%20Enquiry'
       return
     }
+
+    // If it's a paid plan and no provider is selected yet, prompt for payment method choice
+    if (!plan.is_free && Number(plan.monthly_price) > 0 && !provider) {
+      setSelectedPlanForPayment(plan)
+      return
+    }
+
+    setSelectedPlanForPayment(null)
     setUpgrading(plan.code)
     try {
       const res = await subscriptionAPI.upgrade({
         plan_code: plan.code,
         callback_url: `${window.location.origin}/subscription`,
+        provider: provider,
       })
       if (res.free) {
         // Switched to free immediately
         navigate('/subscription')
-      } else if (res.authorization_url) {
-        // Redirect to Paystack checkout
-        window.location.href = res.authorization_url
+      } else if (res.authorization_url || res.checkout_url) {
+        // Redirect to gateway checkout (Paystack or Monnify)
+        window.location.href = res.authorization_url || res.checkout_url
       } else {
         navigate('/subscription')
       }
@@ -236,9 +247,77 @@ export default function PricingPage() {
                   onClick={() => navigate('/dashboard')}
                   className="flex-1 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-500/20"
                 >
-                  Go to Dashboard
+                  Manage Resources
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Gateway Provider Selector Modal */}
+      <AnimatePresence>
+        {selectedPlanForPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setSelectedPlanForPayment(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-2xl mb-4 mx-auto">
+                💳
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-1">Select Payment Provider</h3>
+              <p className="text-gray-500 text-center text-sm mb-6">
+                Upgrading to <strong>{selectedPlanForPayment.name}</strong> ({fmtPrice(selectedPlanForPayment)}/mo)
+              </p>
+
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={() => handleUpgrade(selectedPlanForPayment, 'paystack')}
+                  className="w-full p-4 rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 transition-all flex items-center justify-between text-left group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-lg">
+                      P
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 group-hover:text-primary-600">Paystack</p>
+                      <p className="text-xs text-gray-500">Debit Card, Bank Transfer, USSD</p>
+                    </div>
+                  </div>
+                  <span className="text-gray-400 group-hover:text-primary-600 font-bold">→</span>
+                </button>
+
+                <button
+                  onClick={() => handleUpgrade(selectedPlanForPayment, 'monnify')}
+                  className="w-full p-4 rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 transition-all flex items-center justify-between text-left group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                      M
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 group-hover:text-primary-600">Monnify (Moniepoint)</p>
+                      <p className="text-xs text-gray-500">Instant Bank Transfer, Card, Account</p>
+                    </div>
+                  </div>
+                  <span className="text-gray-400 group-hover:text-primary-600 font-bold">→</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setSelectedPlanForPayment(null)}
+                className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl hover:bg-gray-200 text-sm transition-colors"
+              >
+                Cancel
+              </button>
             </motion.div>
           </div>
         )}

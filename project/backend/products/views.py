@@ -249,34 +249,39 @@ class BulkProductImportView(APIView):
             with transaction.atomic():
                 for row_num, row in enumerate(reader, start=1):
                     try:
-                        name = row.get("name")
-                        base_price = row.get("base_price")
+                        # Normalize headers to lowercase for resilient parsing
+                        norm_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+                        name = norm_row.get("name") or norm_row.get("product_name") or norm_row.get("title")
+                        base_price = norm_row.get("base_price") or norm_row.get("price") or norm_row.get("amount")
                         
                         if not name or not base_price:
                             errors.append(f"Row {row_num}: missing name or base_price")
                             continue
                             
-                        category_slug = row.get("category_slug")
+                        category_slug = norm_row.get("category_slug") or norm_row.get("category")
                         category = None
                         if category_slug:
                             category = Category.objects.filter(slug=category_slug).first()
                             
-                        compare_price = row.get("compare_at_price")
+                        compare_price = norm_row.get("compare_at_price") or norm_row.get("compare_price")
                         compare_price = compare_price if compare_price else None
+                        
+                        raw_status = (norm_row.get("status") or "active").lower()
+                        status_val = Product.Status.ACTIVE if raw_status in ("active", "published") else Product.Status.DRAFT
                         
                         product = Product.objects.create(
                             shop=shop,
                             name=name,
-                            description=row.get("description", ""),
+                            description=norm_row.get("description", ""),
                             category=category,
                             base_price=base_price,
                             compare_at_price=compare_price,
-                            status=Product.Status.DRAFT
+                            status=status_val
                         )
                         
-                        variant_name = row.get("variant_name") or "Default"
-                        variant_price = row.get("variant_price") or base_price
-                        sku = row.get("sku", "")
+                        variant_name = norm_row.get("variant_name") or "Default"
+                        variant_price = norm_row.get("variant_price") or base_price
+                        sku = norm_row.get("sku", "")
                         
                         variant = ProductVariant.objects.create(
                             product=product,
@@ -286,7 +291,7 @@ class BulkProductImportView(APIView):
                             is_default=True
                         )
                         
-                        qty = row.get("quantity")
+                        qty = norm_row.get("quantity") or norm_row.get("stock")
                         if qty:
                             Inventory.objects.create(
                                 variant=variant,
@@ -299,7 +304,7 @@ class BulkProductImportView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
             
-        return Response({"created_count": created_count, "errors": errors})
+        return Response({"created_count": created_count, "imported_count": created_count, "errors": errors})
 
 class BulkProductExportView(APIView):
     """GET /api/products/shop/<slug>/export/ (returns CSV)"""

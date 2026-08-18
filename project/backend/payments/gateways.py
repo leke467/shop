@@ -420,6 +420,13 @@ class MonnifyGateway(PaymentGateway):
         email = kwargs.get("email", "buyer@example.com")
         full_name = kwargs.get("full_name", "Customer")
 
+        redirect_url = (
+            kwargs.get("redirect_url")
+            or kwargs.get("callback_url")
+            or (metadata.get("callback_url") if metadata else "")
+            or "http://localhost:5173/subscription"
+        )
+
         try:
             resp = requests.post(
                 f"{self._base_url}/api/v1/merchant/transactions/init-transaction",
@@ -432,9 +439,10 @@ class MonnifyGateway(PaymentGateway):
                     "customerName": full_name,
                     "customerEmail": email,
                     "paymentReference": str(idempotency_key),
-                    "paymentDescription": f"Order {metadata.get('order_id', '') if metadata else ''}",
+                    "paymentDescription": f"Payment {metadata.get('plan_code', '') if metadata else ''}".strip(),
                     "currencyCode": "NGN",
                     "contractCode": self._contract_code,
+                    "redirectUrl": redirect_url,
                     "paymentMethods": ["CARD", "ACCOUNT_TRANSFER"],
                 },
                 timeout=15,
@@ -451,6 +459,7 @@ class MonnifyGateway(PaymentGateway):
                     provider_txn_id=body.get("transactionReference", ""),
                     raw_response={
                         "checkout_url": body.get("checkoutUrl", ""),
+                        "authorization_url": body.get("checkoutUrl", ""),
                         "payment_reference": body.get("paymentReference", str(idempotency_key)),
                         "transaction_reference": body.get("transactionReference", ""),
                         "apiKey": self._api_key,

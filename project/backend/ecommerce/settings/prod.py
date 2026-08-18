@@ -13,7 +13,7 @@ from .base import env, env_bool, env_list
 DEBUG = False
 
 # Fail fast if critical secrets are missing in production.
-if SECRET_KEY == "insecure-dev-key-change-me":  # noqa: F405
+if "insecure-dev-key" in SECRET_KEY or SECRET_KEY.startswith("django-insecure-"):  # noqa: F405
     raise RuntimeError("DJANGO_SECRET_KEY must be set in production.")
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")

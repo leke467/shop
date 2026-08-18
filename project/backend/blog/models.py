@@ -19,6 +19,18 @@ class BlogPost(BaseModel):
     view_count = models.PositiveIntegerField(default=0)
     published_at = models.DateTimeField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            import uuid
+            from django.utils.text import slugify
+            base_slug = slugify(self.title) or "post"
+            unique_suffix = uuid.uuid4().hex[:6]
+            self.slug = f"{base_slug}-{unique_suffix}"
+        if self.status == 'published' and not self.published_at:
+            from django.utils import timezone
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
 

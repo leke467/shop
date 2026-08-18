@@ -7,15 +7,43 @@ export function useShop() {
   return useContext(ShopContext)
 }
 
+export function getTemplateShopCache(slug) {
+  if (!slug) return null
+  try {
+    const cached = JSON.parse(localStorage.getItem('template_shops_cache') || '{}')
+    return cached[slug] || null
+  } catch {
+    return null
+  }
+}
+
+export function setTemplateShopCache(slug, templateId) {
+  if (!slug) return
+  try {
+    const cached = JSON.parse(localStorage.getItem('template_shops_cache') || '{}')
+    if (templateId) {
+      cached[slug] = templateId
+    } else {
+      delete cached[slug]
+    }
+    localStorage.setItem('template_shops_cache', JSON.stringify(cached))
+  } catch {}
+}
+
 export function ShopProvider({ children }) {
   const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTemplateShop, setActiveTemplateShop] = useState(undefined)
 
   useEffect(() => {
     let mounted = true
     shopAPI.list({ page_size: 50 })
       .then(data => {
-        if (mounted) setShops(data?.results || data || [])
+        const list = data?.results || data || []
+        if (mounted) {
+          setShops(list)
+          list.forEach(s => setTemplateShopCache(s.slug, s.template_id))
+        }
       })
       .catch(() => {})
       .finally(() => { if (mounted) setLoading(false) })
@@ -42,6 +70,8 @@ export function ShopProvider({ children }) {
     createShop,
     updateShop,
     getShopBySlug,
+    activeTemplateShop,
+    setActiveTemplateShop,
   }
 
   return (

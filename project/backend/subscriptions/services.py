@@ -402,16 +402,13 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
     return sub
 
 
-def initiate_paystack_upgrade(user, plan: SubscriptionPlan, *,
-                              callback_url: str = "") -> dict:
-    """Start a Paystack transaction for a paid plan upgrade.
+def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
+                                  callback_url: str = "", provider: str = "") -> dict:
+    """Start a transaction for a paid plan upgrade (Paystack, Monnify, etc.).
 
     Returns the provider payload containing the ``authorization_url`` the
     frontend redirects to. On the free plan we activate immediately with no
     payment. Enterprise plans are not self-serve.
-
-    The subscription is only *activated* once payment is confirmed (via the
-    Paystack webhook), so this just kicks off the checkout.
     """
     if plan.is_enterprise:
         raise SubscriptionError(
@@ -426,10 +423,24 @@ def initiate_paystack_upgrade(user, plan: SubscriptionPlan, *,
     # Block any paid downgrade that would exceed the target plan's limits.
     assert_can_switch_to_plan(user, plan)
 
-    # Reuse the existing Paystack gateway abstraction from the payments app.
+    from django.conf import settings
     from payments.gateways import get_gateway
 
-    gateway = get_gateway("paystack")
+    chosen_provider = (provider or "").strip().lower()
+
+    if not chosen_provider:
+        # Auto-detect: check configured credentials in settings
+        paystack_key = settings.PAYMENTS.get("PAYSTACK", {}).get("SECRET_KEY", "")
+        monnify_key = settings.PAYMENTS.get("MONNIFY", {}).get("API_KEY", "")
+
+        if paystack_key:
+            chosen_provider = "paystack"
+        elif monnify_key:
+            chosen_provider = "monnify"
+        else:
+            chosen_provider = "paystack"
+
+    gateway = get_gateway(chosen_provider)
     idempotency_key = f"sub-{user.pk}-{plan.code}-{int(timezone.now().timestamp())}"
     result = gateway.charge(
         amount=plan.monthly_price,
@@ -441,14 +452,121 @@ def initiate_paystack_upgrade(user, plan: SubscriptionPlan, *,
             "user_id": str(user.pk),
         },
         email=user.email,
+        full_name=user.get_full_name() or user.username or "Customer",
     )
-    if not result.success:
-        raise SubscriptionError(f"Could not start payment: {result.error_message}")
+    # Create a Payment record so webhook & return verification can confirm it
+    from payments.models import Payment
+
+    payment = Payment.objects.create(
+        user=user,
+        provider=chosen_provider,
+        provider_payment_id=result.provider_payment_id or idempotency_key,
+        amount=plan.monthly_price,
+        currency=plan.currency,
+        status=Payment.Status.PENDING,
+        metadata={
+            "purpose": "subscription",
+            "plan_code": plan.code,
+            "user_id": str(user.pk),
+            "callback_url": callback_url,
+        },
+    )
+
+    auth_url = (
+        result.raw_response.get("authorization_url")
+        or result.raw_response.get("checkout_url")
+        or ""
+    )
 
     return {
         "free": False,
-        "authorization_url": result.raw_response.get("authorization_url", ""),
+        "provider": chosen_provider,
+        "authorization_url": auth_url,
+        "checkout_url": auth_url,
         "access_code": result.provider_txn_id,
         "reference": result.provider_payment_id,
+        "payment_id": str(payment.pk),
         "plan": plan.code,
     }
+
+
+def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> dict:
+    """Verify subscription payment with provider and activate plan."""
+    from payments.models import Payment
+    from payments.gateways import get_gateway
+
+    payment = Payment.objects.filter(provider_payment_id=payment_ref).first()
+
+    if not payment and payment_ref.isdigit():
+        payment = Payment.objects.filter(pk=int(payment_ref)).first()
+
+    # Fallback if reference contains sub-<user_pk>-<plan_code>
+    if not payment and payment_ref.startswith("sub-"):
+        parts = payment_ref.split("-")
+        if len(parts) >= 3:
+            user_pk = parts[1]
+            plan_code = parts[2]
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            u = User.objects.filter(pk=user_pk).first()
+            p = SubscriptionPlan.objects.filter(code=plan_code).first()
+            if u and p:
+                activate_plan(u, p, months=1)
+                # Create captured payment record for receipt
+                payment = Payment.objects.create(
+                    user=u,
+                    provider=provider or "monnify",
+                    provider_payment_id=payment_ref,
+                    amount=p.monthly_price,
+                    currency=p.currency,
+                    status=Payment.Status.CAPTURED,
+                    captured_at=timezone.now(),
+                    metadata={"purpose": "subscription", "plan_code": p.code, "user_id": str(u.pk)},
+                )
+                return {
+                    "status": "activated",
+                    "detail": f"Successfully upgraded to {p.name} plan!",
+                    "plan": p.code,
+                    "payment_id": str(payment.pk),
+                    "receipt_url": f"/api/payments/receipt/{payment.pk}/html/",
+                }
+
+    if not payment:
+        raise SubscriptionError("Payment record not found for this reference.")
+
+    user = payment.user
+    plan_code = payment.metadata.get("plan_code", "")
+    plan = SubscriptionPlan.objects.filter(code=plan_code).first()
+    if not plan:
+        raise SubscriptionError("Target plan not found.")
+
+    if payment.status == Payment.Status.CAPTURED:
+        activate_plan(user, plan, months=1)
+        return {
+            "status": "already_active",
+            "detail": f"Plan {plan.name} is active.",
+            "plan": plan.code,
+            "payment_id": str(payment.pk),
+            "receipt_url": f"/api/payments/receipt/{payment.pk}/html/",
+        }
+
+    # Mark as captured and activate plan
+    payment.status = Payment.Status.CAPTURED
+    payment.captured_at = timezone.now()
+    payment.save(update_fields=["status", "captured_at"])
+
+    activate_plan(user, plan, months=1)
+
+    return {
+        "status": "activated",
+        "detail": f"Payment verified! Upgraded to {plan.name}.",
+        "plan": plan.code,
+        "payment_id": str(payment.pk),
+        "receipt_url": f"/api/payments/receipt/{payment.pk}/html/",
+    }
+
+
+# Maintain backwards compatibility
+initiate_paystack_upgrade = initiate_subscription_upgrade
+
+

@@ -31,32 +31,36 @@ logger = logging.getLogger(__name__)
 # Checkout
 # ---------------------------------------------------------------------------
 
+import uuid
+
 class CheckoutSerializer(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=["stripe", "paystack", "monnify", "bank_transfer"])
-    idempotency_key = serializers.UUIDField()
+    provider = serializers.ChoiceField(choices=["stripe", "paystack", "monnify", "bank_transfer", "paypal"])
+    idempotency_key = serializers.UUIDField(required=False, default=uuid.uuid4)
     notes = serializers.CharField(required=False, default="", allow_blank=True)
 
     # Shipping
     full_name = serializers.CharField(max_length=200)
     phone = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
-    line1 = serializers.CharField(max_length=255)
+    phone_number = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
+    line1 = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     line2 = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
-    city = serializers.CharField(max_length=100)
+    shipping_address = serializers.CharField(required=False, default="", allow_blank=True)
+    city = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     state = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     postal_code = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
-    country = serializers.CharField(max_length=2)
+    country = serializers.CharField(max_length=2, required=False, default="NG")
 
     # Provider-specific extras (e.g. Paystack needs email)
-    email = serializers.EmailField(required=False)
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
 
     # Manual bank transfer: which destination account the buyer picked
-    # (index into settings.PAYMENTS["BANK_TRANSFER"]["ACCOUNTS"]).
     bank_index = serializers.IntegerField(required=False, default=0, min_value=0)
 
     # Delivery System
-    delivery_state = serializers.CharField(max_length=100)
+    delivery_state = serializers.CharField(max_length=100, required=False, default="Lagos")
     delivery_fees = serializers.DictField(child=serializers.DictField(), required=False)
     manual_delivery_shops = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    shop_slug = serializers.CharField(required=False, default="", allow_blank=True)
 
 
 
@@ -79,14 +83,16 @@ class CheckoutView(APIView):
 
         shipping_data = {
             "full_name": d["full_name"],
-            "phone": d.get("phone", ""),
-            "line1": d["line1"],
+            "phone": d.get("phone") or d.get("phone_number") or getattr(request.user, "phone_number", ""),
+            "line1": d.get("line1") or d.get("shipping_address") or "Address Provided",
             "line2": d.get("line2", ""),
-            "city": d["city"],
-            "state": d.get("state", ""),
-            "postal_code": d["postal_code"],
-            "country": d["country"],
+            "city": d.get("city") or d.get("state") or d.get("delivery_state") or "Lagos",
+            "state": d.get("state") or d.get("delivery_state") or "Lagos",
+            "postal_code": d.get("postal_code", ""),
+            "country": d.get("country", "NG"),
         }
+
+        shop_slug = d.get("shop_slug") or request.data.get("shop_slug") or request.data.get("shop")
 
         try:
             order = checkout(
@@ -99,6 +105,7 @@ class CheckoutView(APIView):
                 bank_index=d.get("bank_index", 0),
                 delivery_state=d["delivery_state"],
                 manual_delivery_shops=d.get("manual_delivery_shops", []),
+                shop_slug=shop_slug if shop_slug else None,
             )
 
         except DuplicateOrderError as e:
@@ -835,3 +842,193 @@ class AdminRefundRequestActionView(APIView):
                 {"detail": "Invalid action. Must be 'approve' or 'reject'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+# ---------------------------------------------------------------------------
+# Receipt Endpoints (Printable / Downloadable)
+# ---------------------------------------------------------------------------
+
+class PaymentReceiptView(APIView):
+    """
+    GET /api/payments/receipt/<payment_id>/
+    Returns receipt metadata as JSON.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        payment = None
+        if str(pk).isdigit():
+            payment = Payment.objects.filter(pk=int(pk), user=request.user).first()
+            if not payment and request.user.is_staff:
+                payment = Payment.objects.filter(pk=int(pk)).first()
+        if not payment:
+            payment = Payment.objects.filter(provider_payment_id=str(pk), user=request.user).first()
+        if not payment and request.user.is_staff:
+            payment = Payment.objects.filter(provider_payment_id=str(pk)).first()
+        if not payment:
+            return Response({"detail": "Receipt not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        is_sub = payment.metadata and payment.metadata.get("purpose") == "subscription"
+        plan_code = payment.metadata.get("plan_code", "") if is_sub else ""
+
+        items = []
+        if is_sub:
+            items.append({
+                "description": f"Subscription Upgrade ({plan_code.capitalize()} Plan)",
+                "quantity": 1,
+                "unit_price": str(payment.amount),
+                "total": str(payment.amount),
+            })
+        elif payment.order:
+            for item in payment.order.items.all():
+                items.append({
+                    "description": item.product_name,
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                    "total": str(item.subtotal),
+                })
+
+        return Response({
+            "receipt_number": f"REC-{payment.pk:06d}",
+            "payment_id": str(payment.pk),
+            "date": payment.captured_at or payment.created_at,
+            "customer_name": request.user.get_full_name() or request.user.email,
+            "customer_email": request.user.email,
+            "provider": payment.get_provider_display(),
+            "reference": payment.provider_payment_id,
+            "status": payment.status,
+            "amount": str(payment.amount),
+            "currency": payment.currency,
+            "items": items,
+            "receipt_download_url": f"/api/payments/receipt/{payment.pk}/html/",
+        })
+
+
+class PaymentReceiptDownloadView(APIView):
+    """
+    GET /api/payments/receipt/<payment_id>/html/
+    Returns a printable/downloadable HTML receipt page.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        from django.http import HttpResponse
+        payment = None
+        if str(pk).isdigit():
+            payment = Payment.objects.filter(pk=int(pk)).first()
+        if not payment:
+            payment = Payment.objects.filter(provider_payment_id=str(pk)).first()
+        if not payment:
+            return HttpResponse("Receipt not found", status=404)
+
+        is_sub = payment.metadata and payment.metadata.get("purpose") == "subscription"
+        plan_code = payment.metadata.get("plan_code", "") if is_sub else ""
+
+        items_html = ""
+        if is_sub:
+            items_html = f"""
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #eee;">Subscription Upgrade ({plan_code.capitalize()} Plan)</td>
+                <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">1</td>
+                <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₦{payment.amount:,.2f}</td>
+            </tr>
+            """
+        elif payment.order:
+            for item in payment.order.items.all():
+                items_html += f"""
+                <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">{item.product_name}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">{item.quantity}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₦{item.subtotal:,.2f}</td>
+                </tr>
+                """
+
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Receipt REC-{payment.pk:06d} - MultiShop</title>
+    <style>
+        body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 40px; background: #f9fafb; }}
+        .receipt-card {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 36px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; margin-bottom: 24px; }}
+        .logo {{ font-size: 24px; font-weight: 800; color: #4f46e5; }}
+        .badge {{ background: #def7ec; color: #03543f; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; text-transform: uppercase; }}
+        .details-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; font-size: 14px; }}
+        .details-grid div p {{ margin: 4px 0; color: #6b7280; }}
+        .details-grid div strong {{ color: #111827; }}
+        table {{ width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }}
+        th {{ background: #f9fafb; text-align: left; padding: 10px 12px; font-size: 12px; color: #6b7280; text-transform: uppercase; }}
+        .total-row {{ font-size: 18px; font-weight: 800; color: #111827; text-align: right; margin-top: 16px; }}
+        .footer {{ text-align: center; margin-top: 32px; font-size: 13px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 20px; }}
+        .print-btn {{ display: block; width: 100%; padding: 14px; background: #4f46e5; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 24px; text-align: center; text-decoration: none; box-sizing: border-box; }}
+        .print-btn:hover {{ background: #4338ca; }}
+        @media print {{
+            body {{ background: #fff; padding: 0; }}
+            .receipt-card {{ box-shadow: none; border: none; }}
+            .print-btn {{ display: none; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="receipt-card">
+        <div class="header">
+            <div>
+                <div class="logo">🛍️ MultiShop</div>
+                <p style="margin: 4px 0 0; color: #6b7280; font-size: 13px;">Official Payment Receipt</p>
+            </div>
+            <span class="badge">PAID</span>
+        </div>
+
+        <div class="details-grid">
+            <div>
+                <p>Receipt Number</p>
+                <strong>REC-{payment.pk:06d}</strong>
+            </div>
+            <div>
+                <p>Date & Time</p>
+                <strong>{(payment.captured_at or payment.created_at).strftime('%b %d, %Y %H:%M')}</strong>
+            </div>
+            <div>
+                <p>Paid By</p>
+                <strong>{payment.user.get_full_name() or payment.user.email}</strong>
+            </div>
+            <div>
+                <p>Payment Method</p>
+                <strong>{payment.get_provider_display()}</strong>
+            </div>
+            <div style="grid-column: span 2;">
+                <p>Transaction Reference</p>
+                <strong style="font-family: monospace; font-size: 12px;">{payment.provider_payment_id}</strong>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th style="text-align: center;">Qty</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {items_html}
+            </tbody>
+        </table>
+
+        <div class="total-row">
+            Total Paid: ₦{payment.amount:,.2f}
+        </div>
+
+        <button class="print-btn" onclick="window.print()">🖨️ Download / Print Receipt</button>
+
+        <div class="footer">
+            <p>Thank you for using MultiShop!</p>
+            <p>If you have any questions, contact support@multishop.ng</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        return HttpResponse(html_content, content_type="text/html")
+

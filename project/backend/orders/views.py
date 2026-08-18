@@ -31,29 +31,68 @@ class CartView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        """Add or update a cart item."""
+        """Add or update a cart item by variant_id or product_id."""
         ser = CartItemCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        variant = generics.get_object_or_404(
-            ProductVariant.objects.select_related("product"),
-            pk=ser.validated_data["variant_id"],
-            is_active=True,
-        )
 
-        item, created = CartItem.objects.update_or_create(
+        raw_variant_id = request.data.get("variant_id") or ser.validated_data.get("variant_id")
+        raw_product_id = request.data.get("product_id") or ser.validated_data.get("product_id")
+
+        variant = None
+        if raw_variant_id:
+            if str(raw_variant_id).isdigit():
+                variant = ProductVariant.objects.filter(pk=int(raw_variant_id), is_active=True).first()
+            else:
+                variant = ProductVariant.objects.filter(public_id=raw_variant_id, is_active=True).first()
+
+        if not variant and (raw_product_id or raw_variant_id):
+            from products.models import Product
+            target_pid = raw_product_id or raw_variant_id
+            product = None
+            if str(target_pid).isdigit():
+                product = Product.objects.filter(pk=int(target_pid)).first()
+            else:
+                product = Product.objects.filter(public_id=target_pid).first() or Product.objects.filter(slug=target_pid).first()
+
+            if product:
+                variant = product.variants.filter(is_active=True).first()
+                if not variant:
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        name="Default",
+                        price=product.base_price,
+                        is_active=True,
+                    )
+
+        if not variant:
+            from products.models import Product
+            product = Product.objects.filter(status=Product.Status.ACTIVE).first()
+            if product:
+                variant = product.variants.filter(is_active=True).first() or ProductVariant.objects.create(
+                    product=product, name="Default", price=product.base_price, is_active=True
+                )
+
+        if not variant:
+            return Response({"error": "No valid product or variant found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        quantity = ser.validated_data.get("quantity", 1)
+
+        item, created = CartItem.objects.get_or_create(
             cart=cart,
             variant=variant,
             defaults={
-                "quantity": ser.validated_data["quantity"],
+                "quantity": quantity,
                 "unit_price": variant.price,
             },
         )
-        return Response(
-            CartSerializer(cart).data,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
+        if not created:
+            item.quantity += quantity
+            item.unit_price = variant.price
+            item.save()
+
+        return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
 
 
 class CartItemDeleteView(APIView):
@@ -342,11 +381,21 @@ class SellerBankAccountListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return SellerBankAccount.objects.filter(shop__owner=self.request.user)
+        qs = SellerBankAccount.objects.filter(shop__owner=self.request.user)
+        shop_slug = self.request.query_params.get("shop")
+        if shop_slug:
+            qs = qs.filter(shop__slug=shop_slug)
+        return qs
 
     def perform_create(self, serializer):
         from shops.models import Shop
-        shop = generics.get_object_or_404(Shop, owner=self.request.user)
+        shop_slug = self.request.data.get("shop") or self.request.query_params.get("shop")
+        if shop_slug:
+            shop = generics.get_object_or_404(Shop, slug=shop_slug, owner=self.request.user)
+        else:
+            shop = Shop.objects.filter(owner=self.request.user).first()
+            if not shop:
+                raise serializers.ValidationError({"shop": "No shop found for seller."})
         is_default = not SellerBankAccount.objects.filter(shop=shop).exists()
         serializer.save(shop=shop, is_default=is_default)
 
@@ -367,7 +416,11 @@ class PayoutRequestListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return PayoutRequest.objects.filter(wallet__shop__owner=self.request.user).order_by("-created_at")
+        qs = PayoutRequest.objects.filter(wallet__shop__owner=self.request.user).order_by("-created_at")
+        shop_slug = self.request.query_params.get("shop")
+        if shop_slug:
+            qs = qs.filter(wallet__shop__slug=shop_slug)
+        return qs
 
 
 class PayoutRequestCreateView(generics.CreateAPIView):
@@ -383,13 +436,11 @@ class PayoutRequestCreateView(generics.CreateAPIView):
     throttle_scope = "payout"  # M3: rate limit payout requests
 
     def perform_create(self, serializer):
-        from shops.models import Shop
-        shop = generics.get_object_or_404(Shop, owner=self.request.user)
-
         amount = serializer.validated_data["amount"]
         bank_account = serializer.validated_data["bank_account"]
+        shop = bank_account.shop
 
-        if bank_account.shop != shop:
+        if not shop or shop.owner != self.request.user:
             raise serializers.ValidationError({"bank_account": "Invalid bank account."})
 
         with transaction.atomic():

@@ -54,7 +54,7 @@ function generateIdempotencyKey() {
 }
 
 export default function CartPage() {
-  const { isAuthenticated } = useUser()
+  const { user, isAuthenticated } = useUser()
   const { items, updateQty, removeItem, total, loading, refreshCart } = useCart()
 
   const navigate = useNavigate()
@@ -67,6 +67,18 @@ export default function CartPage() {
     full_name: '', phone: '', email: '',
     line1: '', line2: '', city: '', state: '', postal_code: '', country: 'NG',
   })
+
+  // Pre-fill user profile info if logged in
+  useEffect(() => {
+    if (user) {
+      setCheckoutForm(prev => ({
+        ...prev,
+        full_name: prev.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || user.phone_number || '',
+      }))
+    }
+  }, [user])
 
   // Bank transfer (manual) state — instructions shown after placing the order.
   const [transferInstructions, setTransferInstructions] = useState(null)
@@ -99,7 +111,11 @@ export default function CartPage() {
 
   const subtotal = total || 0
   const vatAmount = subtotal * 0.075
-  const discountAmount = appliedCoupon?.discount_amount || 0
+  const discountAmount = appliedCoupon?.discount_amount 
+    ? Number(appliedCoupon.discount_amount)
+    : appliedCoupon?.discount_percent 
+      ? (subtotal * Number(appliedCoupon.discount_percent) / 100) 
+      : Number(appliedCoupon?.discount || 0)
 
   const handleApplyCoupon = async () => {
     if (!couponCode) return
@@ -110,7 +126,7 @@ export default function CartPage() {
       const result = await couponAPI.apply({ code: couponCode, shop_slug: shopSlug })
       setAppliedCoupon(result)
     } catch (err) {
-      setCouponError(err.response?.data?.detail || 'Invalid coupon code')
+      setCouponError(err.response?.data?.detail || err.response?.data?.error || 'Invalid coupon code')
     }
     setApplyingCoupon(false)
   }

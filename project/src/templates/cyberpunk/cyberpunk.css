@@ -1,0 +1,8 @@
+.cyber-template {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.cyber-template ::selection {
+  background-color: #FF007F;
+  color: #FFFFFF;
+}

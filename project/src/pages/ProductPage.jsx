@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { productAPI, shopAPI, getImageUrl, orderAPI, productReviewAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
+import { useWishlist } from '../context/WishlistContext'
 import SEOHead from '../components/SEOHead'
 
 export default function ProductPage() {
   const { productSlug } = useParams()
-  const { isAuthenticated } = useUser()
+  const { user, isAuthenticated } = useUser()
   const { addToCart } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
   const [product, setProduct] = useState(null)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState(null)
@@ -17,6 +19,7 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [addingToCart, setAddingToCart] = useState(false)
   const [cartSuccess, setCartSuccess] = useState(false)
+  const [wishlistToast, setWishlistToast] = useState(null)
   const [tab, setTab] = useState('description')
 
   // Reviews State
@@ -24,16 +27,37 @@ export default function ProductPage() {
   const [hasPurchased, setHasPurchased] = useState(false)
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', comment: '' })
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewSuccess, setReviewSuccess] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+
+  const handleWishlistToggle = () => {
+    if (!product) return
+    const added = toggleWishlist({
+      id: product.id || product.public_id,
+      slug: productSlug,
+      name: product.name,
+      price: selectedVariant?.price || product.base_price || 0,
+      shop_name: product.shop_name,
+      shop_slug: product.shop_slug,
+      image: getImageUrl(product.images?.[0]?.thumbnail || product.images?.[0]?.image || ''),
+    })
+    setWishlistToast(added ? 'Added to your wishlist! ❤️' : 'Removed from your wishlist')
+    setTimeout(() => setWishlistToast(null), 3000)
+  }
 
   const submitReview = async (e) => {
     e.preventDefault()
     setSubmittingReview(true)
+    setReviewError('')
     try {
       const newReview = await productReviewAPI.create(productSlug, reviewForm)
       setReviews([newReview, ...reviews])
       setReviewForm({ rating: 5, title: '', comment: '' })
+      setReviewSuccess(true)
+      setTimeout(() => setReviewSuccess(false), 4000)
     } catch(err) {
       console.error(err)
+      setReviewError(err.response?.data?.detail || err.response?.data?.error || 'Failed to submit review. Please try again.')
     }
     setSubmittingReview(false)
   }
@@ -207,10 +231,28 @@ export default function ProductPage() {
                 />
               </AnimatePresence>
               {discount > 0 && (
-                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-error-500 text-white text-sm font-bold">
+                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-error-500 text-white text-sm font-bold shadow-sm">
                   -{discount}%
                 </div>
               )}
+              {/* Wishlist toggle button on image */}
+              <button
+                onClick={handleWishlistToggle}
+                className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md hover:scale-110 active:scale-95 transition-all text-gray-400 hover:text-red-500"
+                title={isInWishlist(productSlug || product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              >
+                <svg
+                  className={`w-6 h-6 transition-colors ${
+                    isInWishlist(productSlug || product.id)
+                      ? 'fill-red-500 text-red-500'
+                      : 'fill-none stroke-current'
+                  }`}
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
             </div>
             {/* Thumbnails */}
             {images.length > 1 && (
@@ -296,9 +338,9 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Quantity + Add to Cart */}
-            <div className="mt-8 flex items-center gap-4">
-              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+            {/* Quantity + Add to Cart + Wishlist Toggle */}
+            <div className="mt-8 flex flex-wrap sm:flex-nowrap items-center gap-3">
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
                 <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">−</button>
                 <span className="px-5 py-3 text-gray-900 font-semibold min-w-[3rem] text-center">{quantity}</span>
                 <button onClick={() => setQuantity(q => q + 1)} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">+</button>
@@ -307,25 +349,73 @@ export default function ProductPage() {
               <motion.button
                 onClick={handleAddToCart}
                 disabled={addingToCart}
-                className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl disabled:opacity-60 transition-all duration-300"
+                className="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl disabled:opacity-60 transition-all duration-300 flex items-center justify-center gap-2"
                 whileHover={{ scale: addingToCart ? 1 : 1.01 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {addingToCart ? 'Adding…' : cartSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
+                {addingToCart ? (
+                  <span>Adding…</span>
+                ) : cartSuccess ? (
+                  <span>✓ Added to Cart!</span>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </motion.button>
+
+              <button
+                onClick={handleWishlistToggle}
+                className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-center ${
+                  isInWishlist(productSlug || product.id)
+                    ? 'border-red-500 bg-red-50 text-red-600'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600 hover:text-red-500 bg-white'
+                }`}
+                title={isInWishlist(productSlug || product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              >
+                <svg
+                  className={`w-6 h-6 transition-colors ${
+                    isInWishlist(productSlug || product.id)
+                      ? 'fill-red-500 text-red-500'
+                      : 'fill-none stroke-current'
+                  }`}
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
             </div>
 
-            {/* Success toast */}
+            {/* Toasts */}
             <AnimatePresence>
               {cartSuccess && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 p-3 rounded-xl bg-success-50 border border-success-200 text-success-700 text-sm flex items-center gap-2"
+                  className="mt-4 p-3.5 rounded-xl bg-success-50 border border-success-200 text-success-700 text-sm flex items-center justify-between shadow-sm"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                  Added to your cart! <Link to="/cart" className="font-semibold underline">View Cart</Link>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                    <span>Added to your cart!</span>
+                  </div>
+                  <Link to="/cart" className="font-bold underline text-success-800 hover:text-success-900">View Cart &rarr;</Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {wishlistToast && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-3 p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 text-sm flex items-center justify-between shadow-sm"
+                >
+                  <span>{wishlistToast}</span>
+                  <Link to="/wishlist" className="font-bold underline text-purple-800 hover:text-purple-900">View Wishlist &rarr;</Link>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -372,10 +462,20 @@ export default function ProductPage() {
                   {/* Form */}
                   <div className="mb-10 bg-gray-50 rounded-2xl p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Write a Review</h3>
+                    {reviewSuccess && (
+                      <div className="mb-4 p-3.5 rounded-xl bg-success-50 border border-success-200 text-success-700 text-sm font-medium">
+                        ✓ Your review has been submitted successfully!
+                      </div>
+                    )}
+                    {reviewError && (
+                      <div className="mb-4 p-3.5 rounded-xl bg-error-50 border border-error-200 text-error-700 text-sm font-medium">
+                        ⚠️ {reviewError}
+                      </div>
+                    )}
                     {!isAuthenticated ? (
                       <div className="text-center py-4">
                         <p className="text-gray-600 mb-3">You must be logged in to leave a review.</p>
-                        <Link to="/login" className="inline-block px-5 py-2 bg-primary-600 text-white rounded-lg font-medium">Log In</Link>
+                        <Link to="/login" className="inline-block px-5 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">Log In</Link>
                       </div>
                     ) : hasPurchased ? (
                       <form onSubmit={submitReview} className="space-y-4">

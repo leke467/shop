@@ -120,6 +120,30 @@ export function ThemeProvider({ children }) {
   const [colors, setColors] = useState(DEFAULT_COLORS)
   const [preset, setPreset] = useState('teal_slate')
   const [loading, setLoading] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('theme_mode')
+      if (saved) return saved === 'dark'
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (darkMode) {
+      root.classList.add('dark')
+      try { localStorage.setItem('theme_mode', 'dark') } catch {}
+    } else {
+      root.classList.remove('dark')
+      try { localStorage.setItem('theme_mode', 'light') } catch {}
+    }
+  }, [darkMode])
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev)
+  }
 
   useEffect(() => {
     // Apply defaults immediately so there's no flash
@@ -138,7 +162,7 @@ export function ThemeProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const value = { colors, preset, loading }
+  const value = { colors, preset, loading, darkMode, toggleDarkMode }
 
   return (
     <ThemeContext.Provider value={value}>

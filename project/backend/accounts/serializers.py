@@ -9,7 +9,7 @@ from .models import Address, BuyerProfile, User
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=10)
+    password = serializers.CharField(write_only=True, min_length=8)
     referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:

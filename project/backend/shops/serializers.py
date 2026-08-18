@@ -97,7 +97,8 @@ class ShopListSerializer(serializers.ModelSerializer):
             "public_id", "name", "slug", "tagline", "logo", "banner",
             "status", "is_verified", "currency", "allow_manual_delivery",
             "rating_average", "rating_count", "product_count",
-            "owner_email", "is_locked", "created_at", "verification_status"
+            "owner_email", "is_locked", "created_at", "verification_status",
+            "template_id",
         )
         read_only_fields = fields
         
@@ -129,6 +130,7 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             "rating_average", "rating_count", "product_count", "total_sales",
             "theme", "layouts", "owner_email", "is_locked",
             "verification_status", "verified_at", "verification_document", "id_number", "verification_legal_name", "verification_notes",
+            "template_id",
             "created_at", "updated_at",
         )
         read_only_fields = (
@@ -164,6 +166,7 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             "enable_reviews", "enable_contact",
             "enable_shipping", "enable_social_links",
             "allow_manual_delivery", "currency", "status",
+            "template_id",
         )
         # ``slug`` is auto-generated in ``Shop.save()`` when omitted, so it must
         # be optional here. The model field has no ``blank=True`` (a slug is

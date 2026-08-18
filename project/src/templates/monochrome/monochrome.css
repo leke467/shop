@@ -1,0 +1,8 @@
+.mono-template {
+  font-family: 'Cinzel', 'Didot', 'Playfair Display', serif;
+}
+
+.mono-template ::selection {
+  background-color: #FFFFFF;
+  color: #000000;
+}

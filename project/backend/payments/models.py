@@ -65,6 +65,8 @@ class Payment(BaseModel):
         "orders.Order",
         on_delete=models.PROTECT,
         related_name="payments",
+        null=True,
+        blank=True,
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

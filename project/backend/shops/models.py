@@ -153,6 +153,13 @@ class Shop(BaseModel, SoftDeleteModel):
     enable_shipping = models.BooleanField(default=False)
     enable_social_links = models.BooleanField(default=False)
 
+    # Premium template (feature-gated by the subscription plan).
+    template_id = models.CharField(
+        max_length=60, blank=True, default="",
+        help_text="Machine ID of the premium storefront template, e.g. "
+        "'honeyspicy'. Empty = default MultiShop storefront.",
+    )
+
     # Lifecycle & trust.
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True
@@ -571,3 +578,31 @@ class ShopReport(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Report by {self.reporter} against {self.shop.name} ({self.reason})"
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=Shop)
+def create_default_shop_products(sender, instance, created, **kwargs):
+    if created:
+        from products.models import Product
+        default_items = [
+            {"name": "Item 1", "description": "Default starter item 1. Edit or delete anytime.", "base_price": Decimal("1000.00")},
+            {"name": "Item 2", "description": "Default starter item 2. Edit or delete anytime.", "base_price": Decimal("2500.00")},
+            {"name": "Item 3", "description": "Default starter item 3. Edit or delete anytime.", "base_price": Decimal("5000.00")},
+            {"name": "Item 4", "description": "Default starter item 4. Edit or delete anytime.", "base_price": Decimal("7500.00")},
+            {"name": "Item 5", "description": "Default starter item 5. Edit or delete anytime.", "base_price": Decimal("10000.00")},
+        ]
+        for item in default_items:
+            Product.objects.get_or_create(
+                shop=instance,
+                name=item["name"],
+                defaults={
+                    "description": item["description"],
+                    "base_price": item["base_price"],
+                    "status": Product.Status.ACTIVE,
+                }
+            )
+

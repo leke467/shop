@@ -49,7 +49,16 @@ class UnifiedSearchView(APIView):
                     | Q(tagline__icontains=q)
                     | Q(description__icontains=q)
                 )
-            shops_qs = shops_qs.order_by("-rating_average")
+
+            # Prioritize custom template stores, verified stores, and newest active stores
+            from django.db.models import Case, When, Value, IntegerField
+            shops_qs = shops_qs.annotate(
+                has_template=Case(
+                    When(template_id__isnull=False, template_id__gt='', then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ).order_by("-has_template", "-rating_average", "-created_at")
             total_shops = shops_qs.count()
             offset = (page - 1) * page_size
             result["shops"] = {

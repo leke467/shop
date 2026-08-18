@@ -174,6 +174,18 @@ class ShopThemeView(generics.RetrieveUpdateAPIView):
         theme, _created = ShopTheme.objects.get_or_create(shop=shop)
         return theme
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        if "extra_tokens" in data and isinstance(data["extra_tokens"], dict):
+            current_tokens = instance.extra_tokens or {}
+            data["extra_tokens"] = {**current_tokens, **data["extra_tokens"]}
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
 
 class ShopThemeResetView(APIView):
     """POST /api/shops/<slug>/theme/reset/ → reset to defaults."""
@@ -190,6 +202,64 @@ class ShopThemeResetView(APIView):
                 setattr(theme, field.name, field.default)
         theme.save()
         return Response(ShopThemeSerializer(theme).data)
+
+
+# ---------------------------------------------------------------------------
+# Premium template selection
+# ---------------------------------------------------------------------------
+
+class ShopTemplateView(APIView):
+    """
+    PATCH /api/shops/<slug>/template/  → set or clear a premium template.
+
+    Body: { "template_id": "honeyspicy" }       # set a template
+    Body: { "template_id": "" }                  # clear / revert to default
+
+    Requires the seller's subscription plan to have ``premium_templates_enabled``.
+    """
+    permission_classes = [IsAuthenticated]
+
+    # Template IDs that the platform recognises.
+    VALID_TEMPLATES = {
+        "honeyspicy", "obsidian", "minimalist", "cyberpunk", "emerald",
+        "royal", "boho", "popart", "retro", "pastel",
+        "industrial", "zenith", "monochrome", "artisan", "futura",
+        "lookbook", "bazaar", "timeline", "department", "polaroid"
+    }
+
+    def patch(self, request, slug):
+        shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
+        template_id = (request.data.get("template_id") or "").strip()
+
+        # Clearing the template is always allowed.
+        if template_id:
+            if template_id not in self.VALID_TEMPLATES:
+                return Response(
+                    {"detail": f"Unknown template: '{template_id}'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Gate behind the subscription feature flag.
+            from subscriptions.services import get_current_plan
+            plan = get_current_plan(request.user)
+            if not plan or not plan.premium_templates_enabled:
+                return Response(
+                    {
+                        "detail": "Premium templates require the Growth plan or higher.",
+                        "error": {
+                            "type": "FeatureGated",
+                            "feature": "premium_templates_enabled",
+                            "required_plan": "growth",
+                        },
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        shop.template_id = template_id
+        shop.save(update_fields=["template_id", "updated_at"])
+        return Response(
+            {"template_id": shop.template_id, "slug": shop.slug},
+            status=status.HTTP_200_OK,
+        )
 
 
 # ---------------------------------------------------------------------------

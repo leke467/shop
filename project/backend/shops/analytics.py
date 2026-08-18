@@ -82,6 +82,7 @@ def order_stats(shop):
     
     return {
         'total_orders': total_orders,
+        'total_revenue': total_revenue,
         'average_value': average_value,
         'by_status': list(by_status)
     }

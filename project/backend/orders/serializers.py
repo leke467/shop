@@ -1,4 +1,5 @@
 """Orders serializers."""
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Cart, CartItem, Coupon, Order, OrderGroup, OrderItem, SellerBankAccount, PayoutRequest
@@ -33,7 +34,8 @@ class CartSerializer(serializers.ModelSerializer):
 
 class CartItemCreateSerializer(serializers.Serializer):
     """Input for adding/updating a cart item."""
-    variant_id = serializers.IntegerField()
+    variant_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    product_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     quantity = serializers.IntegerField(min_value=1, default=1)
 
 
@@ -88,14 +90,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class CouponSerializer(serializers.ModelSerializer):
     is_valid = serializers.BooleanField(read_only=True)
+    valid_from = serializers.DateTimeField(required=False, default=timezone.now)
 
     class Meta:
         model = Coupon
         fields = (
-            "code", "discount_type", "value", "is_active",
+            "id", "code", "discount_type", "value", "is_active",
             "valid_from", "valid_until", "minimum_order_value", "is_valid",
         )
-        read_only_fields = ("is_valid",)
+        read_only_fields = ("id", "is_valid",)
 
 
 class SellerBankAccountSerializer(serializers.ModelSerializer):

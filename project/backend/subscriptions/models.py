@@ -73,6 +73,7 @@ class SubscriptionPlan(BaseModel):
     analytics_enabled = models.BooleanField(default=False)
     staff_accounts_enabled = models.BooleanField(default=False)
     priority_support_enabled = models.BooleanField(default=False)
+    premium_templates_enabled = models.BooleanField(default=False)
 
     # Enterprise plans are "contact us / custom pricing" and are not
     # self-serve upgradable through the checkout flow.
@@ -118,6 +119,7 @@ class SubscriptionPlan(BaseModel):
         "analytics_enabled",
         "staff_accounts_enabled",
         "priority_support_enabled",
+        "premium_templates_enabled",
     )
 
     def features(self) -> dict[str, bool]:

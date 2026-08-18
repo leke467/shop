@@ -81,7 +81,7 @@ def _bank_transfer_accounts() -> list[dict]:
 # ---------------------------------------------------------------------------
 # Core security
 # ---------------------------------------------------------------------------
-SECRET_KEY = env("DJANGO_SECRET_KEY", "insecure-dev-key-change-me")
+SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-me-in-production-min-32-bytes-long-secret")
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 

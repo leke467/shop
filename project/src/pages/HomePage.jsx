@@ -8,7 +8,7 @@ import SEOHead from '../components/SEOHead'
 // ── Reusable cards ───────────────────────────────────────────
 function ShopCard({ shop }) {
   return (
-    <Link to={`/shop/${shop.slug}`}>
+    <Link to={`/${shop.slug}`}>
       <motion.div
         className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300"
         whileHover={{ y: -6 }}

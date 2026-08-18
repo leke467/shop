@@ -1,0 +1,8 @@
+.pop-template {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+}
+
+.pop-template ::selection {
+  background-color: #EC4899;
+  color: #FFFFFF;
+}

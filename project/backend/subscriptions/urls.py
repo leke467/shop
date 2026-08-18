@@ -10,6 +10,7 @@ from .views import (
     MySubscriptionsView,
     PlanListView,
     UpgradeView,
+    VerifySubscriptionPaymentView,
 )
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path("current/", CurrentSubscriptionView.as_view(), name="subscription-current"),
     path("mine/", MySubscriptionsView.as_view(), name="subscription-mine"),
     path("upgrade/", UpgradeView.as_view(), name="subscription-upgrade"),
+    path("verify-payment/", VerifySubscriptionPaymentView.as_view(), name="subscription-verify-payment"),
 
     # Admin
     path("admin/plans/", AdminPlanListCreateView.as_view(), name="subscription-admin-plans"),

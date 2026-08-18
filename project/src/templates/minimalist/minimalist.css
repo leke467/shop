@@ -1,0 +1,8 @@
+.min-template {
+  letter-spacing: -0.01em;
+}
+
+.min-template ::selection {
+  background-color: #000000;
+  color: #ffffff;
+}

@@ -47,6 +47,8 @@ from .services import (
     ensure_subscription,
     get_usage,
     initiate_paystack_upgrade,
+    initiate_subscription_upgrade,
+    verify_and_activate_subscription,
 )
 
 User = get_user_model()
@@ -122,10 +124,12 @@ class UpgradeView(APIView):
         ser.is_valid(raise_exception=True)
         plan = ser.context["plan"]
 
+        provider = ser.validated_data.get("provider") or ser.validated_data.get("payment_provider") or ""
         try:
-            result = initiate_paystack_upgrade(
+            result = initiate_subscription_upgrade(
                 request.user, plan,
                 callback_url=ser.validated_data.get("callback_url", ""),
+                provider=provider,
             )
         except DowngradeBlocked:
             raise
@@ -133,6 +137,31 @@ class UpgradeView(APIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class VerifySubscriptionPaymentView(APIView):
+    """
+    GET /api/subscription/verify-payment/?reference=<ref>&paymentReference=<ref>&provider=<provider>
+    Verifies subscription payment status with Monnify or Paystack and activates plan.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        ref = (
+            request.query_params.get("paymentReference")
+            or request.query_params.get("reference")
+            or request.query_params.get("trxref")
+            or ""
+        )
+        provider = request.query_params.get("provider", "")
+        if not ref:
+            return Response({"detail": "Reference parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            res = verify_and_activate_subscription(ref, provider=provider)
+            return Response(res, status=status.HTTP_200_OK)
+        except SubscriptionError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ---------------------------------------------------------------------------

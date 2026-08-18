@@ -72,7 +72,8 @@ class CookieLoginView(APIView):
     def post(self, request):
         from django.contrib.auth import authenticate
 
-        email = request.data.get("email")
+        raw_email = request.data.get("email") or ""
+        email = raw_email.strip().lower()
         password = request.data.get("password")
         if not email or not password:
             return Response(
@@ -81,6 +82,8 @@ class CookieLoginView(APIView):
             )
 
         user = authenticate(request, email=email, password=password)
+        if user is None:
+            user = authenticate(request, username=email, password=password)
         if user is None:
             return Response(
                 {"detail": "Invalid credentials."},
@@ -217,10 +220,11 @@ class CookieTokenRefreshView(APIView):
             refresh = RefreshToken(raw_refresh)
             access = str(refresh.access_token)
         except (TokenError, InvalidToken) as e:
-            return Response(
+            response = Response(
                 {"detail": "Token is invalid or expired."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+            return _clear_auth_cookies(response)
 
         response = Response({"access": access})
         return _set_auth_cookies(response, access, str(refresh))

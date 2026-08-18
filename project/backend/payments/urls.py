@@ -9,6 +9,8 @@ from .views import (
     CheckoutView,
     MonnifyVerifyView,
     MonnifyWebhookView,
+    PaymentReceiptDownloadView,
+    PaymentReceiptView,
     PaystackVerifyView,
     PaystackWebhookView,
     RefundRequestView,
@@ -17,6 +19,16 @@ from .views import (
 
 urlpatterns = [
     path("checkout/", CheckoutView.as_view(), name="checkout"),
+    path(
+        "receipt/<str:pk>/",
+        PaymentReceiptView.as_view(),
+        name="payment-receipt",
+    ),
+    path(
+        "receipt/<str:pk>/html/",
+        PaymentReceiptDownloadView.as_view(),
+        name="payment-receipt-download",
+    ),
     path(
         "bank-transfer/accounts/",
         BankTransferAccountsView.as_view(),

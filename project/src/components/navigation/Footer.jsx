@@ -34,35 +34,48 @@ function Footer() {
           </div>
         </div>
 
-        {/* Links Grid: Hidden on mobile, 3 columns on desktop */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6 py-6 text-sm">
+        {/* Links Grid: Hidden on mobile, 4 columns on desktop */}
+        <div className="hidden md:grid md:grid-cols-4 gap-6 py-6 text-sm">
           {/* Quick Links */}
           <div>
             <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Navigation</h4>
             <ul className="space-y-1.5 text-gray-400">
               <li><Link to="/" className="hover:text-white transition">Home</Link></li>
-              <li><Link to="/explore/products" className="hover:text-white transition">Explore</Link></li>
-              <li><Link to="/create-shop" className="hover:text-white transition">Create Shop</Link></li>
-              <li><Link to="/cart" className="hover:text-white transition">Cart</Link></li>
+              <li><Link to="/explore/products" className="hover:text-white transition">Explore Marketplace</Link></li>
+              <li><Link to="/create-shop" className="hover:text-white transition">Create a Shop</Link></li>
+              <li><Link to="/wishlist" className="hover:text-white transition">My Wishlist</Link></li>
+              <li><Link to="/cart" className="hover:text-white transition">Shopping Cart</Link></li>
+            </ul>
+          </div>
+
+          {/* Resources & Programs */}
+          <div>
+            <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Resources</h4>
+            <ul className="space-y-1.5 text-gray-400">
+              <li><Link to="/blog" className="hover:text-white transition">Marketplace Blog & Guides</Link></li>
+              <li><Link to="/shipping-guide" className="hover:text-white transition">Shipping & Delivery Guide</Link></li>
+              <li><Link to="/referral-program" className="hover:text-white transition">Refer & Earn (20%)</Link></li>
+              <li><Link to="/pricing" className="hover:text-white transition">Merchant Pricing</Link></li>
             </ul>
           </div>
 
           {/* Categories */}
           <div>
-            <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Popular</h4>
+            <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Popular Categories</h4>
             <ul className="space-y-1.5 text-gray-400">
-              <li><Link to="/explore/products?category=electronics" className="hover:text-white transition">Electronics</Link></li>
-              <li><Link to="/explore/products?category=fashion" className="hover:text-white transition">Fashion</Link></li>
-              <li><Link to="/explore/products?category=home" className="hover:text-white transition">Home & Living</Link></li>
-              <li><Link to="/explore/products?category=beauty" className="hover:text-white transition">Beauty</Link></li>
+              <li><Link to="/explore/products?category=electronics" className="hover:text-white transition">Electronics & Tech</Link></li>
+              <li><Link to="/explore/products?category=womens-fashion" className="hover:text-white transition">Fashion & Apparel</Link></li>
+              <li><Link to="/explore/products?category=home-kitchen" className="hover:text-white transition">Home & Kitchen</Link></li>
+              <li><Link to="/explore/products?category=beauty" className="hover:text-white transition">Beauty & Cosmetics</Link></li>
             </ul>
           </div>
 
           {/* Contact & Support */}
           <div>
-            <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Support</h4>
+            <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Help & Trust</h4>
             <ul className="space-y-1.5 text-gray-400 text-xs sm:text-sm">
-              <li>📍 Lagos, Nigeria</li>
+              <li>🛡️ Escrow Buyer Protection</li>
+              <li>📍 Lagos, Abuja, Port Harcourt</li>
               <li>✉️ support@multishopng.com</li>
               <li>🌐 www.multishopng.com</li>
             </ul>

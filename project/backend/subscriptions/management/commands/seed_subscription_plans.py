@@ -56,6 +56,7 @@ PLANS = [
         "max_products": 200,
         "custom_domain_enabled": True,
         "analytics_enabled": True,
+        "premium_templates_enabled": True,
         "staff_accounts_enabled": False,
         "priority_support_enabled": False,
         "is_enterprise": False,
@@ -71,6 +72,7 @@ PLANS = [
         "max_products": 1000,
         "custom_domain_enabled": True,
         "analytics_enabled": True,
+        "premium_templates_enabled": True,
         "staff_accounts_enabled": True,
         "priority_support_enabled": True,
         "is_enterprise": False,
@@ -86,6 +88,7 @@ PLANS = [
         "max_products": None,            # unlimited
         "custom_domain_enabled": True,
         "analytics_enabled": True,
+        "premium_templates_enabled": True,
         "staff_accounts_enabled": True,
         "priority_support_enabled": True,
         "is_enterprise": True,

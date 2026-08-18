@@ -53,18 +53,36 @@ export default function SubscriptionDashboard() {
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [paymentNotice, setPaymentNotice] = useState(null)
 
   useEffect(() => {
     if (userLoading) return
     if (!isAuthenticated) { navigate('/login'); return }
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const paymentRef = searchParams.get('paymentReference') || searchParams.get('reference') || searchParams.get('trxref')
+
     setLoading(true)
-    Promise.all([
+    const promises = [
       subscriptionAPI.current(),
       subscriptionAPI.mine().catch(() => []),
-    ])
-      .then(([current, mine]) => {
+    ]
+    if (paymentRef) {
+      promises.push(
+        subscriptionAPI.verifyPayment({ paymentReference: paymentRef })
+          .catch(err => ({ error: err?.response?.data?.detail || 'Verification pending.' }))
+      )
+    }
+
+    Promise.all(promises)
+      .then(([current, mine, verifyRes]) => {
         setData(current)
         setHistory(Array.isArray(mine) ? mine : (mine?.results || []))
+        if (verifyRes && !verifyRes.error) {
+          setPaymentNotice(verifyRes)
+          // Re-fetch current subscription to make sure UI is immediately updated!
+          subscriptionAPI.current().then(setData)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -116,6 +134,34 @@ export default function SubscriptionDashboard() {
             Change Plan
           </Link>
         </div>
+
+        {paymentNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 rounded-3xl bg-green-50 border border-green-200 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center text-2xl font-bold">
+                ✓
+              </div>
+              <div>
+                <h3 className="font-bold text-green-900 text-lg">Subscription Activated!</h3>
+                <p className="text-sm text-green-700">{paymentNotice.detail || 'Your payment was confirmed.'}</p>
+              </div>
+            </div>
+            {paymentNotice.receipt_url && (
+              <a
+                href={paymentNotice.receipt_url.startsWith('http') ? paymentNotice.receipt_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${paymentNotice.receipt_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition-all flex items-center gap-2 shadow"
+              >
+                🖨️ Download Receipt
+              </a>
+            )}
+          </motion.div>
+        )}
 
         {/* Current plan card */}
         <motion.div
@@ -188,6 +234,7 @@ export default function SubscriptionDashboard() {
                   <th className="text-left px-6 py-3 font-semibold">Status</th>
                   <th className="text-left px-6 py-3 font-semibold">Started</th>
                   <th className="text-left px-6 py-3 font-semibold">Reference</th>
+                  <th className="text-right px-6 py-3 font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -203,6 +250,18 @@ export default function SubscriptionDashboard() {
                       {h.start_date ? new Date(h.start_date).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-6 py-3 text-gray-400 text-xs">{h.payment_reference || '—'}</td>
+                    <td className="px-6 py-3 text-right">
+                      {h.payment_reference ? (
+                        <a
+                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/payments/receipt/${h.payment_reference}/html/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary-600 hover:text-primary-700 font-semibold underline"
+                        >
+                          🖨️ Receipt
+                        </a>
+                      ) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

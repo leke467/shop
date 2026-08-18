@@ -12,9 +12,9 @@ class BlogPostDetailView(generics.RetrieveAPIView):
     serializer_class = BlogPostDetailSerializer
     lookup_field = 'slug'
 
-class BlogPostCreateUpdateView(generics.CreateAPIView, generics.UpdateAPIView):
+class BlogPostCreateUpdateView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
     """
-    Create/update blog posts.
+    List, create, update, and delete seller blog posts.
 
     Security (H3): Verifies the authenticated user owns the shop
     the blog post is being published under.
@@ -24,8 +24,8 @@ class BlogPostCreateUpdateView(generics.CreateAPIView, generics.UpdateAPIView):
     lookup_field = 'slug'
 
     def get_queryset(self):
-        # Sellers can only manage their own blog posts
-        return BlogPost.objects.filter(author=self.request.user)
+        # Sellers can manage their own blog posts (both draft & published)
+        return BlogPost.objects.filter(author=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
         # Verify shop ownership if a shop is specified

@@ -99,6 +99,8 @@ export const shopAPI = {
     api.get(`/shops/${slug}/`).then(r => r.data),
   mine: () =>
     api.get('/shops/mine/').then(r => r.data),
+  myShops: () =>
+    api.get('/shops/mine/').then(r => r.data),
   create: (data) =>
     api.post('/shops/create/', data).then(r => r.data),
   update: (slug, data) =>
@@ -180,6 +182,12 @@ export const shopAPI = {
     api.post(`/shops/${slug}/kyc/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(r => r.data),
+
+  // Premium templates
+  setTemplate: (slug, templateId) =>
+    api.patch(`/shops/${slug}/template/`, { template_id: templateId }).then(r => r.data),
+  clearTemplate: (slug) =>
+    api.patch(`/shops/${slug}/template/`, { template_id: '' }).then(r => r.data),
 }
 
 // ── Products ─────────────────────────────────────────────────
@@ -237,6 +245,8 @@ export const subscriptionAPI = {
     api.get('/subscription/mine/').then(r => r.data),
   upgrade: (data) =>
     api.post('/subscription/upgrade/', data).then(r => r.data),
+  verifyPayment: (params) =>
+    api.get('/subscription/verify-payment/', { params }).then(r => r.data),
 
   // Admin
   admin: {
@@ -327,50 +337,78 @@ export const addressAPI = {
 
 // ── Blog ─────────────────────────────────────────────────────
 export const blogAPI = {
-  list: (params) => api.get('/blog/', { params }).then(r => r.data),
+  list: (params) => api.get('/blog/', { params: typeof params === 'string' ? { shop: params } : params }).then(r => r.data),
+  myPosts: () => api.get('/blog/manage/').then(r => r.data),
   detail: (slug) => api.get(`/blog/${slug}/`).then(r => r.data),
-  create: (data) => api.post('/blog/', data).then(r => r.data),
-  update: (slug, data) => api.patch(`/blog/${slug}/`, data).then(r => r.data),
-  delete: (slug) => api.delete(`/blog/${slug}/`).then(r => r.data),
-  comments: (slug) => api.get(`/blog/${slug}/comments/`).then(r => r.data),
-  addComment: (slug, data) => api.post(`/blog/${slug}/comments/`, data).then(r => r.data),
+  create: (dataOrSlug, maybeData) => {
+    const data = maybeData || dataOrSlug;
+    return api.post('/blog/manage/', data).then(r => r.data);
+  },
+  update: (slug, data) => api.patch(`/blog/manage/${slug}/`, data).then(r => r.data),
+  delete: (slug) => api.delete(`/blog/manage/${slug}/`).then(r => r.data),
+  comments: (postId) => api.get(`/blog/${postId}/comments/`).then(r => r.data),
+  addComment: (postId, data) => api.post(`/blog/${postId}/comments/`, data).then(r => r.data),
 }
 
 // ── Messaging ────────────────────────────────────────────────
 export const messagingAPI = {
-  conversations: () => api.get('/messaging/conversations/').then(r => r.data),
-  conversationDetail: (id) => api.get(`/messaging/conversations/${id}/`).then(r => r.data),
-  createConversation: (data) => api.post('/messaging/conversations/', data).then(r => r.data),
-  sendMessage: (conversationId, data) => api.post(`/messaging/conversations/${conversationId}/messages/`, data).then(r => r.data),
-  markAsRead: (conversationId) => api.post(`/messaging/conversations/${conversationId}/read/`).then(r => r.data),
+  list: (shopSlug) => api.get('/messaging/', { params: shopSlug ? { shop: shopSlug } : {} }).then(r => r.data),
+  conversations: (params) => api.get('/messaging/', { params }).then(r => r.data),
+  conversationDetail: (id) => api.get(`/messaging/${id}/`).then(r => r.data),
+  createConversation: (data) => api.post('/messaging/create/', data).then(r => r.data),
+  sendMessage: (conversationId, data) => api.post(`/messaging/${conversationId}/messages/`, data).then(r => r.data),
+  reply: (conversationId, data) => api.post(`/messaging/${conversationId}/messages/`, { content: data.message || data.content }).then(r => r.data),
+  markAsRead: (messageId) => api.post(`/messaging/messages/${messageId}/mark-read/`).then(r => r.data),
   unreadCount: () => api.get('/messaging/unread-count/').then(r => r.data),
+  sendContactInquiry: (data) => api.post('/messaging/contact/', data).then(r => r.data),
 }
 
 // ── Analytics (seller dashboard) ─────────────────────────────
 export const analyticsAPI = {
+  get: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/overview/`).then(r => r.data),
+  overview: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/overview/`).then(r => r.data),
   revenue: (shopSlug, params) => api.get(`/shops/${shopSlug}/analytics/revenue/`, { params }).then(r => r.data),
   products: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/products/`).then(r => r.data),
   customers: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/customers/`).then(r => r.data),
-  overview: (shopSlug) => api.get(`/shops/${shopSlug}/analytics/overview/`).then(r => r.data),
 }
 
 // ── Coupons (seller management) ──────────────────────────────
 export const couponAPI = {
   list: (shopSlug) => api.get(`/orders/coupons/${shopSlug}/`).then(r => r.data),
   create: (shopSlug, data) => api.post(`/orders/coupons/${shopSlug}/`, data).then(r => r.data),
-  update: (shopSlug, id, data) => api.patch(`/orders/coupons/${shopSlug}/${id}/`, data).then(r => r.data),
-  delete: (shopSlug, id) => api.delete(`/orders/coupons/${shopSlug}/${id}/`).then(r => r.data),
+  update: (shopSlugOrId, idOrData, maybeData) => {
+    if (maybeData !== undefined) {
+      return api.patch(`/orders/coupons/${shopSlugOrId}/${idOrData}/`, maybeData).then(r => r.data);
+    }
+    return api.patch(`/orders/coupons/${shopSlugOrId}/${idOrData.id || idOrData.pk}/`, idOrData).then(r => r.data);
+  },
+  delete: (shopSlugOrId, maybeId) => {
+    if (maybeId !== undefined) {
+      return api.delete(`/orders/coupons/${shopSlugOrId}/${maybeId}/`).then(r => r.data);
+    }
+    return api.delete(`/orders/coupons/${shopSlugOrId}/`).then(r => r.data);
+  },
   apply: (data) => api.post('/orders/coupon/apply/', data).then(r => r.data),
 }
 
 // ── Payouts ──────────────────────────────────────────────────
 export const payoutAPI = {
   bankAccounts: (shopSlug) => api.get(`/orders/bank-accounts/`, { params: { shop: shopSlug } }).then(r => r.data),
+  listBanks: (shopSlug) => api.get(`/orders/bank-accounts/`, { params: { shop: shopSlug } }).then(r => r.data),
   addBankAccount: (data) => api.post('/orders/bank-accounts/', data).then(r => r.data),
+  addBank: (slugOrData, maybeData) => {
+    const payload = maybeData ? { ...maybeData, shop: slugOrData } : slugOrData;
+    return api.post('/orders/bank-accounts/', payload).then(r => r.data);
+  },
   updateBankAccount: (id, data) => api.patch(`/orders/bank-accounts/${id}/`, data).then(r => r.data),
   deleteBankAccount: (id) => api.delete(`/orders/bank-accounts/${id}/`).then(r => r.data),
-  requestPayout: (data) => api.post('/orders/payouts/request/', data).then(r => r.data),
+  deleteBank: (id) => api.delete(`/orders/bank-accounts/${id}/`).then(r => r.data),
+  requestPayout: (slugOrData, maybeData) => {
+    const payload = maybeData || slugOrData;
+    return api.post('/orders/payouts/request/', payload).then(r => r.data);
+  },
   payoutHistory: (shopSlug) => api.get('/orders/payouts/', { params: { shop: shopSlug } }).then(r => r.data),
+  listPayouts: (shopSlug) => api.get('/orders/payouts/', { params: { shop: shopSlug } }).then(r => r.data),
 }
 
 // ── Flash Sales ──────────────────────────────────────────────
@@ -397,9 +435,12 @@ export const twoFactorAPI = {
 
 // ── Bulk Import/Export ───────────────────────────────────────
 export const bulkAPI = {
-  importProducts: (shopSlug, file) => {
-    const formData = new FormData()
-    formData.append('file', file)
+  importProducts: (shopSlug, fileOrFormData) => {
+    let formData = fileOrFormData;
+    if (!(fileOrFormData instanceof FormData)) {
+      formData = new FormData();
+      formData.append('file', fileOrFormData);
+    }
     return api.post(`/products/shop/${shopSlug}/import/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(r => r.data)
@@ -439,8 +480,12 @@ export const adminDashboardAPI = {
 // ── Image helper ─────────────────────────────────────────────
 export const getImageUrl = (path) => {
   if (!path) return ''
-  if (path.startsWith('http')) return path
-  return `${BASE_URL}${path}`
+  if (path.startsWith('data:') || path.startsWith('blob:')) return path
+  if (path.startsWith('http://localhost/media/') || path.startsWith('http://127.0.0.1/media/')) {
+    return path.replace('http://localhost/', `${BASE_URL}/`).replace('http://127.0.0.1/', `${BASE_URL}/`)
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
 export default api

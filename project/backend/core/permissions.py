@@ -19,6 +19,22 @@ class IsSuperadminOrStaff(permissions.BasePermission):
         )
 
 
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Object-level permission to allow read access to anyone, but write access only to owners.
+    Supports objects with direct .owner, .shop.owner, or .user fields.
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        owner = getattr(obj, "owner", None)
+        if owner is None and hasattr(obj, "shop"):
+            owner = getattr(obj.shop, "owner", None)
+        if owner is None and hasattr(obj, "user"):
+            owner = getattr(obj, "user", None)
+        return bool(owner and owner == request.user)
+
+
 class IsSuperadminOnly(permissions.BasePermission):
     """
     Permission check: allow access ONLY to Superadmin / Admin role users.
@@ -31,15 +47,3 @@ class IsSuperadminOnly(permissions.BasePermission):
                 getattr(user, "role", None) == "admin"
             )
         )
-
-
-class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Permission check: allow read-only access to anyone, but only allow
-    write access (update/delete) to the owner of the object.
-    """
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        return obj.owner == request.user

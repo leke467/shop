@@ -99,6 +99,8 @@ class UpgradeRequestSerializer(serializers.Serializer):
 
     plan_code = serializers.SlugField()
     callback_url = serializers.URLField(required=False, allow_blank=True, default="")
+    provider = serializers.CharField(required=False, allow_blank=True, default="")
+    payment_provider = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_plan_code(self, value):
         plan = SubscriptionPlan.objects.filter(code=value, is_active=True).first()

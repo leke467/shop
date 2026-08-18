@@ -83,19 +83,33 @@ export function CartProvider({ children }) {
     }
   }, [isAuthenticated, userLoading, refreshCart])
 
-  const addToCart = async ({ variant_id, quantity, product_name, variant_name, unit_price }) => {
+  const addToCart = async (param) => {
+    if (!param) return
+    const variant_id = param.variant_id || param.variants?.[0]?.id || param.variant?.id
+    const product_id = param.product_id || param.id || param.pk
+    const quantity = param.quantity || 1
+    const product_name = param.product_name || param.name || 'Product'
+    const variant_name = param.variant_name || param.variants?.[0]?.name || ''
+    const unit_price = param.unit_price || param.base_price || param.price || 0
+
     if (isAuthenticated) {
-      await orderAPI.addToCart({ variant_id, quantity })
-      refreshCart()
+      try {
+        await orderAPI.addToCart({ variant_id, product_id, quantity })
+        refreshCart()
+      } catch (err) {
+        console.error('Backend cart sync error', err)
+      }
     } else {
       const currentCart = getGuestCart()
-      const existing = currentCart.find(i => i.variant === variant_id)
+      const existingKey = variant_id || product_id
+      const existing = currentCart.find(i => (i.variant === existingKey || i.product_id === existingKey))
       if (existing) {
         existing.quantity += quantity
       } else {
         currentCart.push({
           id: `guest_${Date.now()}_${Math.random().toString(36).substring(2)}`,
           variant: variant_id,
+          product_id,
           product_name,
           variant_name,
           quantity,
@@ -106,6 +120,8 @@ export function CartProvider({ children }) {
       saveGuestCart(currentCart)
       updateCartState(currentCart)
     }
+
+    setIsCartOpen(true)
   }
 
   const updateQty = async (itemId, qty) => {
@@ -138,16 +154,38 @@ export function CartProvider({ children }) {
     }
   }
 
+  const [isCartOpen, setIsCartOpen] = useState(false)
+
+  const clearCart = async () => {
+    localStorage.removeItem('guestCart')
+    if (isAuthenticated) {
+      for (const item of items) {
+        try { await orderAPI.removeCartItem(item.id) } catch (e) {}
+      }
+      refreshCart()
+    } else {
+      updateCartState([])
+    }
+  }
+
   const value = {
     cart: items,
     items,
     total,
     itemCount,
     loading,
+    isCartOpen,
+    setIsCartOpen,
     refreshCart,
     addToCart,
     updateQty,
     removeItem,
+    // Template compatibility helpers
+    getCartTotal: () => total,
+    getCartItemsCount: () => itemCount,
+    removeFromCart: (itemId) => removeItem(itemId),
+    updateQuantity: (itemId, qty) => updateQty(itemId, qty),
+    clearCart,
   }
 
   return (

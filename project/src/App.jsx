@@ -36,9 +36,12 @@ import ReferralProgramPage from './pages/ReferralProgramPage'
 // Context
 import { ShopProvider } from './context/ShopContext'
 import { CartProvider } from './context/CartContext'
+import { WishlistProvider } from './context/WishlistContext'
 import { UserProvider } from './context/UserContext'
 import { NotificationProvider } from './context/NotificationContext'
 import { ThemeProvider } from './context/ThemeContext'
+
+import MessagesPage from './pages/MessagesPage'
 
 function App() {
   return (
@@ -47,16 +50,18 @@ function App() {
         <UserProvider>
           <ShopProvider>
           <CartProvider>
+          <WishlistProvider>
             <AnimatePresence mode="wait">
               <Routes>
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="explore" element={<ExplorePage />} />
                 <Route path="explore/:exploreType" element={<ExplorePage />} />
-                <Route path="shop/:shopSlug" element={<ShopPage />} />
+                <Route path="shop/:shopSlug/*" element={<ShopPage />} />
                 <Route path="product/:productSlug" element={<ProductPage />} />
                 <Route path="create-shop" element={<ShopCreationPage />} />
                 <Route path="dashboard" element={<ShopDashboard />} />
+                <Route path="messages" element={<MessagesPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="subscription" element={<SubscriptionDashboard />} />
@@ -77,10 +82,12 @@ function App() {
                 <Route path="shipping-guide" element={<ShippingGuidePage />} />
                 <Route path="blog" element={<BlogListPage />} />
                 <Route path="blog/:slug" element={<BlogPostPage />} />
+                <Route path=":shopSlug/*" element={<ShopPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>
           </AnimatePresence>
+          </WishlistProvider>
         </CartProvider>
         </ShopProvider>
       </UserProvider>

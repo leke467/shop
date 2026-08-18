@@ -1,0 +1,8 @@
+.retro-template {
+  font-family: 'Playfair Display', 'Georgia', serif;
+}
+
+.retro-template ::selection {
+  background-color: #EA580C;
+  color: #FFFFFF;
+}

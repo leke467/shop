@@ -3,7 +3,9 @@ import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl } from '../services/api'
 import { useUser } from '../context/UserContext'
+import { useShop, getTemplateShopCache, setTemplateShopCache } from '../context/ShopContext'
 import SEOHead from '../components/SEOHead'
+import TemplateRouter from '../templates/TemplateRouter'
 
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
@@ -42,20 +44,21 @@ export default function ShopPage() {
   const [tab, setTab] = useState('products')
   const [loading, setLoading] = useState(true)
   const { user } = useUser()
+  const { activeTemplateShop, setActiveTemplateShop } = useShop() || {}
 
   // Report Shop State
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('scam')
   const [reportDetails, setReportDetails] = useState('')
   const [reporting, setReporting] = useState(false)
-      const [reportSuccess, setReportSuccess] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState(false)
 
   const handleReport = async (e) => {
     e.preventDefault()
     setReporting(true)
     try {
       await shopAPI.reportShop(shopSlug, { reason: reportReason, details: reportDetails })
-        await shopAPI.reportShop(shopSlug, { reason: reportReason, description: reportDetails })
+      await shopAPI.reportShop(shopSlug, { reason: reportReason, description: reportDetails })
       setReportSuccess(true)
       setTimeout(() => {
         setShowReportModal(false)
@@ -77,13 +80,35 @@ export default function ShopPage() {
       productAPI.list({ shop: shopSlug, page_size: 50 }),
       shopAPI.reviews(shopSlug),
     ]).then(([shopRes, prodRes, revRes]) => {
-      if (shopRes.status === 'fulfilled') setShop(shopRes.value)
+      if (shopRes.status === 'fulfilled') {
+        const fetchedShop = shopRes.value
+        setShop(fetchedShop)
+        setTemplateShopCache(fetchedShop?.slug, fetchedShop?.template_id)
+        if (setActiveTemplateShop) {
+          setActiveTemplateShop(fetchedShop?.template_id ? fetchedShop : null)
+        }
+      }
       if (prodRes.status === 'fulfilled') setProducts(prodRes.value?.results || prodRes.value || [])
       if (revRes.status === 'fulfilled') setReviews(revRes.value?.results || revRes.value || [])
     }).finally(() => setLoading(false))
-  }, [shopSlug])
+
+    return () => {
+      if (setActiveTemplateShop) setActiveTemplateShop(null)
+    }
+  }, [shopSlug, setActiveTemplateShop])
 
   if (loading) {
+    const cachedTemplateId = getTemplateShopCache(shopSlug)
+    const isTemplate = Boolean(shop?.template_id || activeTemplateShop?.template_id || cachedTemplateId)
+
+    if (isTemplate) {
+      return (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 pt-16">
         <div className="h-64 bg-gray-200 animate-pulse" />
@@ -105,6 +130,18 @@ export default function ShopPage() {
           <Link to="/" className="mt-6 inline-block px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Back to Home</Link>
         </div>
       </div>
+    )
+  }
+
+  // If this shop has a premium template, render it instead of the default storefront
+  if (shop.template_id) {
+    return (
+      <TemplateRouter
+        shop={shop}
+        products={products}
+        reviews={reviews}
+        shopSlug={shopSlug}
+      />
     )
   }
 

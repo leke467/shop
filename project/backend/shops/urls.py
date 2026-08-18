@@ -26,6 +26,7 @@ from .views import (
     ShopLayoutListCreateView,
     ShopListView,
     ShopReviewListCreateView,
+    ShopTemplateView,
     ShopThemeResetView,
     ShopThemeView,
     ShopUpdateView,
@@ -52,6 +53,9 @@ urlpatterns = [
     # Theme customization (Item 27)
     path("<slug:slug>/theme/", ShopThemeView.as_view(), name="shop-theme"),
     path("<slug:slug>/theme/reset/", ShopThemeResetView.as_view(), name="shop-theme-reset"),
+
+    # Premium template selection
+    path("<slug:slug>/template/", ShopTemplateView.as_view(), name="shop-template"),
 
     # Branding asset upload (Item 29)
     path("<slug:slug>/branding/", ShopBrandingUploadView.as_view(), name="shop-branding"),

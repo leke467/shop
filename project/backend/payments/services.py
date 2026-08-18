@@ -43,6 +43,7 @@ def checkout(
     notes: str = "",
     delivery_state: str = "",
     manual_delivery_shops: list[str] = None,
+    shop_slug: str = None,
     **provider_kwargs,
 ) -> Order:
     """
@@ -78,6 +79,11 @@ def checkout(
         cart_items = list(cart.items.select_related(
             "variant__product__shop", "variant__inventory"
         ))
+
+        if shop_slug:
+            shop_items = [i for i in cart_items if i.variant.product.shop.slug == shop_slug]
+            if shop_items:
+                cart_items = shop_items
 
         # --- Item 40: Lock inventory rows ---
         variant_ids = [item.variant_id for item in cart_items]
@@ -126,12 +132,18 @@ def checkout(
                 else:
                     zone = DeliveryZone.objects.filter(shop=shop, state=delivery_state, is_active=True).first()
                     if not zone:
+                        zone = DeliveryZone.objects.filter(shop=shop, state__iexact=delivery_state, is_active=True).first()
+
+                    if zone:
+                        from shops.logistics import calculate_shipping_quote
+                        quote = calculate_shipping_quote(zone.fee)
+                        shipping_fee = quote["final_shipping_fee"]
+                        markup_amount = quote["markup_amount"]
+                    elif not DeliveryZone.objects.filter(shop=shop, is_active=True).exists():
+                        shipping_fee = Decimal("0")
+                        markup_amount = Decimal("0")
+                    else:
                         raise CheckoutError(f"Delivery is not available to {delivery_state} for shop: {shop.name}")
-                    
-                    from shops.logistics import calculate_shipping_quote
-                    quote = calculate_shipping_quote(zone.fee)
-                    shipping_fee = quote["final_shipping_fee"]
-                    markup_amount = quote["markup_amount"]
 
                 group = OrderGroup.objects.create(
                     order=order,
