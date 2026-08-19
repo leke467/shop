@@ -26,7 +26,7 @@ export default function GoogleLoginButton({ onSuccess, onError, text = "Continue
         })
         window.google.accounts.id.renderButton(
           document.getElementById('google-signin-btn-div'),
-          { theme: 'outline', size: 'large', width: '100%', shape: 'pill' }
+          { theme: 'outline', size: 'large', width: 300, shape: 'pill' }
         )
       }
     }
