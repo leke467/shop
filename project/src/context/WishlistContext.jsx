@@ -46,7 +46,7 @@ export function WishlistProvider({ children }) {
     } catch {
       // Fallback
     }
-    return DEFAULT_WISHLIST
+    return []
   })
 
   useEffect(() => {
