@@ -131,6 +131,57 @@ class CheckoutView(APIView):
             )
             response_data["payment"] = instructions
 
+        # --- Emails: Order Confirmation (buyer) + New Order Alert (seller) ---
+        try:
+            from notifications.tasks import (
+                send_order_confirmation_email,
+                send_new_order_alert_to_seller,
+            )
+
+            # Build items list for email templates
+            email_items = []
+            for group in order.groups.prefetch_related("items__product"):
+                for item in group.items.all():
+                    email_items.append({
+                        "product_name": item.product.name if item.product else "Product",
+                        "variant_name": getattr(item, "variant_label", "Default"),
+                        "quantity": item.quantity,
+                        "line_total": str(item.line_total),
+                    })
+
+            buyer_context = {
+                "buyer_name": request.user.first_name or request.user.email.split("@")[0],
+                "order_id": str(order.public_id),
+                "items": email_items,
+                "total": str(order.total),
+                "delivery_code": getattr(order.groups.first(), "delivery_code", ""),
+                "shipping_name": shipping_data.get("full_name", ""),
+                "shipping_address": f"{shipping_data.get('line1', '')}, {shipping_data.get('city', '')}, {shipping_data.get('state', '')}",
+                "shipping_phone": shipping_data.get("phone", ""),
+            }
+            if request.user.email:
+                send_order_confirmation_email.delay(request.user.email, buyer_context)
+
+            # Alert each seller whose shop received items in this order
+            for group in order.groups.select_related("shop__owner"):
+                shop = group.shop
+                if shop and shop.owner and shop.owner.email:
+                    group_items = [
+                        i for i in email_items
+                    ]
+                    seller_context = {
+                        "shop_name": shop.name,
+                        "order_id": str(order.public_id),
+                        "items": group_items,
+                        "total": str(group.subtotal),
+                        "buyer_name": buyer_context["buyer_name"],
+                        "buyer_email": request.user.email,
+                        "shipping_address": buyer_context["shipping_address"],
+                    }
+                    send_new_order_alert_to_seller.delay(shop.owner.email, seller_context)
+        except Exception:
+            pass  # Never block the checkout response on email failures
+
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 

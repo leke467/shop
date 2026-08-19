@@ -1,5 +1,76 @@
-{% extends 'notifications/email/base.html' %}
+{% extends "notifications/email/base.html" %}
+{% block title %}Shipping Update — Order #{{ order_id }}{% endblock %}
 {% block content %}
-    <p>Hi {{ user_name }},</p>
-    <p>Your order #{{ order_number }} status has been updated to: {{ status }}.</p>
+<span class="badge badge-info">📦 SHIPPING UPDATE</span>
+
+<h2>Your order is on the move!</h2>
+
+<p>
+  Hi {{ buyer_name|default:"there" }}, here's an update on your order
+  <strong>#{{ order_id }}</strong>:
+</p>
+
+<div class="info-box info-box-accent">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td>
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">Current Status</p>
+        <p style="margin: 0; font-size: 20px; font-weight: 700; color: #059669;">
+          {% if status == "shipped" %}🚚 Shipped
+          {% elif status == "delivered" %}✅ Delivered
+          {% elif status == "processing" %}⏳ Processing
+          {% elif status == "ready_for_pickup" %}📦 Ready for Pickup
+          {% else %}📋 {{ status|title }}
+          {% endif %}
+        </p>
+      </td>
+      <td style="text-align: right;">
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">From Store</p>
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #334155;">{{ shop_name|default:"Seller" }}</p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+{% if status == "shipped" %}
+<p>
+  Your order has been dispatched and is on its way to you. You'll receive your
+  delivery soon!
+</p>
+{% elif status == "delivered" %}
+<p>
+  Your order has been marked as delivered. If you've received your items, please
+  confirm delivery using your <strong>6-digit escrow code</strong> to release payment
+  to the seller.
+</p>
+{% endif %}
+
+{% if tracking_number %}
+<div class="info-box">
+  <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">🔍 Tracking Number</p>
+  <p style="margin: 0; font-size: 16px; font-weight: 700; color: #0F172A; font-family: 'Courier New', monospace;">{{ tracking_number }}</p>
+</div>
+{% endif %}
+
+{% if delivery_code %}
+<div class="info-box info-box-warning">
+  <p style="margin: 0 0 8px; font-size: 12px; color: #92400E;">
+    <strong>🔐 Your Delivery Code:</strong>
+  </p>
+  <div class="code-block">{{ delivery_code }}</div>
+  <p style="margin: 0; font-size: 12px; color: #92400E;">
+    Only share this code after inspecting and accepting your delivery.
+  </p>
+</div>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/orders" class="btn">
+        Track Your Order →
+      </a>
+    </td>
+  </tr>
+</table>
 {% endblock %}

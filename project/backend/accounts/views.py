@@ -5,6 +5,7 @@ Auth (login/refresh/logout) uses httpOnly cookies (P2 items 22-23).
 For now we expose SimpleJWT's standard token endpoints.
 """
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -35,6 +36,16 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        # --- Email: Welcome ---
+        try:
+            from notifications.tasks import send_welcome_email
+            send_welcome_email.delay(user.email, {
+                "user_name": user.first_name or user.email.split("@")[0],
+            })
+        except Exception:
+            pass  # Never block registration on email failure
+
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
         from .cookie_views import _set_auth_cookies
@@ -75,8 +86,21 @@ class ForgotPasswordView(APIView):
 
         token = PasswordResetTokenGenerator().make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        # In production, email the link.  For dev, return it inline.
-        return Response({"uid": uid, "token": token})
+
+        # --- Email: Password Reset ---
+        try:
+            from notifications.tasks import send_password_reset_email
+            site_url = getattr(settings, "SITE_URL", "https://multishopng.com")
+            reset_url = f"{site_url}/reset-password?uid={uid}&token={token}"
+            send_password_reset_email.delay(user.email, {
+                "user_name": user.first_name or user.email.split("@")[0],
+                "reset_url": reset_url,
+                "reset_token": token,
+            })
+        except Exception:
+            pass  # Never block the response on email failure
+
+        return Response({"detail": "If that email is registered, a reset link will be sent."})
 
 
 class ResetPasswordView(APIView):

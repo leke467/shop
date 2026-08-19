@@ -352,7 +352,7 @@ class UpdateFulfillmentStatusView(APIView):
 
     def patch(self, request, group_id):
         group = generics.get_object_or_404(
-            OrderGroup.objects.select_related("shop"),
+            OrderGroup.objects.select_related("shop", "order__user"),
             id=group_id,
             shop__owner=request.user,
         )
@@ -365,6 +365,22 @@ class UpdateFulfillmentStatusView(APIView):
             )
         group.status = new_status
         group.save(update_fields=["status", "updated_at"])
+
+        # --- Email: Shipping Update to Buyer ---
+        try:
+            from notifications.tasks import send_shipping_update_email
+            buyer = group.order.user
+            if buyer and buyer.email:
+                send_shipping_update_email.delay(buyer.email, {
+                    "buyer_name": buyer.first_name or buyer.email.split("@")[0],
+                    "order_id": str(group.order.public_id),
+                    "status": new_status,
+                    "shop_name": group.shop.name if group.shop else "Seller",
+                    "delivery_code": group.delivery_code or "",
+                })
+        except Exception:
+            pass  # Never block the response on email failure
+
         return Response({
             "detail": f"Order status updated to {new_status}.",
             "status": group.status,
@@ -492,6 +508,26 @@ class PayoutRequestCreateView(generics.CreateAPIView):
                 wallet.total_withdrawn -= amount
                 wallet.save(update_fields=["balance", "total_withdrawn", "updated_at"])
                 raise serializers.ValidationError({"detail": f"Transfer failed to initiate: {e}"})
+
+        # --- Email: Withdrawal Request / Completed ---
+        try:
+            from notifications.tasks import send_withdrawal_request_email, send_withdrawal_completed_email
+            user = self.request.user
+            email_ctx = {
+                "user_name": user.first_name or user.email.split("@")[0],
+                "shop_name": shop.name,
+                "amount": str(amount),
+                "bank_name": bank_account.bank_name or bank_account.bank_code,
+                "account_number": bank_account.account_number[-4:] if bank_account.account_number else "",
+                "reference": payout.provider_reference or str(payout.pk),
+            }
+            if payout.status == PayoutRequest.Status.COMPLETED:
+                send_withdrawal_completed_email.delay(user.email, email_ctx)
+            else:
+                email_ctx["status"] = payout.get_status_display()
+                send_withdrawal_request_email.delay(user.email, email_ctx)
+        except Exception:
+            pass  # Never block payout response on email failure
 
 
 # ---------------------------------------------------------------------------

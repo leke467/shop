@@ -1,0 +1,63 @@
+{% extends "notifications/email/base.html" %}
+{% block title %}Subscription Activated — {{ plan_name }}{% endblock %}
+{% block content %}
+<span class="badge badge-success">✨ SUBSCRIPTION ACTIVE</span>
+
+<h2>Your {{ plan_name }} plan is live!</h2>
+
+<p>
+  Hi {{ user_name|default:"there" }}, congratulations! Your subscription to the
+  <strong>{{ plan_name }}</strong> plan has been activated successfully.
+</p>
+
+<div class="info-box">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding: 4px 0;">
+        <span class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Plan</span><br>
+        <strong style="color: #0F172A; font-size: 18px;">{{ plan_name }}</strong>
+      </td>
+      <td style="padding: 4px 0; text-align: right;">
+        <span class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
+        <strong style="color: #059669; font-size: 18px;">₦{{ plan_price }}/{{ billing_period|default:"month" }}</strong>
+      </td>
+    </tr>
+  </table>
+
+  <hr class="divider" style="margin: 16px 0;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    {% if start_date %}
+    <tr>
+      <td style="padding: 4px 0; font-size: 13px; color: #64748B;">Start Date</td>
+      <td style="padding: 4px 0; text-align: right; font-size: 13px; font-weight: 600; color: #334155;">{{ start_date }}</td>
+    </tr>
+    {% endif %}
+    {% if next_renewal_date %}
+    <tr>
+      <td style="padding: 4px 0; font-size: 13px; color: #64748B;">Next Renewal</td>
+      <td style="padding: 4px 0; text-align: right; font-size: 13px; font-weight: 600; color: #334155;">{{ next_renewal_date }}</td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+{% if features %}
+<div class="info-box info-box-accent">
+  <p style="margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px;">🎁 Your Plan Includes</p>
+  {% for feature in features %}
+  <p style="margin: 0 0 6px; font-size: 14px; color: #065F46;">✓ {{ feature }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/dashboard" class="btn">
+        Go to Dashboard →
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

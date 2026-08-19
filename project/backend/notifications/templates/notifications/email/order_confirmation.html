@@ -1,6 +1,77 @@
-{% extends 'notifications/email/base.html' %}
+{% extends "notifications/email/base.html" %}
+{% block title %}Order Confirmation — #{{ order_id }}{% endblock %}
 {% block content %}
-    <p>Hi {{ user_name }},</p>
-    <p>Thank you for your order! Your order #{{ order_number }} has been confirmed.</p>
-    <p>Total: &#8358;{{ total_amount }}</p>
+<span class="badge">🧾 ORDER CONFIRMED</span>
+
+<h2>Thank you for your order!</h2>
+
+<p>
+  Hi {{ buyer_name|default:"there" }}, your order <strong>#{{ order_id }}</strong>
+  has been placed successfully. Here's a summary of what you ordered:
+</p>
+
+<!-- Order Items Table -->
+<table class="data-table" role="presentation">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th style="text-align: center;">Qty</th>
+      <th style="text-align: right;">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.product_name }}{% if item.variant_name and item.variant_name != "Default" %} <span class="text-muted">({{ item.variant_name }})</span>{% endif %}</td>
+      <td style="text-align: center;">{{ item.quantity }}</td>
+      <td style="text-align: right;">₦{{ item.line_total }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total-row">
+      <td colspan="2">Total</td>
+      <td style="text-align: right;">₦{{ total }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Delivery Code -->
+{% if delivery_code %}
+<div class="info-box info-box-accent">
+  <p style="margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px;">
+    🔐 Your Escrow Delivery Code
+  </p>
+  <div class="code-block">{{ delivery_code }}</div>
+  <p style="margin: 0; font-size: 12px; color: #065F46;">
+    Share this code with the delivery person <strong>only after</strong> you've received
+    and inspected your items. This releases payment to the seller.
+  </p>
+</div>
+{% endif %}
+
+<!-- Shipping Address -->
+{% if shipping_address %}
+<div class="info-box">
+  <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">📍 Shipping Address</p>
+  <p style="margin: 0; font-size: 14px; color: #334155;">
+    {{ shipping_name|default:buyer_name }}<br>
+    {{ shipping_address }}<br>
+    {% if shipping_phone %}📞 {{ shipping_phone }}{% endif %}
+  </p>
+</div>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/orders" class="btn">
+        View Order Details →
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p class="text-muted">
+  You will receive another email when your order ships. If you have any
+  questions, please contact the seller through your order page.
+</p>
 {% endblock %}

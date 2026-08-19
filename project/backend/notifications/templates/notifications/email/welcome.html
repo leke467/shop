@@ -1,5 +1,39 @@
-{% extends 'notifications/email/base.html' %}
+{% extends "notifications/email/base.html" %}
+{% block title %}Welcome to MultiShop{% endblock %}
 {% block content %}
-    <p>Hi {{ user_name }},</p>
-    <p>Welcome to Our Marketplace! We are glad to have you.</p>
+<span class="badge badge-success">🎉 WELCOME</span>
+
+<h2>Welcome aboard, {{ user_name|default:"there" }}!</h2>
+
+<p>
+  We're thrilled to have you join <strong>MultiShop</strong> — Nigeria's premier
+  multi-vendor marketplace. Your account has been created successfully and you're
+  ready to start exploring.
+</p>
+
+<div class="info-box info-box-accent">
+  <p style="margin: 0; font-size: 14px; color: #065F46;">
+    <strong>🛒 As a Buyer:</strong> Browse thousands of products from verified Nigerian sellers,
+    enjoy secure escrow checkout, and track your orders in real time.
+  </p>
+  <hr class="divider" style="margin: 16px 0;">
+  <p style="margin: 0; font-size: 14px; color: #065F46;">
+    <strong>🏪 As a Seller:</strong> Create your own storefront with 20+ stunning templates,
+    manage products, receive orders, and withdraw earnings to your bank account.
+  </p>
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}" class="btn">
+        Start Exploring →
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p class="text-muted">
+  If you didn't create this account, you can safely ignore this email.
+</p>
 {% endblock %}

@@ -46,8 +46,24 @@ class MessageCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         conversation = Conversation.objects.get(id=self.kwargs['conv_id'], participants=self.request.user)
-        serializer.save(sender=self.request.user, conversation=conversation)
+        message = serializer.save(sender=self.request.user, conversation=conversation)
         conversation.save()
+
+        # --- Email: New Message Notification ---
+        try:
+            from notifications.tasks import send_new_message_email
+            # Notify all participants except the sender
+            recipients = conversation.participants.exclude(pk=self.request.user.pk)
+            for recipient in recipients:
+                if recipient.email:
+                    send_new_message_email.delay(recipient.email, {
+                        "recipient_name": recipient.first_name or recipient.email.split("@")[0],
+                        "sender_name": self.request.user.first_name or self.request.user.email.split("@")[0],
+                        "message_preview": (message.content or "")[:200],
+                        "conversation_subject": getattr(conversation, "subject", ""),
+                    })
+        except Exception:
+            pass  # Never block message creation on email failure
 
 class MarkAsReadView(APIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -503,6 +503,19 @@ KWIK_API_KEY = env("KWIK_API_KEY", "")
 KWIK_BASE_URL = env("KWIK_BASE_URL", "https://api.kwik.delivery/v1")
 
 # ---------------------------------------------------------------------------
+# Email & SMTP Settings
+# ---------------------------------------------------------------------------
+EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "MultiShop <no-reply@multishopng.com>")
+SITE_URL = env("SITE_URL", "https://multishopng.com")
+
+# ---------------------------------------------------------------------------
 # Referral & Affiliate Program Settings
 # ---------------------------------------------------------------------------
 SUBSCRIPTION_REFERRAL_BONUS = Decimal(env("SUBSCRIPTION_REFERRAL_BONUS", "500.00"))

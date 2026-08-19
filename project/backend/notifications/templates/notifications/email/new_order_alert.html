@@ -1,5 +1,74 @@
-{% extends 'notifications/email/base.html' %}
+{% extends "notifications/email/base.html" %}
+{% block title %}New Order Received!{% endblock %}
 {% block content %}
-    <p>Hi {{ seller_name }},</p>
-    <p>You have received a new order! Order #{{ order_number }}.</p>
+<span class="badge">💰 NEW ORDER</span>
+
+<h2>You've got a new order!</h2>
+
+<p>
+  Great news, <strong>{{ shop_name|default:"Seller" }}</strong>! A customer just placed
+  an order in your store.
+</p>
+
+<div class="info-box">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding: 4px 0;">
+        <span class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Order ID</span><br>
+        <strong style="color: #0F172A; font-size: 15px;">#{{ order_id }}</strong>
+      </td>
+      <td style="padding: 4px 0; text-align: right;">
+        <span class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Order Total</span><br>
+        <strong style="color: #059669; font-size: 18px;">₦{{ total }}</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- Order Items -->
+<table class="data-table" role="presentation">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th style="text-align: center;">Qty</th>
+      <th style="text-align: right;">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.product_name }}</td>
+      <td style="text-align: center;">{{ item.quantity }}</td>
+      <td style="text-align: right;">₦{{ item.line_total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Buyer Info -->
+<div class="info-box">
+  <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">👤 Customer Details</p>
+  <p style="margin: 0; font-size: 14px; color: #334155;">
+    {{ buyer_name|default:"Customer" }}<br>
+    {% if buyer_email %}📧 {{ buyer_email }}<br>{% endif %}
+    {% if shipping_address %}📍 {{ shipping_address }}{% endif %}
+  </p>
+</div>
+
+<div class="info-box info-box-warning">
+  <p style="margin: 0; font-size: 13px; color: #92400E;">
+    <strong>⚠️ Reminder:</strong> This order is held in escrow. Funds will be released to
+    your wallet once the buyer confirms delivery with their 6-digit code.
+  </p>
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/dashboard" class="btn">
+        Manage Orders →
+      </a>
+    </td>
+  </tr>
+</table>
 {% endblock %}

@@ -428,8 +428,8 @@ def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
             order=order, status=OrderGroup.FulfilmentStatus.PENDING,
         ).update(status=OrderGroup.FulfilmentStatus.ACCEPTED)
 
-        # Deduct reserved → actual stock.
-        for item in OrderItem.objects.filter(group__order=order):
+        # Deduct reserved → actual stock & check for low stock alerts.
+        for item in OrderItem.objects.filter(group__order=order).select_related("variant__product__shop__owner", "variant__inventory"):
             if item.variant_id:
                 Inventory.objects.filter(
                     variant_id=item.variant_id, track_inventory=True,
@@ -437,6 +437,23 @@ def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
                     quantity=models_F("quantity") - item.quantity,
                     reserved=models_F("reserved") - item.quantity,
                 )
+                # Check low stock threshold
+                try:
+                    inv = Inventory.objects.select_related("variant__product__shop__owner").filter(variant_id=item.variant_id, track_inventory=True).first()
+                    if inv and inv.is_low:
+                        product = inv.variant.product
+                        shop = product.shop
+                        if shop and shop.owner and shop.owner.email:
+                            from notifications.tasks import send_low_stock_alert
+                            send_low_stock_alert.delay(shop.owner.email, {
+                                "user_name": shop.owner.first_name or shop.owner.email.split("@")[0],
+                                "shop_name": shop.name,
+                                "product_name": product.name,
+                                "current_stock": inv.available,
+                                "threshold": inv.low_stock_threshold,
+                            })
+                except Exception:
+                    pass  # Non-blocking
 
     # Clear the buyer's cart.
     cart = Cart.objects.filter(user=order.user).first()

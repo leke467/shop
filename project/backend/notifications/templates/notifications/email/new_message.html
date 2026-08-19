@@ -1,0 +1,36 @@
+{% extends "notifications/email/base.html" %}
+{% block title %}New Message from {{ sender_name }}{% endblock %}
+{% block content %}
+<span class="badge badge-info">💬 NEW MESSAGE</span>
+
+<h2>You have a new message</h2>
+
+<p>
+  Hi {{ recipient_name|default:"there" }}, <strong>{{ sender_name|default:"Someone" }}</strong>
+  sent you a message{% if conversation_subject %} regarding <em>"{{ conversation_subject }}"</em>{% endif %}.
+</p>
+
+<div class="info-box">
+  <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">
+    💬 Message Preview
+  </p>
+  <p style="margin: 0; font-size: 14px; color: #334155; line-height: 1.7; font-style: italic; border-left: 3px solid #CBD5E1; padding-left: 16px;">
+    "{{ message_preview|default:"You have a new message waiting." }}"
+  </p>
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/messages" class="btn">
+        Reply Now →
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p class="text-muted">
+  You're receiving this because someone sent you a message on MultiShop.
+  Visit your messages page to continue the conversation.
+</p>
+{% endblock %}

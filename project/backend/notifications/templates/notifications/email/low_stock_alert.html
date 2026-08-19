@@ -1,5 +1,53 @@
-{% extends 'notifications/email/base.html' %}
+{% extends "notifications/email/base.html" %}
+{% block title %}Low Stock Alert — {{ product_name }}{% endblock %}
 {% block content %}
-    <p>Hi {{ seller_name }},</p>
-    <p>The product "{{ product_name }}" is running low on stock ({{ stock_count }} left).</p>
+<span class="badge badge-warning">⚠️ LOW STOCK</span>
+
+<h2>Inventory running low</h2>
+
+<p>
+  Hi {{ user_name|default:"there" }}, one of your products in
+  <strong>{{ shop_name|default:"your store" }}</strong> is running low on stock.
+</p>
+
+<div class="info-box info-box-warning">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td>
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px;">Product</p>
+        <p style="margin: 0; font-size: 18px; font-weight: 700; color: #78350F;">{{ product_name }}</p>
+      </td>
+    </tr>
+  </table>
+
+  <hr class="divider" style="margin: 16px 0; border-color: #FDE68A;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="text-align: center; padding: 8px;">
+        <p style="margin: 0 0 4px; font-size: 11px; color: #92400E; text-transform: uppercase; letter-spacing: 1px;">Current Stock</p>
+        <p style="margin: 0; font-size: 28px; font-weight: 800; color: #DC2626;">{{ current_stock }}</p>
+      </td>
+      <td style="text-align: center; padding: 8px;">
+        <p style="margin: 0 0 4px; font-size: 11px; color: #92400E; text-transform: uppercase; letter-spacing: 1px;">Threshold</p>
+        <p style="margin: 0; font-size: 28px; font-weight: 800; color: #92400E;">{{ threshold }}</p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p>
+  We recommend restocking this product soon to avoid missing sales.
+  Update your inventory from the seller dashboard.
+</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ site_url|default:'https://multishopng.com' }}/dashboard" class="btn">
+        Update Inventory →
+      </a>
+    </td>
+  </tr>
+</table>
 {% endblock %}

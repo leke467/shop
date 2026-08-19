@@ -159,6 +159,28 @@ class VerifySubscriptionPaymentView(APIView):
 
         try:
             res = verify_and_activate_subscription(ref, provider=provider)
+
+            # --- Email: Subscription Success ---
+            try:
+                from notifications.tasks import send_subscription_success_email
+                plan_name = res.get("plan", "")
+                # Look up plan details for the email
+                from .models import SubscriptionPlan, Subscription
+                plan = SubscriptionPlan.objects.filter(code=plan_name).first()
+                sub = Subscription.objects.filter(user=request.user, is_active=True).first()
+                if plan and request.user.email:
+                    send_subscription_success_email.delay(request.user.email, {
+                        "user_name": request.user.first_name or request.user.email.split("@")[0],
+                        "plan_name": plan.name,
+                        "plan_price": str(plan.monthly_price),
+                        "billing_period": "month",
+                        "features": [f.strip() for f in (plan.features_summary or "").split(",") if f.strip()] if hasattr(plan, "features_summary") else [],
+                        "start_date": sub.start_date.strftime("%B %d, %Y") if sub and sub.start_date else "",
+                        "next_renewal_date": sub.end_date.strftime("%B %d, %Y") if sub and sub.end_date else "",
+                    })
+            except Exception:
+                pass  # Never block subscription response on email failure
+
             return Response(res, status=status.HTTP_200_OK)
         except SubscriptionError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
