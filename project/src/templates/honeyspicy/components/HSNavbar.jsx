@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import HSLogo from './HSLogo'
 import HSCartButton from './HSCartButton'
+import Logo from '../../../components/Logo'
 import { useCart } from '../../../context/CartContext'
 
 export default function HSNavbar({ shop, shopSlug }) {
@@ -54,7 +55,7 @@ export default function HSNavbar({ shop, shopSlug }) {
               <motion.div variants={itemVariants}><NavLink to={`${basePath}/contact`} onClick={closeMenu}>Contact</NavLink></motion.div>
               <motion.div variants={itemVariants}><NavLink to={`${basePath}/reviews`} onClick={closeMenu}>Reviews</NavLink></motion.div>
               <motion.div variants={itemVariants}>
-                <Link to="/" className="hs-multishop-badge" onClick={closeMenu}>🛍️ MultiShop</Link>
+                <Link to="/" className="hs-multishop-badge" onClick={closeMenu}><Logo size="sm" /></Link>
               </motion.div>
               <motion.div variants={itemVariants}>
                 <button className="hs-btn hs-btn-primary hs-order-btn" onClick={() => { closeMenu(); setIsCartOpen(true) }}>Order Now</button>
@@ -69,7 +70,7 @@ export default function HSNavbar({ shop, shopSlug }) {
           <li><NavLink to={`${basePath}/about`} className={({isActive}) => isActive ? 'active' : ''}>About</NavLink></li>
           <li><NavLink to={`${basePath}/contact`} className={({isActive}) => isActive ? 'active' : ''}>Contact</NavLink></li>
           <li><NavLink to={`${basePath}/reviews`} className={({isActive}) => isActive ? 'active' : ''}>Reviews</NavLink></li>
-          <li><Link to="/" className="hs-multishop-badge" title="Return to MultiShop Marketplace">🛍️ MultiShop</Link></li>
+          <li><Link to="/" className="hs-multishop-badge" title="Return to MultiShop Marketplace"><Logo size="sm" /></Link></li>
           <li><HSCartButton /></li>
           <li><button className="hs-btn hs-btn-primary" onClick={() => setIsCartOpen(true)}>Order Now</button></li>
         </ul>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import { getImageUrl } from '../../../services/api'
+import Logo from '../../../components/Logo'
 
 export default function ObsidianNavbar({ shop, shopSlug }) {
   const navigate = useNavigate()
@@ -98,7 +99,7 @@ export default function ObsidianNavbar({ shop, shopSlug }) {
             className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:text-white font-bold text-xs transition-all shadow-xs"
             title="Return to MultiShop Marketplace"
           >
-            <span>🏪</span> MultiShop
+            <Logo size="sm" isDarkBg={true} />
           </Link>
 
           <button

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Logo from '../Logo';
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -35,9 +36,7 @@ export default function InstallPrompt() {
           className="fixed bottom-0 inset-x-0 p-4 z-50 pointer-events-none flex justify-center"
         >
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-w-md w-full pointer-events-auto flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xl shadow-md">
-              📱
-            </div>
+            <Logo size="md" />
             <div className="flex-1">
               <h4 className="font-bold text-gray-900">Install MultiShopNG</h4>
               <p className="text-xs text-gray-500">Shop from verified Nigerian sellers at multishopng.com</p>

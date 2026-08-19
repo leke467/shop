@@ -5,6 +5,7 @@ import { adminDashboardAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
+import Logo from '../components/Logo'
 
 export default function AdminPanel() {
   const { user, isAdmin, isStaff, isAuthenticated, loading: userLoading } = useUser()
@@ -140,16 +141,11 @@ export default function AdminPanel() {
       {/* Dark Sidebar */}
       <aside className="w-full md:w-64 bg-gray-950 border-r border-gray-800 p-6 flex flex-col justify-between shrink-0">
         <div>
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-              ⚡
-            </div>
-            <div>
-              <h1 className="font-extrabold text-white text-lg tracking-tight">MultiShopNG</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800">
-                Superadmin
-              </span>
-            </div>
+          <div className="flex items-center justify-between mb-8">
+            <Logo size="md" isDarkBg={true} />
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800">
+              Superadmin
+            </span>
           </div>
 
           <nav className="space-y-1">

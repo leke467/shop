@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
+import Logo from '../../components/Logo'
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
@@ -180,7 +181,7 @@ function EngineNavbar({ config, shop, shopSlug }) {
               backgroundColor: `${primaryAccent}15`,
             }}
           >
-            <span>🏪</span> MultiShop
+            <Logo size="sm" />
           </Link>
 
           <button
