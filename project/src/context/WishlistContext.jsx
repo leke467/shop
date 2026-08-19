@@ -41,7 +41,10 @@ export function WishlistProvider({ children }) {
     try {
       const saved = localStorage.getItem('marketplace_wishlist')
       if (saved) {
-        return JSON.parse(saved)
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => !String(item.id).startsWith('prod-'))
+        }
       }
     } catch {
       // Fallback
