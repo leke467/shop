@@ -263,3 +263,86 @@ class TwoFactorDisableView(APIView):
         tfa.totp_secret = ""
         tfa.save()
         return Response({"detail": "2FA disabled successfully."})
+
+
+import requests
+
+class GoogleAuthView(APIView):
+    """
+    POST /api/accounts/google/
+    Verifies Google ID Token or Access Token, gets or creates user,
+    issues SimpleJWT tokens and HttpOnly auth cookies.
+    """
+    permission_classes = [AllowAny]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        token = request.data.get("token") or request.data.get("id_token") or request.data.get("credential")
+        if not token:
+            return Response({"detail": "Google token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify Google Token via Google OAuth2 TokenInfo API
+        try:
+            res = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={token}", timeout=10)
+            if res.status_code != 200:
+                # Try fallback as access token
+                res = requests.get("https://www.googleapis.com/oauth2/v3/userinfo", headers={"Authorization": f"Bearer {token}"}, timeout=10)
+            
+            if res.status_code != 200:
+                return Response({"detail": "Invalid or expired Google token."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user_info = res.json()
+            email = user_info.get("email")
+            if not email:
+                return Response({"detail": "Google account email not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            first_name = user_info.get("given_name") or user_info.get("name", "").split(" ")[0] or "User"
+            last_name = user_info.get("family_name") or ""
+            
+        except Exception as e:
+            return Response({"detail": f"Failed to verify token with Google: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        User = get_user_model()
+        created = False
+        user = User.objects.filter(email=email).first()
+
+        if not user:
+            created = True
+            username = email.split("@")[0].replace(".", "_")
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
+
+            user = User.objects.create_user(
+                email=email,
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                password=User.objects.make_random_password(16),
+            )
+
+            # Trigger welcome email for new social registrations
+            try:
+                from notifications.tasks import send_welcome_email
+                send_welcome_email.delay(user.email, {
+                    "user_name": user.first_name or user.email.split("@")[0],
+                })
+            except Exception:
+                pass
+
+        # Generate SimpleJWT Tokens
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from .cookie_views import _set_auth_cookies
+        refresh = RefreshToken.for_user(user)
+
+        response = Response({
+            "user": UserProfileSerializer(user).data,
+            "access": str(refresh.access_token),
+            "created": created,
+            "detail": "Successfully authenticated with Google.",
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+        return _set_auth_cookies(response, str(refresh.access_token), str(refresh))

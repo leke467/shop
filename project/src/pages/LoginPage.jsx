@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
 import Logo from '../components/Logo'
+import GoogleLoginButton from '../components/GoogleLoginButton'
 
 export default function LoginPage() {
   const { login } = useUser()
@@ -176,6 +177,15 @@ export default function LoginPage() {
               ) : 'Sign in'}
             </motion.button>
           </form>
+
+          {/* Social Divider */}
+          <div className="my-6 flex items-center gap-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Or continue with</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <GoogleLoginButton text="Sign in with Google" />
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Don't have an account?{' '}

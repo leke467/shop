@@ -89,6 +89,8 @@ export const authAPI = {
     api.post('/users/forgot-password/', { email }).then(r => r.data),
   resetPassword: (data) =>
     api.post('/users/reset-password/', data).then(r => r.data),
+  googleLogin: (token) =>
+    api.post('/users/google/', { token }).then(r => r.data),
 }
 
 // ── Shops ────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ from .views import (
     TwoFactorSetupView,
     TwoFactorVerifyView,
     TwoFactorDisableView,
+    GoogleAuthView,
 )
 
 urlpatterns = [
@@ -32,4 +33,6 @@ urlpatterns = [
     path("2fa/verify/", TwoFactorVerifyView.as_view(), name="2fa-verify"),
     path("2fa/disable/", TwoFactorDisableView.as_view(), name="2fa-disable"),
     path("2fa/login-verify/", TwoFactorLoginVerifyView.as_view(), name="2fa-login-verify"),
+    # Google OAuth Social Auth
+    path("google/", GoogleAuthView.as_view(), name="google-auth"),
 ]

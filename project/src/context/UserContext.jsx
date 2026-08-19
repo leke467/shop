@@ -49,6 +49,12 @@ export function UserProvider({ children }) {
     } catch { setUser(null) }
   }, [])
 
+  const googleLogin = useCallback(async (token) => {
+    const data = await authAPI.googleLogin(token)
+    setUser(data.user)
+    return data
+  }, [])
+
   const value = {
     user,
     loading,
@@ -56,6 +62,7 @@ export function UserProvider({ children }) {
     isAdmin: user?.role === 'admin',
     isSeller: user?.role === 'seller' || user?.role === 'admin',
     login,
+    googleLogin,
     register,
     logout,
     refreshProfile,
