@@ -36,6 +36,7 @@ class Migration(migrations.Migration):
                 ('analytics_enabled', models.BooleanField(default=False)),
                 ('staff_accounts_enabled', models.BooleanField(default=False)),
                 ('priority_support_enabled', models.BooleanField(default=False)),
+                ('premium_templates_enabled', models.BooleanField(default=False)),
                 ('is_enterprise', models.BooleanField(default=False)),
                 ('is_active', models.BooleanField(db_index=True, default=True, help_text='Inactive plans are hidden from pricing and cannot be subscribed to (existing subscribers keep their plan).')),
                 ('display_order', models.PositiveIntegerField(default=0, help_text='Ascending sort order on the pricing page.')),
