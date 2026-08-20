@@ -42,9 +42,6 @@ python fix_db.py || true
 echo "==> Running Full Database Migrations..."
 python manage.py migrate --noinput
 
-echo "==> Populating Initial Database Seed Fixtures..."
-python manage.py loaddata seed_data.json || echo "Notice: Seed data already loaded or skipped."
-
 echo "==> Collecting Static Files..."
 python manage.py collectstatic --noinput || echo "Warning: Collectstatic had warnings"
 
