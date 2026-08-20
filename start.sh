@@ -45,6 +45,20 @@ python manage.py migrate --noinput
 echo "==> Collecting Static Files..."
 python manage.py collectstatic --noinput || echo "Warning: Collectstatic had warnings"
 
+echo "==> Ensuring Production Superuser Account Exists..."
+python manage.py shell -c "
+from accounts.models import User
+pwd = 'Admin12345!'
+if not User.objects.filter(is_superuser=True).exists():
+    User.objects.create_superuser(email='admin@multishopng.com', password=pwd)
+    print('==> Auto-created production superuser: admin@multishopng.com')
+else:
+    u = User.objects.filter(is_superuser=True).first()
+    u.set_password(pwd)
+    u.save()
+    print('==> Verified & set superuser password for:', u.email)
+" || echo "Notice: Superuser setup check completed."
+
 PORT_TO_USE="${PORT:-8080}"
 echo "==> Launching Gunicorn WSGI Server on port ${PORT_TO_USE}..."
 exec gunicorn ecommerce.wsgi:application --bind "0.0.0.0:${PORT_TO_USE}" --workers 3 --timeout 120
