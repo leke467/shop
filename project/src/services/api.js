@@ -503,18 +503,25 @@ export const adminDashboardAPI = {
 }
 
 // ── Image helper ─────────────────────────────────────────────
+const DEFAULT_PRODUCT_PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
+const DEFAULT_LOGO_PLACEHOLDER = 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=200&q=80'
+const DEFAULT_AVATAR_PLACEHOLDER = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+
 export const getImageUrl = (path) => {
-  if (!path) return ''
+  if (!path) return DEFAULT_PRODUCT_PLACEHOLDER
   if (typeof path !== 'string') {
     path = path?.url || path?.image || path?.medium || path?.large || path?.thumbnail || ''
   }
-  if (!path) return ''
+  if (!path) return DEFAULT_PRODUCT_PLACEHOLDER
 
   if (path.startsWith('data:') || path.startsWith('blob:')) return path
 
   // If path is an absolute URL (e.g. Backblaze B2, Unsplash, external CDN)
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    // If it points to an old localhost URL from seed data, strip localhost and route to BASE_URL
+    if (path.includes('unsplash.com') || path.includes('backblazeb2.com') || path.includes('pexels.com')) {
+      return path
+    }
+    // If it points to a local media URL that doesn't exist on disk, fallback gracefully to BASE_URL or CDN
     if (path.includes('localhost') || path.includes('127.0.0.1')) {
       const cleanPath = path.replace(/^https?:\/\/[^\/]+/, '')
       return `${BASE_URL}${cleanPath}`
@@ -529,12 +536,12 @@ export const getImageUrl = (path) => {
 
 export const handleImageError = (e, fallbackType = 'product') => {
   if (e?.target) {
+    e.target.onerror = null // Prevent infinite loop if fallback fails
     const placeholder = fallbackType === 'avatar' 
-      ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+      ? DEFAULT_AVATAR_PLACEHOLDER
       : fallbackType === 'logo'
-      ? 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=200&q=80'
-      : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
-    e.target.onerror = null
+      ? DEFAULT_LOGO_PLACEHOLDER
+      : DEFAULT_PRODUCT_PLACEHOLDER
     e.target.src = placeholder
   }
 }
