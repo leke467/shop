@@ -5,6 +5,7 @@ import { subscriptionAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 const FEATURE_LABELS = {
+  premium_templates_enabled: 'Custom Shop Themes',
   custom_domain_enabled: 'Custom Domain',
   analytics_enabled: 'Analytics',
   staff_accounts_enabled: 'Staff Accounts',

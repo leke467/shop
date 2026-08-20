@@ -5,6 +5,7 @@ import { subscriptionAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 const FEATURE_ROWS = [
+  { key: 'premium_templates_enabled', label: 'Custom Shop Themes' },
   { key: 'custom_domain_enabled', label: 'Custom Domain' },
   { key: 'analytics_enabled', label: 'Analytics' },
   { key: 'staff_accounts_enabled', label: 'Staff Accounts' },
