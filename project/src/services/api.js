@@ -15,6 +15,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+/// Request interceptor: attach Bearer token if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 // Track refresh state to avoid infinite loops
 let isRefreshing = false
 let failedQueue = []
@@ -52,11 +61,13 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        await api.post('/users/token/refresh/')
+        const res = await api.post('/users/token/refresh/')
+        if (res.data?.access) localStorage.setItem('access_token', res.data.access)
         processQueue(null)
         return api(original)
       } catch (err) {
         processQueue(err)
+        localStorage.removeItem('access_token')
         // Redirect to login if refresh fails, except if it was just the silent profile check
         if (
           window.location.pathname !== '/login' && 
@@ -76,11 +87,19 @@ api.interceptors.response.use(
 // ── Auth ─────────────────────────────────────────────────────
 export const authAPI = {
   login: (email, password) =>
-    api.post('/users/login/', { email, password }).then(r => r.data),
+    api.post('/users/login/', { email, password }).then(r => {
+      if (r.data?.access) localStorage.setItem('access_token', r.data.access)
+      return r.data
+    }),
   register: (data) =>
-    api.post('/users/register/', data).then(r => r.data),
-  logout: () =>
-    api.post('/users/logout/').then(r => r.data),
+    api.post('/users/register/', data).then(r => {
+      if (r.data?.access) localStorage.setItem('access_token', r.data.access)
+      return r.data
+    }),
+  logout: () => {
+    localStorage.removeItem('access_token')
+    return api.post('/users/logout/').then(r => r.data).catch(() => ({}))
+  },
   profile: () =>
     api.get('/users/profile/').then(r => r.data),
   updateProfile: (data) =>
@@ -90,7 +109,10 @@ export const authAPI = {
   resetPassword: (data) =>
     api.post('/users/reset-password/', data).then(r => r.data),
   googleLogin: (token) =>
-    api.post('/users/google/', { token }).then(r => r.data),
+    api.post('/users/google/', { token }).then(r => {
+      if (r.data?.access) localStorage.setItem('access_token', r.data.access)
+      return r.data
+    }),
 }
 
 // ── Shops ────────────────────────────────────────────────────
