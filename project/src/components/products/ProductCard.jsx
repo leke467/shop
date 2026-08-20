@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
+import { getImageUrl, handleImageError } from '../../services/api'
 
 function ProductCard({ product }) {
   const { addToCart } = useCart()
@@ -8,7 +9,8 @@ function ProductCard({ product }) {
   // Normalize properties between backend Django API schema and legacy frontend keys
   const id = product.slug || product.public_id || product.id
   const name = product.name
-  const image = product.primary_image || product.image
+  const rawImage = product.primary_image || product.image || product.images?.[0]?.medium || product.images?.[0]?.image
+  const image = getImageUrl(rawImage)
   const price = product.base_price || product.price
   const shopName = product.shop_name || product.shopName
   const shopId = product.shop_slug || product.shopId
@@ -35,6 +37,7 @@ function ProductCard({ product }) {
             <img 
               src={image} 
               alt={name} 
+              onError={(e) => handleImageError(e, 'product')}
               className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
             />
           ) : (

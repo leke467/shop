@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { getImageUrl } from '../../services/api'
+import { getImageUrl, handleImageError } from '../../services/api'
 
 function getShopTemplateMeta(shop) {
   const tid = (shop?.template_id || shop?.template || '').toLowerCase()
@@ -39,6 +39,7 @@ function ShopCard({ shop }) {
             <img 
               src={bannerUrl} 
               alt={shop.name} 
+              onError={(e) => handleImageError(e, 'logo')}
               className="w-full h-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
             />
           )}
@@ -56,6 +57,7 @@ function ShopCard({ shop }) {
               <img 
                 src={logoUrl} 
                 alt={`${shop.name} logo`} 
+                onError={(e) => handleImageError(e, 'logo')}
                 className="w-full h-full object-cover"
               />
             </div>

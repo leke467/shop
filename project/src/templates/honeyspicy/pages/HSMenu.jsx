@@ -4,7 +4,7 @@ import { useCart } from '../../../context/CartContext'
 import HSPageTransition from '../components/HSPageTransition'
 import HSAnimatedSection from '../components/HSAnimatedSection'
 import HSQuickViewModal from '../components/HSQuickViewModal'
-import { getImageUrl } from '../../../services/api'
+import { getImageUrl, handleImageError } from '../../../services/api'
 
 export default function HSMenu({ shop, products = [], shopSlug }) {
   const [activeCategory, setActiveCategory] = useState('All')
@@ -122,7 +122,7 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
                   <HSAnimatedSection key={product.public_id || product.id} delay={0.05 * (index % 6)}>
                     <motion.div className="hs-menu-item" whileHover={{ y: -10, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
                       <div className="hs-menu-item-image" style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setQuickViewProduct(product)}>
-                        {imgUrl ? <img src={imgUrl} alt={product.name} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>📦</div>}
+                        {imgUrl ? <img src={imgUrl} alt={product.name} onError={(e) => handleImageError(e, 'product')} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>📦</div>}
                         <div className="hs-menu-item-tag">{product.category_name || product.category || 'Other'}</div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setQuickViewProduct(product); }}
