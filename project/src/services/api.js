@@ -504,12 +504,38 @@ export const adminDashboardAPI = {
 // ── Image helper ─────────────────────────────────────────────
 export const getImageUrl = (path) => {
   if (!path) return ''
-  if (path.startsWith('data:') || path.startsWith('blob:')) return path
-  if (path.startsWith('http://localhost/media/') || path.startsWith('http://127.0.0.1/media/')) {
-    return path.replace('http://localhost/', `${BASE_URL}/`).replace('http://127.0.0.1/', `${BASE_URL}/`)
+  if (typeof path !== 'string') {
+    path = path?.url || path?.image || path?.medium || path?.large || path?.thumbnail || ''
   }
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
+  if (!path) return ''
+
+  if (path.startsWith('data:') || path.startsWith('blob:')) return path
+
+  // If path is an absolute URL (e.g. Backblaze B2, Unsplash, external CDN)
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    // If it points to an old localhost URL from seed data but we're connected to production API
+    if ((path.includes('localhost') || path.includes('127.0.0.1')) && !BASE_URL.includes('localhost')) {
+      const cleanPath = path.replace(/^https?:\/\/[^\/]+/, '')
+      return `${BASE_URL}${cleanPath}`
+    }
+    return path
+  }
+
+  // Relative path (e.g. /media/products/item.jpg)
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  return `${BASE_URL}${cleanPath}`
+}
+
+export const handleImageError = (e, fallbackType = 'product') => {
+  if (e?.target) {
+    const placeholder = fallbackType === 'avatar' 
+      ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+      : fallbackType === 'logo'
+      ? 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=200&q=80'
+      : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
+    e.target.onerror = null
+    e.target.src = placeholder
+  }
 }
 
 export default api

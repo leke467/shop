@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { searchAPI, personalAPI, shopAPI, productAPI, getImageUrl, orderAPI } from '../services/api'
+import { searchAPI, personalAPI, shopAPI, productAPI, getImageUrl, handleImageError, orderAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import SEOHead from '../components/SEOHead'
 
@@ -16,7 +16,7 @@ function ShopCard({ shop }) {
         {/* Banner */}
         <div className="h-36 bg-gradient-to-br from-primary-400 to-secondary-500 relative overflow-hidden">
           {shop.banner && (
-            <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />
+            <img src={getImageUrl(shop.banner)} onError={(e) => handleImageError(e, 'logo')} alt="" className="w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
@@ -24,7 +24,7 @@ function ShopCard({ shop }) {
         <div className="absolute top-24 left-5">
           <div className="w-16 h-16 rounded-2xl bg-white shadow-lg border-2 border-white overflow-hidden flex items-center justify-center">
             {shop.logo ? (
-              <img src={getImageUrl(shop.logo)} alt={shop.name} className="w-full h-full object-cover" />
+              <img src={getImageUrl(shop.logo)} onError={(e) => handleImageError(e, 'logo')} alt={shop.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-2xl font-bold text-primary-600">{shop.name?.[0]}</span>
             )}
