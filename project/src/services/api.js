@@ -45,11 +45,26 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       // Don't attempt refresh loop if the failed endpoint was login, register, or refresh itself
       if (
-        original.url.includes('/users/login/') ||
-        original.url.includes('/users/register/') ||
-        original.url.includes('/users/token/refresh/')
+        original.url?.includes('/users/login/') ||
+        original.url?.includes('/users/register/') ||
+        original.url?.includes('/users/token/refresh/')
       ) {
         return Promise.reject(error)
+      }
+
+      // For public endpoints (search, products, shops, etc.), if 401 occurs due to an expired Bearer token,
+      // remove the expired token and retry request unauthenticated so public data still loads cleanly.
+      const isPublicEndpoint = 
+        original.url?.includes('/search/') || 
+        original.url?.includes('/products/') || 
+        original.url?.includes('/shops/') ||
+        original.url?.includes('/categories/')
+
+      if (isPublicEndpoint && original.headers?.Authorization) {
+        original._retry = true
+        localStorage.removeItem('access_token')
+        delete original.headers.Authorization
+        return api(original)
       }
 
       if (isRefreshing) {
@@ -69,13 +84,6 @@ api.interceptors.response.use(
       } catch (err) {
         processQueue(err)
         localStorage.removeItem('access_token')
-        // Redirect to login if refresh fails, except if it was just the silent profile check
-        if (
-          window.location.pathname !== '/login' && 
-          !original.url.includes('/users/profile/')
-        ) {
-          window.location.href = '/login'
-        }
         return Promise.reject(err)
       } finally {
         isRefreshing = false

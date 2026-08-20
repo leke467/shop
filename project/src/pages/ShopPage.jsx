@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl, handleImageError } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useShop, getTemplateShopCache, setTemplateShopCache } from '../context/ShopContext'
+import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
 import TemplateRouter from '../templates/TemplateRouter'
 
