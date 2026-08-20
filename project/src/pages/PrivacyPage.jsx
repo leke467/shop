@@ -106,11 +106,14 @@ export default function PrivacyPage() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="border-t border-gray-100 pt-6 flex justify-between items-center text-xs">
+          <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row justify-between items-center text-xs gap-3">
             <Link to="/" className="text-primary-600 hover:text-primary-700 font-semibold">
               ← Return to Home
             </Link>
-            <span className="text-gray-400">© 2026 Marketplace Inc. All rights reserved.</span>
+            <span className="text-gray-400">© 2026 MultiShopNG. All rights reserved.</span>
+            <a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary-600 font-medium transition">
+              Powered by <span className="font-semibold text-gray-700">Apexlabs</span> (<span className="text-primary-600 hover:underline">apexlabs.it.com</span>)
+            </a>
           </div>
         </motion.div>
       </div>

@@ -93,8 +93,8 @@ function Footer() {
           </div>
 
           <div className="w-full sm:w-auto text-center sm:text-right mt-2 sm:mt-0">
-            <a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-200 transition text-xs">
-              Powered by Apexlabs
+            <a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary-400 transition text-xs inline-flex items-center gap-1">
+              Powered by <span className="text-gray-200 font-semibold">Apexlabs</span> (<span className="text-primary-400 hover:underline">apexlabs.it.com</span>)
             </a>
           </div>
         </div>
