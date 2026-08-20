@@ -51,7 +51,6 @@ export default function OrdersPage() {
     setLoadingCodes(prev => ({ ...prev, [orderId]: true }))
     try {
       const data = await orderAPI.deliveryCodes(orderId)
-      // data is { order_id: "...", codes: [ { group_id, delivery_code, ... } ] }
       const codeMap = {}
       const list = data?.codes || (Array.isArray(data) ? data : [])
       list.forEach(item => {
@@ -65,6 +64,96 @@ export default function OrdersPage() {
     } finally {
       setLoadingCodes(prev => ({ ...prev, [orderId]: false }))
     }
+  }
+
+  const handlePrintReceipt = (order) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=900')
+    if (!printWindow) return
+
+    const itemsHtml = (order.groups || []).flatMap(g => (g.items || []).map(item => `
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #eee;">
+          <strong>${item.product_name}</strong><br/>
+          <small style="color: #666;">Store: ${g.shop_name} ${item.variant_name ? '| ' + item.variant_name : ''}</small>
+        </td>
+        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₦${Number(item.unit_price || (item.line_total / item.quantity)).toLocaleString()}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₦${Number(item.line_total).toLocaleString()}</td>
+      </tr>
+    `)).join('')
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>MultiShopNG Receipt #${order.public_id.split('-')[0].toUpperCase()}</title>
+          <style>
+            body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; color: #1a1a1a; background: #fff; }
+            .receipt-box { max-width: 680px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #6236ff; padding-bottom: 20px; margin-bottom: 24px; }
+            .logo { font-size: 26px; font-weight: 800; color: #6236ff; letter-spacing: -0.5px; }
+            .status-badge { background: #dcfce7; color: #15803d; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; font-size: 14px; background: #f9fafb; padding: 16px; border-radius: 12px; border: 1px solid #f3f4f6; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            th { background: #f3f4f6; text-align: left; padding: 12px; font-size: 12px; text-transform: uppercase; color: #4b5563; }
+            .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 16px; }
+            .footer { margin-top: 32px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #eee; padding-top: 16px; }
+            .btn-print { background: #6236ff; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
+            @media print { .btn-print { display: none; } body { padding: 0; } .receipt-box { border: none; box-shadow: none; } }
+          </style>
+        </head>
+        <body>
+          <div style="text-align: right;"><button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button></div>
+          <div class="receipt-box">
+            <div class="header">
+              <div>
+                <div class="logo">MultiShopNG</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Official Payment & Escrow Receipt</div>
+              </div>
+              <div class="status-badge">✓ PAYMENT VERIFIED</div>
+            </div>
+
+            <div class="info-grid">
+              <div>
+                <strong>Order Ref:</strong> #${order.public_id.split('-')[0].toUpperCase()}<br/>
+                <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}<br/>
+                <strong>Escrow Status:</strong> Secured
+              </div>
+              <div style="text-align: right;">
+                <strong>Buyer:</strong> ${user?.email || 'Registered Customer'}<br/>
+                <strong>Stores Count:</strong> ${order.groups?.length || 1}<br/>
+                <strong>Status:</strong> ${order.status.toUpperCase()}
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Item & Store</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Unit Price</th>
+                  <th style="text-align: right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+
+            <div class="total-row">
+              <span>Grand Total Paid:</span>
+              <span style="color: #6236ff;">₦${Number(order.grand_total).toLocaleString()}</span>
+            </div>
+
+            <div class="footer">
+              MultiShopNG — Official Payment Receipt. Funds are securely escrowed until buyer delivery confirmation.
+            </div>
+          </div>
+          <script>window.onload = function() { window.print(); }</script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   const handleDispute = async (e) => {
@@ -153,9 +242,15 @@ export default function OrdersPage() {
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()} • {order.groups?.length || 0} Shop(s)</p>
                   </div>
-                  <div className="sm:text-right">
+                  <div className="sm:text-right flex flex-col sm:items-end gap-1">
                     <p className="text-xs sm:text-sm text-gray-500 mb-0.5">Total Amount</p>
                     <p className="font-bold text-gray-900 text-base sm:text-lg">₦{Number(order.grand_total).toLocaleString()}</p>
+                    <button
+                      onClick={() => handlePrintReceipt(order)}
+                      className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-xs font-semibold text-gray-700 transition-colors"
+                    >
+                      🧾 Print Receipt
+                    </button>
                   </div>
                 </div>
 
