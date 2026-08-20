@@ -9,7 +9,7 @@ export default function GoogleLoginButton({ onSuccess, onError, text = "Continue
   const [error, setError] = useState('')
 
   // Production Google OAuth Client ID with fallback
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "622358110547-vtufo5kh2088g0i6rjfkj68fn0fh4fn4.apps.googleusercontent.com"
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "30437147425-26pfi92foivnj20he2v528vt962l1rjj.apps.googleusercontent.com"
 
   useEffect(() => {
     if (!googleClientId) return
