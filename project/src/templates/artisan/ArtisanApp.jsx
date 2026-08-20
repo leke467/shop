@@ -324,7 +324,7 @@ function ArtisanCheckout({ shop, shopSlug }) {
   const submit = async (e) => {
     e.preventDefault()
     if (items.length === 0) {
-      alert('Your basket is empty.')
+      console.error('Checkout error:', err);
       return
     }
     setLoading(true)
@@ -342,7 +342,7 @@ function ArtisanCheckout({ shop, shopSlug }) {
       clearCart?.()
       setDone(r.order || r || { public_id: 'OK' })
     } catch (err) {
-      alert(err?.response?.data?.message || err?.message || 'Checkout failed')
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

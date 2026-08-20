@@ -344,7 +344,7 @@ function PastelCheckout({ shop, shopSlug }) {
       const deliveryCode = r.delivery_code || r.order?.delivery_code || r.order_codes?.[0]?.delivery_code || orderData.delivery_code
       setDone({ ...orderData, delivery_code: deliveryCode })
     } catch {
-      alert('Checkout failed. Please try again.')
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

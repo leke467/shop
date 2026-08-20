@@ -347,7 +347,7 @@ function IndustrialCheckout({ shop, shopSlug }) {
   const submit = async (e) => {
     e.preventDefault()
     if (items.length === 0) {
-      alert('Your crate is empty.')
+      console.error('Checkout error:', err);
       return
     }
     setLoading(true)
@@ -367,7 +367,7 @@ function IndustrialCheckout({ shop, shopSlug }) {
       const deliveryCode = r.delivery_code || r.order?.delivery_code || r.order_codes?.[0]?.delivery_code || orderData.delivery_code
       setDone({ ...orderData, delivery_code: deliveryCode })
     } catch (err) {
-      alert(err?.response?.data?.message || err?.message || 'Checkout failed')
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

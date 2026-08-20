@@ -351,7 +351,7 @@ function DeptCheckout({ shop, shopSlug }) {
       clearCart?.()
       setDone(r?.order || r || { public_id: 'OK' })
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Failed to place order')
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

@@ -337,7 +337,7 @@ function BohoCheckout({ shop, shopSlug }) {
       clearCart?.()
       setDone(r.order || r || { public_id: 'OK' })
     } catch {
-      alert('Checkout failed. Please try again.')
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

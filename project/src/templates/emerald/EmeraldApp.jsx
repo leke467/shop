@@ -364,7 +364,7 @@ function EmeraldCheckout({ shop, shopSlug }) {
       const deliveryCode = r.delivery_code || r.order?.delivery_code || r.order_codes?.[0]?.delivery_code || orderData.delivery_code
       setDone({ ...orderData, delivery_code: deliveryCode })
     } catch (err) {
-      alert('Checkout failed: ' + (err.response?.data?.detail || err.message || 'Please check your inputs.'))
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

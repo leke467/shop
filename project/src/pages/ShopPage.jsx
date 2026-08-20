@@ -45,6 +45,7 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true)
   const { user } = useUser()
   const { activeTemplateShop, setActiveTemplateShop } = useShop() || {}
+  const { toast } = useNotification()
 
   // Report Shop State
   const [showReportModal, setShowReportModal] = useState(false)
@@ -58,7 +59,6 @@ export default function ShopPage() {
     setReporting(true)
     try {
       await shopAPI.reportShop(shopSlug, { reason: reportReason, details: reportDetails })
-      await shopAPI.reportShop(shopSlug, { reason: reportReason, description: reportDetails })
       setReportSuccess(true)
       setTimeout(() => {
         setShowReportModal(false)
@@ -67,7 +67,7 @@ export default function ShopPage() {
       }, 3000)
     } catch (err) {
       console.error('Report failed', err)
-      alert(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.')
+      toast(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.', 'error')
     } finally {
       setReporting(false)
     }

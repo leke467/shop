@@ -396,7 +396,7 @@ function RetroCheckout({ shop, shopSlug }) {
       const deliveryCode = res.delivery_code || res.order?.delivery_code || res.order_codes?.[0]?.delivery_code || orderData.delivery_code
       setComplete({ ...orderData, delivery_code: deliveryCode })
     } catch (err) {
-      alert('Checkout failed: ' + (err?.response?.data?.detail || err?.message || 'Please try again.'))
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false)
     }

@@ -76,9 +76,9 @@ export default function OrdersPage() {
       setShowDisputeModal(false)
       setDisputeReason('')
       loadData()
-      alert(res.detail || 'Dispute opened successfully.')
+      toast(res.detail || 'Dispute opened successfully.', 'success')
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to open dispute.')
+      toast(err.response?.data?.detail || 'Failed to open dispute.', 'error')
     } finally {
       setDisputing(false)
     }
@@ -97,9 +97,9 @@ export default function OrdersPage() {
       setShowRefundModal(false)
       setRefundDescription('')
       loadData()
-      alert('Refund request submitted successfully! Our team will review it.')
+      toast('Refund request submitted successfully! Our team will review it.', 'success')
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to submit refund request.')
+      toast(err.response?.data?.detail || 'Failed to submit refund request.', 'error')
     } finally {
       setRequestingRefund(false)
     }

@@ -82,7 +82,7 @@ export default function ProductPage() {
       }, 3000)
     } catch (err) {
       console.error('Report failed', err)
-      alert(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.')
+      toast(err.response?.data?.detail || err.response?.data?.error || 'Failed to report shop. Please try again.', 'error')
     } finally {
       setReporting(false)
     }
