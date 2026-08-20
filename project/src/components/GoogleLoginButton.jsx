@@ -32,7 +32,7 @@ export default function GoogleLoginButton({ onSuccess, onError, text = "Continue
         if (btnContainer) {
           window.google.accounts.id.renderButton(
             btnContainer,
-            { theme: 'outline', size: 'large', width: '100%', shape: 'pill', text: 'continue_with' }
+            { theme: 'outline', size: 'large', width: 320, shape: 'pill', text: 'continue_with' }
           )
         }
 
