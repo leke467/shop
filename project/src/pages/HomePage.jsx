@@ -62,6 +62,7 @@ function ProductCard({ product }) {
             <img
               src={getImageUrl(typeof firstImage === 'string' ? firstImage : (firstImage.medium || firstImage.image))}
               alt={product.name}
+              onError={(e) => handleImageError(e, 'product')}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (

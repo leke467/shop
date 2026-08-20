@@ -516,12 +516,15 @@ export const getImageUrl = (path) => {
 
   if (path.startsWith('data:') || path.startsWith('blob:')) return path
 
-  // If path is an absolute URL (e.g. Backblaze B2, Unsplash, external CDN)
+  // When running locally on dev server, prevent attempting to fetch from Backblaze
+  if (isLocalhost && path.includes('backblazeb2.com')) {
+    const cleanPath = path.replace(/^https?:\/\/[^\/]+\/(multishopng\/)?/, '')
+    const normalizedPath = cleanPath.startsWith('media/') ? cleanPath : `media/${cleanPath}`
+    return `${BASE_URL}/${normalizedPath}`
+  }
+
+  // If path is an absolute URL (e.g. Unsplash, Pexels, external CDN)
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    if (path.includes('unsplash.com') || path.includes('backblazeb2.com') || path.includes('pexels.com')) {
-      return path
-    }
-    // If it points to a local media URL that doesn't exist on disk, fallback gracefully to BASE_URL or CDN
     if (path.includes('localhost') || path.includes('127.0.0.1')) {
       const cleanPath = path.replace(/^https?:\/\/[^\/]+/, '')
       return `${BASE_URL}${cleanPath}`
