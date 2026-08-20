@@ -7,7 +7,7 @@
  */
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://shop-production-8258.up.railway.app'
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -513,8 +513,8 @@ export const getImageUrl = (path) => {
 
   // If path is an absolute URL (e.g. Backblaze B2, Unsplash, external CDN)
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    // If it points to an old localhost URL from seed data but we're connected to production API
-    if ((path.includes('localhost') || path.includes('127.0.0.1')) && !BASE_URL.includes('localhost')) {
+    // If it points to an old localhost URL from seed data, strip localhost and route to BASE_URL
+    if (path.includes('localhost') || path.includes('127.0.0.1')) {
       const cleanPath = path.replace(/^https?:\/\/[^\/]+/, '')
       return `${BASE_URL}${cleanPath}`
     }
