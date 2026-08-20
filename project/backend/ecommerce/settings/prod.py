@@ -75,11 +75,13 @@ CELERY_TASK_ALWAYS_EAGER = False
 # ---------------------------------------------------------------------------
 # Static files via WhiteNoise (compressed + hashed) if available
 # ---------------------------------------------------------------------------
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    },
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+else:
+    STORAGES["default"] = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
+STORAGES["staticfiles"] = {
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
 }
 try:  # pragma: no cover - only when whitenoise is installed
     import whitenoise  # noqa: F401

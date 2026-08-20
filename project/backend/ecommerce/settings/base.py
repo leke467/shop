@@ -113,6 +113,7 @@ THIRD_PARTY_APPS = [
     "mptt",
     "django_celery_beat",
     "django_celery_results",
+    "storages",
 ]
 
 # SimpleJWT token_blacklist has a known migration bug on MSSQL (mssql-django 0008_migrate_to_bigautofield).
@@ -438,17 +439,39 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# ---------------------------------------------------------------------------
+# Backblaze B2 / S3 Cloud Storage Configuration
+# ---------------------------------------------------------------------------
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", env("B2_APPLICATION_KEY_ID", "00562ca274a2c5f0000000002"))
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", env("B2_APPLICATION_KEY", "K0059J28rY1pFen8oXkVC1W4ySs1CX4"))
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", env("B2_BUCKET_NAME", "multishopng"))
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", env("B2_ENDPOINT", "https://s3.us-east-005.backblazeb2.com"))
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", "us-east-005")
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = False
 
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-    },
-}
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.backblazeb2.com/"
+else:
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        },
+    }
 
 # Maximum in-memory upload size before streaming to a temp file (2.5 MB default).
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(env("DATA_UPLOAD_MAX_MEMORY_SIZE", str(2621440)))

@@ -40,8 +40,10 @@ drf-spectacular==0.27.2
 # --- Category taxonomy (tree structures) ---
 django-mptt==0.16.0
 
-# --- Images ---
+# --- Images & Storage ---
 Pillow==10.2.0
+django-storages==1.14.6
+boto3==1.43.75
 
 # --- Payments ---
 stripe==11.1.0
