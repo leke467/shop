@@ -6,7 +6,7 @@ import SEOHead from '../components/SEOHead'
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20">
-      <SEOHead title="Terms of Service" />
+      <SEOHead title="Terms & Conditions — MultiShopNG" />
       <div className="max-w-4xl mx-auto px-6">
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
@@ -15,13 +15,16 @@ export default function TermsPage() {
         >
           {/* Header */}
           <div className="border-b border-gray-100 pb-6 text-center sm:text-left">
+            <div className="inline-block px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-xs font-bold mb-3">
+              MultiShopNG Terms of Service
+            </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">Terms & Conditions</h1>
-            <p className="text-sm text-gray-400 mt-2">Last Updated: July 18, 2026</p>
+            <p className="text-sm text-gray-400 mt-2">Last Updated: August 20, 2026</p>
           </div>
 
           {/* Quick Summary Alert Box */}
           <div className="p-5 rounded-2xl bg-primary-50 border border-primary-100 text-sm text-primary-800 leading-relaxed">
-            <strong>💡 Quick Summary:</strong> This platform acts strictly as an intermediary/technology provider linking independent buyers and sellers. We hold buyer payments securely in escrow. Funds are only transferred to the seller once the buyer provides the delivery confirmation code (Confirmation Code Escrow). Sellers must submit valid KYC verification, and scam activities will result in immediate termination of account and forfeiture of escrowed balances.
+            <strong>💡 Quick Summary:</strong> MultiShopNG is a multi-vendor e-commerce platform and technology provider. We connect independent sellers and buyers with integrated payment gateways (Paystack, Monnify / Moniepoint, Stripe), strict 6-digit confirmation code escrow protection, tiered subscriptions with Custom Shop Themes, and automated identity verification (KYC). Sellers receive escrow payouts only upon buyer delivery confirmation.
           </div>
 
           <div className="space-y-6 text-sm text-gray-600 leading-relaxed">
@@ -29,78 +32,78 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">1. Acceptance of Terms</h3>
               <p>
-                By creating a user profile, registering a storefront, listing items, or buying products on this platform, you agree to comply with and be legally bound by these Terms and Conditions. If you do not accept these terms in full, you must immediately cease all use of our services.
+                By accessing MultiShopNG (`multishopng.com`), registering an account, subscribing to seller plans, creating storefronts, listing products, or purchasing items, you agree to be bound by these Terms and Conditions. If you disagree with any part of these terms, you must discontinue platform usage immediately.
               </p>
             </section>
 
             {/* Section 2 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">2. Role of the Platform</h3>
+              <h3 className="text-lg font-bold text-gray-900">2. Marketplace Platform Role</h3>
               <p>
-                We provide technology and infrastructure facilitating independent e-commerce transactions. 
-                <strong> We are not the seller of record, we do not own, inspect, pack, ship, or guarantee any physical products listed.</strong> Any contract for sale is formed directly between the buyer and the seller. We do not assume any liability for product defects, safety warnings, non-delivery, or misrepresentation by shop owners.
+                MultiShopNG operates strictly as a technology provider and intermediary platform.
+                <strong> We are not the direct seller of goods unless explicitly marked.</strong> Contracts for purchase are established directly between independent shop owners and buyers. Shop owners are solely responsible for item accuracy, inventory, delivery fulfillment, and customer service.
               </p>
             </section>
 
             {/* Section 3 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">3. Escrow & Delivery Code System</h3>
+              <h3 className="text-lg font-bold text-gray-900">3. Payment Gateways & Escrow Protection</h3>
               <p>
-                To shield our marketplace community against fraud, we operate a mandatory payment escrow protocol:
+                To eliminate payment fraud, MultiShopNG enforces a mandatory Payment Escrow Protocol:
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li><strong>Payment Capture:</strong> When a buyer pays via Paystack or Stripe, the funds are securely held in a platform-controlled escrow holding wallet.</li>
-                <li><strong>Confirmation Code:</strong> Upon checkout, a unique 6-digit confirmation code is generated and displayed on the buyer's home panel.</li>
-                <li><strong>Verification on Receipt:</strong> The buyer must share this code with the courier/seller <strong>only</strong> when they have physically received and inspected the purchase. Sharing this code is an irreversible confirmation of delivery.</li>
-                <li><strong>Release of Funds:</strong> Once the seller inputs the matching delivery code, the escrow funds are released to the seller's available wallet balance.</li>
-                <li><strong>No Auto-Release:</strong> There is no timer auto-releasing funds. Funds remain locked in escrow until either a matching code is input by the seller, or a formal dispute is raised and reviewed by our admin team.</li>
+                <li><strong>Supported Payment Providers:</strong> Payments are processed via licensed payment gateways, including <strong>Paystack</strong>, <strong>Monnify (Moniepoint Microfinance Bank)</strong>, and <strong>Stripe</strong>.</li>
+                <li><strong>Escrow Holding:</strong> All buyer payments are securely held in platform-managed escrow holding accounts until delivery completion.</li>
+                <li><strong>6-Digit Confirmation Code:</strong> Upon successful checkout, buyers receive a unique 6-digit delivery confirmation OTP in their order panel and confirmation email.</li>
+                <li><strong>Irreversible Code Release:</strong> Buyers must disclose their 6-digit code to the courier/seller <em>only</em> upon physical receipt and inspection of their items. Inputting the matching code immediately releases escrow funds to the seller's wallet balance.</li>
+                <li><strong>Disputes & Refunds:</strong> If an order is not delivered or fails inspection, buyers may open a dispute before disclosing the confirmation code. Escrowed funds remain locked during investigation.</li>
               </ul>
             </section>
 
             {/* Section 4 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">4. Manual Delivery Disclaimers</h3>
+              <h3 className="text-lg font-bold text-gray-900">4. Seller Subscription Tiers & Custom Shop Themes</h3>
               <p>
-                Where sellers enable the "Manual Delivery Arrangement" option:
+                Sellers may select from tiered subscription plans (Free, Growth, Pro, Scale, Enterprise):
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li>Buyers pay ₦0 shipping fees upfront on our platform.</li>
-                <li>Delivery costs and courier logistics must be agreed upon directly between the buyer and the seller.</li>
-                <li><strong>Safety Caution:</strong> Do not wire cash for shipping directly to a seller before receiving the package. Any transaction happening off-platform is completely unprotected by our escrow refund policies.</li>
+                <li><strong>Resource Caps:</strong> Subscriptions regulate limits on the number of active shops, total product inventory listings, staff accounts, custom domain connections, and priority support.</li>
+                <li><strong>Custom Shop Themes:</strong> Premium subscription tiers unlock access to exclusive high-conversion Storefront Themes (including HoneySpicy, Obsidian, Artisan, Boho, Cyberpunk, Minimalist, etc.). Sellers may customize themes in compliance with community brand standards.</li>
+                <li><strong>Billing & Renewals:</strong> Recurring plan fees are billed monthly via Paystack or Monnify auto-debit or manual renewal. Plan downgrades require sellers to clean up excess shops or products prior to tier change.</li>
               </ul>
             </section>
 
             {/* Section 5 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">5. Know Your Customer (KYC) & Identity Verification</h3>
+              <h3 className="text-lg font-bold text-gray-900">5. Cloud Storage & Content Ownership</h3>
               <p>
-                To maintain a safe e-commerce space, all shop owners must undergo verification:
+                Product photos, store banners, and media uploads are hosted via high-speed Cloud Storage (Backblaze B2 S3 infrastructure):
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li>Sellers must submit accurate legal names and supporting documents (Government IDs, NIN verification letters, or CAC registration papers).</li>
-                <li>Unverified sellers face listing count constraints and payout restrictions.</li>
-                <li>We reserve the right to deploy automated validation tools (such as BVN check APIs) or perform manual checks at our sole discretion.</li>
+                <li>Sellers retain copyright ownership over their uploaded media and graphics.</li>
+                <li>Sellers grant MultiShopNG a non-exclusive license to host, display, and optimize uploaded assets for marketplace promotion.</li>
+                <li>Uploads containing counterfeit products, copyright infringement, adult content, or prohibited items are strictly forbidden and subject to instant deletion.</li>
               </ul>
             </section>
 
             {/* Section 6 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">6. Abuse, Scam Reports, and Suspension</h3>
+              <h3 className="text-lg font-bold text-gray-900">6. Identity Verification (KYC) & Abuse Protection</h3>
               <p>
-                Users can report shops for suspicious activity or policy breaches.
+                All sellers are required to submit valid Know Your Customer (KYC) verification (Government ID, CAC, or BVN verification):
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li>If a storefront gathers **3 or more unique user reports** within any 7-day period, the system will trigger an automatic temporary suspension.</li>
-                <li>Suspended shops cannot receive orders, and their products are hidden from the explore feeds.</li>
-                <li>Escrowed funds tied to suspended accounts are locked pending investigation. If scam activity is verified, we will return the held funds to the respective buyers.</li>
+                <li>Unverified shops face restricted listing limits and withdrawal limits.</li>
+                <li><strong>Automated Suspension:</strong> If a storefront accumulates <strong>3 or more verified scam reports</strong> within 7 days, the system initiates an automated temporary suspension.</li>
+                <li>Verified fraudulent accounts forfeit escrowed balances, which are refunded to impacted buyers.</li>
               </ul>
             </section>
 
             {/* Section 7 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">7. Fees and Payouts</h3>
+              <h3 className="text-lg font-bold text-gray-900">7. Data Privacy & Authentication</h3>
               <p>
-                Payout balances are tracked on the seller wallet page. Withdrawals are processed manually via transfer request to admin. We reserve the right to charge transaction fees or subscription rates on premium tiers, which will be detailed on our Pricing page.
+                We process personal information in compliance with global data privacy standards. User accounts may be authenticated via passwordless email OTPs (delivered via Brevo transaction services) or official Google One-Tap social sign-in. We do not sell user data to third-party advertisers.
               </p>
             </section>
 
@@ -108,7 +111,7 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">8. Limitation of Liability</h3>
               <p>
-                In no event shall the platform owner, developers, or affiliates be liable for indirect, incidental, or consequential damages resulting from transaction disputes, account suspension, loss of sales data, system down-time, or financial fraud occurring between buyers and sellers.
+                MultiShopNG and its operators shall not be liable for indirect, punitive, or consequential damages arising from shop owner breach of contract, off-platform cash transactions, delivery courier delays, or unauthorized user conduct.
               </p>
             </section>
           </div>
@@ -118,7 +121,7 @@ export default function TermsPage() {
             <Link to="/" className="text-primary-600 hover:text-primary-700 font-semibold">
               ← Return to Home
             </Link>
-            <span className="text-gray-400">© 2026 Marketplace Inc. All rights reserved.</span>
+            <span className="text-gray-400">© 2026 MultiShopNG. All rights reserved.</span>
           </div>
         </motion.div>
       </div>
