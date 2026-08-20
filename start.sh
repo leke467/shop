@@ -45,6 +45,6 @@ python manage.py migrate --noinput
 echo "==> Collecting Static Files..."
 python manage.py collectstatic --noinput || echo "Warning: Collectstatic had warnings"
 
-PORT_TO_USE="${PORT:-8000}"
+PORT_TO_USE="${PORT:-8080}"
 echo "==> Launching Gunicorn WSGI Server on port ${PORT_TO_USE}..."
-exec gunicorn ecommerce.wsgi:application --bind "0.0.0.0:${PORT_TO_USE}" --bind "0.0.0.0:8000" --bind "0.0.0.0:8080" --workers 3 --timeout 120
+exec gunicorn ecommerce.wsgi:application --bind "0.0.0.0:${PORT_TO_USE}" --workers 3 --timeout 120
