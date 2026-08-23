@@ -44,7 +44,7 @@ class CartView(APIView):
         if raw_variant_id:
             if str(raw_variant_id).isdigit():
                 variant = ProductVariant.objects.filter(pk=int(raw_variant_id), is_active=True).first()
-            else:
+            if not variant:
                 variant = ProductVariant.objects.filter(public_id=raw_variant_id, is_active=True).first()
 
         if not variant and (raw_product_id or raw_variant_id):
@@ -53,7 +53,7 @@ class CartView(APIView):
             product = None
             if str(target_pid).isdigit():
                 product = Product.objects.filter(pk=int(target_pid)).first()
-            else:
+            if not product:
                 product = Product.objects.filter(public_id=target_pid).first() or Product.objects.filter(slug=target_pid).first()
 
             if product:

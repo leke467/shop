@@ -85,36 +85,42 @@ export function CartProvider({ children }) {
 
   const addToCart = async (param) => {
     if (!param) return
-    const variant_id = param.variant_id || param.variants?.[0]?.id || param.variant?.id
-    const product_id = param.product_id || param.id || param.pk
-    const quantity = param.quantity || 1
+    const rawVariant = param.variant_id || param.variants?.[0] || param.variant
+    const variant_id = typeof rawVariant === 'object' ? (rawVariant.public_id || rawVariant.id || rawVariant.pk) : rawVariant
+    const product_id = param.product_id || param.public_id || param.id || param.pk || param.slug
+    const quantity = Number(param.quantity || 1)
     const product_name = param.product_name || param.name || 'Product'
-    const variant_name = param.variant_name || param.variants?.[0]?.name || ''
-    const unit_price = param.unit_price || param.base_price || param.price || 0
+    const variant_name = param.variant_name || (typeof rawVariant === 'object' ? rawVariant.name : '') || ''
+    const unit_price = Number(param.unit_price || param.base_price || param.price || (typeof rawVariant === 'object' ? rawVariant.price : 0) || 0)
 
+    let backendSuccess = false
     if (isAuthenticated) {
       try {
         await orderAPI.addToCart({ variant_id, product_id, quantity })
-        refreshCart()
+        await refreshCart()
+        backendSuccess = true
       } catch (err) {
         console.error('Backend cart sync error', err)
       }
-    } else {
+    }
+
+    if (!isAuthenticated || !backendSuccess) {
       const currentCart = getGuestCart()
-      const existingKey = variant_id || product_id
-      const existing = currentCart.find(i => (i.variant === existingKey || i.product_id === existingKey))
+      const existingKey = variant_id || product_id || product_name
+      const existing = currentCart.find(i => (i.variant === existingKey || i.product_id === existingKey || i.product_name === product_name))
       if (existing) {
         existing.quantity += quantity
+        existing.line_total = Number(existing.unit_price) * existing.quantity
       } else {
         currentCart.push({
-          id: `guest_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+          id: `cart_${Date.now()}_${Math.random().toString(36).substring(2)}`,
           variant: variant_id,
           product_id,
           product_name,
           variant_name,
           quantity,
           unit_price,
-          line_total: Number(unit_price) * quantity
+          line_total: unit_price * quantity
         })
       }
       saveGuestCart(currentCart)
