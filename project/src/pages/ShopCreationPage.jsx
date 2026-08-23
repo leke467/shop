@@ -55,6 +55,16 @@ function ShopCreationPage() {
     return { fields, general: generals.join(' ') }
   }
 
+  const getPreviewUrl = (val) => {
+    if (!val) return null
+    if (typeof val === 'string') return val
+    try {
+      return URL.createObjectURL(val)
+    } catch {
+      return null
+    }
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -145,7 +155,7 @@ function ShopCreationPage() {
     payload.append('description', formData.description)
     if (formData.logo) payload.append('logo', formData.logo)
     if (formData.banner) payload.append('banner', formData.banner)
-    payload.append('email', formData.email)
+    payload.append('email', formData.email || user?.email || '')
     if (formData.phone) payload.append('phone', formData.phone)
     if (formData.address) payload.append('address', formData.address)
     
@@ -622,7 +632,7 @@ function ShopCreationPage() {
                     <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                       {formData.logo ? (
                         <div className="relative">
-                          <img src={URL.createObjectURL(formData.logo)} alt="Logo preview" className="mx-auto h-32 w-32 object-cover rounded-lg" />
+                          <img src={getPreviewUrl(formData.logo)} alt="Logo preview" className="mx-auto h-32 w-32 object-cover rounded-lg" />
                           <button 
                             type="button"
                             onClick={() => updateForm('logo', null)}
@@ -657,7 +667,7 @@ function ShopCreationPage() {
                     <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                       {formData.banner ? (
                         <div className="relative">
-                          <img src={URL.createObjectURL(formData.banner)} alt="Banner preview" className="mx-auto h-32 w-full object-cover rounded-lg" />
+                          <img src={getPreviewUrl(formData.banner)} alt="Banner preview" className="mx-auto h-32 w-full object-cover rounded-lg" />
                           <button 
                             type="button"
                             onClick={() => updateForm('banner', null)}
@@ -735,7 +745,7 @@ function ShopCreationPage() {
                   <div className="bg-gray-100 rounded-lg p-4">
                     <div className="relative h-32 overflow-hidden rounded-t-lg" style={{ backgroundColor: formData.colors.primary }}>
                       {formData.banner ? (
-                        <img src={formData.banner} alt="Shop banner" className="w-full h-full object-cover" />
+                        <img src={getPreviewUrl(formData.banner)} alt="Shop banner" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <p className="text-white text-opacity-70">Shop Banner</p>
@@ -746,7 +756,7 @@ function ShopCreationPage() {
                       <div className="absolute -top-8 left-4">
                         <div className="h-16 w-16 rounded-full border-4 border-white overflow-hidden" style={{ backgroundColor: formData.colors.secondary }}>
                           {formData.logo ? (
-                            <img src={formData.logo} alt="Shop logo" className="w-full h-full object-cover" />
+                            <img src={getPreviewUrl(formData.logo)} alt="Shop logo" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <p className="text-white text-sm">Logo</p>
