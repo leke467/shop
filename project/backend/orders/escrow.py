@@ -114,6 +114,73 @@ def confirm_delivery_code(
     from core.emails import send_escrow_released_email
     send_escrow_released_email(locked_group, release_amount)
     
+def admin_release_escrow(
+    order_group: OrderGroup,
+    admin_user=None,
+    notes: str = "Admin resolution",
+) -> bool:
+    """
+    Staff/Admin manually resolves and releases escrow funds to the seller's wallet.
+    Used during dispute resolution or manual fulfillment verification.
+    """
+    with transaction.atomic():
+        locked_group = (
+            OrderGroup.objects
+            .select_for_update()
+            .select_related("shop", "order")
+            .get(pk=order_group.pk)
+        )
+
+        if locked_group.escrow_status not in (
+            OrderGroup.EscrowStatus.HELD,
+            OrderGroup.EscrowStatus.DISPUTED,
+        ):
+            raise EscrowError(
+                f"Cannot release escrow: status is already {locked_group.get_escrow_status_display()}."
+            )
+
+        now = timezone.now()
+        commission = locked_group.subtotal * (locked_group.shop.commission_rate / Decimal("100.0"))
+
+        locked_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
+        locked_group.escrow_released_at = now
+        locked_group.status = OrderGroup.FulfilmentStatus.DELIVERED
+        locked_group.commission_fee = commission
+        locked_group.save(update_fields=[
+            "escrow_status", "escrow_released_at", "status", "commission_fee", "updated_at",
+        ])
+
+        net_shipping = max(Decimal("0.00"), locked_group.shipping_total - getattr(locked_group, "logistics_markup", Decimal("0.00")))
+        release_amount = (locked_group.subtotal - commission) + net_shipping
+        wallet, _created = SellerWallet.objects.select_for_update().get_or_create(
+            shop=locked_group.shop,
+            defaults={"currency": locked_group.order.currency},
+        )
+        wallet.credit(release_amount)
+
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            kind=WalletTransaction.Kind.ESCROW_RELEASE,
+            amount=release_amount,
+            balance_after=wallet.balance,
+            reference=str(locked_group.order.public_id),
+            notes=f"{notes} for order #{locked_group.order.public_id}",
+        )
+
+    logger.info(
+        "Admin escrow released: group=%s amount=%s by=%s",
+        locked_group.pk, release_amount, getattr(admin_user, "email", "admin"),
+    )
+
+    try:
+        from referrals.services import process_order_referral_reward
+        process_order_referral_reward(locked_group)
+    except Exception as ref_err:
+        logger.warning("Referral order reward failed for group %s: %s", locked_group.pk, ref_err)
+
+    from core.emails import send_escrow_released_email
+    send_escrow_released_email(locked_group, release_amount)
+
     return True
 
 

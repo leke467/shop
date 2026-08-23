@@ -351,7 +351,7 @@ class ShopOrdersView(APIView):
 
 
 class UpdateFulfillmentStatusView(APIView):
-    """Seller updates fulfillment status (e.g. processing, shipped, delivered)."""
+    """Seller updates fulfillment status (e.g. processing, shipped)."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, group_id):
@@ -360,6 +360,14 @@ class UpdateFulfillmentStatusView(APIView):
             id=group_id,
             shop__owner=request.user,
         )
+
+        # Do not allow fulfilling unpaid orders
+        if group.order.status != Order.Status.CONFIRMED or group.escrow_status == OrderGroup.EscrowStatus.PENDING:
+            return Response(
+                {"detail": "Cannot update fulfillment status for an unpaid order."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         new_status = request.data.get("status")
         valid_statuses = [choice[0] for choice in OrderGroup.FulfilmentStatus.choices]
         if new_status not in valid_statuses:
@@ -367,6 +375,14 @@ class UpdateFulfillmentStatusView(APIView):
                 {"detail": f"Invalid status. Must be one of {valid_statuses}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Sellers must confirm delivery with the 6-digit delivery code to mark DELIVERED
+        if new_status == OrderGroup.FulfilmentStatus.DELIVERED:
+            return Response(
+                {"detail": "To mark an order as delivered and release escrow funds, please confirm delivery using the buyer's 6-digit delivery code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         group.status = new_status
         group.save(update_fields=["status", "updated_at"])
 
@@ -375,12 +391,13 @@ class UpdateFulfillmentStatusView(APIView):
             from notifications.tasks import send_shipping_update_email
             buyer = group.order.user
             if buyer and buyer.email:
+                is_funded = group.escrow_status in (OrderGroup.EscrowStatus.HELD, OrderGroup.EscrowStatus.RELEASED)
                 send_shipping_update_email.delay(buyer.email, {
                     "buyer_name": buyer.first_name or buyer.email.split("@")[0],
                     "order_id": str(group.order.public_id),
                     "status": new_status,
                     "shop_name": group.shop.name if group.shop else "Seller",
-                    "delivery_code": group.delivery_code or "",
+                    "delivery_code": group.delivery_code if is_funded else "",
                 })
         except Exception:
             pass  # Never block the response on email failure

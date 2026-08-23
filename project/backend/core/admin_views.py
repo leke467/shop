@@ -147,12 +147,19 @@ class AdminOrderListView(APIView):
         new_status = request.data.get("status")
         new_escrow = request.data.get("escrow_status")
 
-        if new_status:
-            og.status = new_status
-        if new_escrow:
-            og.escrow_status = new_escrow
+        if new_escrow == OrderGroup.EscrowStatus.RELEASED and og.escrow_status != OrderGroup.EscrowStatus.RELEASED:
+            from orders.escrow import admin_release_escrow, EscrowError
+            try:
+                admin_release_escrow(og, admin_user=request.user, notes="Admin manual release")
+            except EscrowError as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if new_status:
+                og.status = new_status
+            if new_escrow:
+                og.escrow_status = new_escrow
+            og.save(update_fields=["status", "escrow_status", "updated_at"])
 
-        og.save(update_fields=["status", "escrow_status", "updated_at"])
         return Response({"status": "updated", "id": og.id, "order_status": og.status, "escrow_status": og.escrow_status})
 
 
