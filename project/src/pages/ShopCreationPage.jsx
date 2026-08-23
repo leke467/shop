@@ -151,10 +151,10 @@ function ShopCreationPage() {
     }
 
     const payload = new FormData()
-    payload.append('name', formData.name)
-    payload.append('description', formData.description)
-    if (formData.logo) payload.append('logo', formData.logo)
-    if (formData.banner) payload.append('banner', formData.banner)
+    payload.append('name', formData.name.trim())
+    if (formData.description) payload.append('description', formData.description)
+    if (formData.logo instanceof File) payload.append('logo', formData.logo)
+    if (formData.banner instanceof File) payload.append('banner', formData.banner)
     payload.append('email', formData.email || user?.email || '')
     if (formData.phone) payload.append('phone', formData.phone)
     if (formData.address) payload.append('address', formData.address)
@@ -232,7 +232,7 @@ function ShopCreationPage() {
   const isStepValid = () => {
     switch (step) {
       case 1:
-        return formData.name && formData.description && formData.email && formData.categories.length > 0
+        return Boolean(formData.name?.trim())
       case 2:
         return true // Features step always valid
       case 3:
