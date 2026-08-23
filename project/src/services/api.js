@@ -541,12 +541,34 @@ const DEFAULT_PRODUCT_PLACEHOLDER = 'https://images.unsplash.com/photo-152327533
 const DEFAULT_LOGO_PLACEHOLDER = 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=200&q=80'
 const DEFAULT_AVATAR_PLACEHOLDER = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
 
-export const getImageUrl = (path) => {
-  if (!path) return DEFAULT_PRODUCT_PLACEHOLDER
+export function getProductPlaceholderUrl(name = 'Product') {
+  const text = (name || 'Product').trim()
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+    <defs>
+      <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F8FAFC"/>
+        <stop offset="100%" stop-color="#E2E8F0"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <rect x="24" y="24" width="552" height="552" rx="28" fill="none" stroke="#CBD5E1" stroke-width="4" stroke-dasharray="10 10"/>
+    <g transform="translate(300, 260)">
+      <rect x="-45" y="-55" width="90" height="90" rx="20" fill="#94A3B8" opacity="0.2"/>
+      <path d="M-18 -10 L18 -10 L22 18 L-22 18 Z" fill="none" stroke="#475569" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="0" cy="-22" r="10" fill="none" stroke="#475569" stroke-width="4"/>
+    </g>
+    <text x="50%" y="380" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-weight="700" font-size="36" fill="#1E293B" text-anchor="middle">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
+  </svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+export const getImageUrl = (path, productName = '') => {
+  const fallback = productName ? getProductPlaceholderUrl(productName) : DEFAULT_PRODUCT_PLACEHOLDER
+  if (!path) return fallback
   if (typeof path !== 'string') {
     path = path?.url || path?.image || path?.medium || path?.large || path?.thumbnail || ''
   }
-  if (!path) return DEFAULT_PRODUCT_PLACEHOLDER
+  if (!path) return fallback
 
   if (path.startsWith('data:') || path.startsWith('blob:')) return path
 
@@ -571,14 +593,14 @@ export const getImageUrl = (path) => {
   return `${BASE_URL}${cleanPath}`
 }
 
-export const handleImageError = (e, fallbackType = 'product') => {
+export const handleImageError = (e, fallbackType = 'product', productName = '') => {
   if (e?.target) {
     e.target.onerror = null // Prevent infinite loop if fallback fails
     const placeholder = fallbackType === 'avatar' 
       ? DEFAULT_AVATAR_PLACEHOLDER
       : fallbackType === 'logo'
       ? DEFAULT_LOGO_PLACEHOLDER
-      : DEFAULT_PRODUCT_PLACEHOLDER
+      : (productName ? getProductPlaceholderUrl(productName) : DEFAULT_PRODUCT_PLACEHOLDER)
     e.target.src = placeholder
   }
 }

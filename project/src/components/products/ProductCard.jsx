@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
-import { getImageUrl, handleImageError } from '../../services/api'
+import { getImageUrl, handleImageError, getProductPlaceholderUrl } from '../../services/api'
 
 function ProductCard({ product }) {
   const { addToCart } = useCart()
@@ -10,7 +10,7 @@ function ProductCard({ product }) {
   const id = product.slug || product.public_id || product.id
   const name = product.name
   const rawImage = product.primary_image || product.image || product.images?.[0]?.medium || product.images?.[0]?.image
-  const image = getImageUrl(rawImage)
+  const image = rawImage ? getImageUrl(rawImage, name) : getProductPlaceholderUrl(name)
   const price = product.base_price || product.price
   const shopName = product.shop_name || product.shopName
   const shopId = product.shop_slug || product.shopId
@@ -33,16 +33,12 @@ function ProductCard({ product }) {
         className="bg-white rounded-xl shadow-md overflow-hidden h-full card-hover border border-gray-100 flex flex-col"
       >
         <div className="relative h-48 overflow-hidden bg-gray-50 flex items-center justify-center">
-          {image ? (
-            <img 
-              src={image} 
-              alt={name} 
-              onError={(e) => handleImageError(e, 'product')}
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            />
-          ) : (
-            <span className="text-gray-300 text-3xl">📦</span>
-          )}
+          <img 
+            src={image} 
+            alt={name} 
+            onError={(e) => handleImageError(e, 'product', name)}
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          />
           {inventory < 10 && inventory > 0 && (
             <div className="absolute top-2 left-2 bg-warning-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
               Only {inventory} left
