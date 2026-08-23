@@ -141,10 +141,18 @@ export const shopAPI = {
     api.get('/shops/mine/').then(r => r.data),
   myShops: () =>
     api.get('/shops/mine/').then(r => r.data),
-  create: (data) =>
-    api.post('/shops/create/', data).then(r => r.data),
-  update: (slug, data) =>
-    api.patch(`/shops/${slug}/update/`, data).then(r => r.data),
+  create: (data) => {
+    const config = (typeof FormData !== 'undefined' && data instanceof FormData)
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {}
+    return api.post('/shops/create/', data, config).then(r => r.data)
+  },
+  update: (slug, data) => {
+    const config = (typeof FormData !== 'undefined' && data instanceof FormData)
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {}
+    return api.patch(`/shops/${slug}/update/`, data, config).then(r => r.data)
+  },
   delete: (slug) =>
     api.delete(`/shops/${slug}/delete/`).then(r => r.data),
 
@@ -236,10 +244,18 @@ export const productAPI = {
     api.get('/products/', { params }).then(r => r.data),
   detail: (slug) =>
     api.get(`/products/${slug}/`).then(r => r.data),
-  create: (shopSlug, data) =>
-    api.post(`/products/shop/${shopSlug}/`, data).then(r => r.data),
-  update: (slug, data) =>
-    api.patch(`/products/${slug}/`, data).then(r => r.data),
+  create: (shopSlug, data) => {
+    const config = (typeof FormData !== 'undefined' && data instanceof FormData)
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {}
+    return api.post(`/products/shop/${shopSlug}/`, data, config).then(r => r.data)
+  },
+  update: (slug, data) => {
+    const config = (typeof FormData !== 'undefined' && data instanceof FormData)
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {}
+    return api.patch(`/products/${slug}/`, data, config).then(r => r.data)
+  },
   delete: (slug) =>
     api.delete(`/products/${slug}/`).then(r => r.data),
   reviews: (slug) =>
