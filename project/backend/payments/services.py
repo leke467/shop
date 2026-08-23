@@ -159,7 +159,9 @@ def checkout(
             else:
                 group = shops_seen[shop.pk]
 
-            line_total = item.unit_price * item.quantity
+            # Enforce live current variant price to prevent price tampering or stale cart exploit
+            live_price = item.variant.price if item.variant and item.variant.price is not None else item.unit_price
+            line_total = live_price * item.quantity
             OrderItem.objects.create(
                 group=group,
                 variant=item.variant,
@@ -167,7 +169,7 @@ def checkout(
                 variant_name=item.variant.name,
                 sku=item.variant.sku,
                 quantity=item.quantity,
-                unit_price=item.unit_price,
+                unit_price=live_price,
                 currency=order.currency,
             )
             group.subtotal += line_total

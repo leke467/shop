@@ -265,6 +265,7 @@ class OrderGroup(TimeStampedModel):
         CANCELLED = "cancelled", _("Cancelled")
 
     class EscrowStatus(models.TextChoices):
+        PENDING = "pending", _("Pending payment")
         HELD = "held", _("Held in escrow")
         RELEASED = "released", _("Released to seller")
         DISPUTED = "disputed", _("Under dispute")
@@ -310,7 +311,7 @@ class OrderGroup(TimeStampedModel):
     escrow_status = models.CharField(
         max_length=16,
         choices=EscrowStatus.choices,
-        default=EscrowStatus.HELD,
+        default=EscrowStatus.PENDING,
         db_index=True,
     )
     delivery_code_confirmed_at = models.DateTimeField(

@@ -499,8 +499,9 @@ class MonnifyGateway(PaymentGateway):
             f"{self._secret_key}|{payment_ref}|{amount_paid}|{paid_on}|{txn_ref}".encode()
         ).hexdigest()
 
-        if signature and not hmac.compare_digest(computed.lower(), signature.lower()):
-            logger.warning("Monnify webhook signature mismatch")
+        if not signature or not hmac.compare_digest(computed.lower(), signature.lower()):
+            logger.warning("Monnify webhook signature mismatch or missing")
+            return None
 
         return {
             "event_id": txn_ref or payment_ref,

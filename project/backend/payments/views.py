@@ -149,12 +149,14 @@ class CheckoutView(APIView):
                         "line_total": str(item.line_total),
                     })
 
+            first_group = order.groups.first()
+            is_confirmed = order.status == Order.Status.CONFIRMED
             buyer_context = {
                 "buyer_name": request.user.first_name or request.user.email.split("@")[0],
                 "order_id": str(order.public_id),
                 "items": email_items,
                 "total": str(order.total),
-                "delivery_code": getattr(order.groups.first(), "delivery_code", ""),
+                "delivery_code": (first_group.delivery_code if first_group and is_confirmed else ""),
                 "shipping_name": shipping_data.get("full_name", ""),
                 "shipping_address": f"{shipping_data.get('line1', '')}, {shipping_data.get('city', '')}, {shipping_data.get('state', '')}",
                 "shipping_phone": shipping_data.get("phone", ""),
@@ -412,6 +414,15 @@ class PaystackWebhookView(APIView):
                 provider="paystack", provider_payment_id=reference
             ).select_related("order").first()
             if payment:
+                # Validate amount paid against payment.amount (Paystack reports amount in kobo/cents)
+                paid_amount_kobo = data.get("amount", 0)
+                expected_amount_kobo = int(payment.amount * 100)
+                if paid_amount_kobo < expected_amount_kobo:
+                    logger.critical(
+                        "Paystack webhook UNDERPAYMENT alert! payment=%s expected=%s got=%s",
+                        payment.public_id, expected_amount_kobo, paid_amount_kobo,
+                    )
+                    return
                 try:
                     confirm_pending_payment(payment, verified_by="paystack_webhook")
                 except CheckoutError:
@@ -497,6 +508,18 @@ class PaystackVerifyView(APIView):
                 "status": paystack_status,
             }, status=status.HTTP_402_PAYMENT_REQUIRED)
 
+        # Validate amount paid
+        paid_amount_kobo = data.get("data", {}).get("amount", 0)
+        expected_amount_kobo = int(payment.amount * 100)
+        if paid_amount_kobo < expected_amount_kobo:
+            logger.critical(
+                "Paystack verify UNDERPAYMENT alert! payment=%s expected=%s got=%s",
+                payment.public_id, expected_amount_kobo, paid_amount_kobo,
+            )
+            return Response({
+                "detail": "Amount paid does not match the order total.",
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # Paystack says success — confirm the payment.
         try:
             confirm_pending_payment(payment, verified_by="paystack_verify")
@@ -560,6 +583,18 @@ class MonnifyWebhookView(APIView):
                 provider="monnify", provider_payment_id=payment_ref
             ).select_related("order").first()
             if payment:
+                from decimal import Decimal
+                try:
+                    paid_amount = Decimal(str(data.get("amountPaid", "0")))
+                except Exception:
+                    paid_amount = Decimal("0")
+
+                if paid_amount < payment.amount:
+                    logger.critical(
+                        "Monnify webhook UNDERPAYMENT alert! payment=%s expected=%s got=%s",
+                        payment.public_id, payment.amount, paid_amount,
+                    )
+                    return
                 try:
                     confirm_pending_payment(payment, verified_by="monnify_webhook")
                 except CheckoutError:
@@ -688,6 +723,22 @@ class MonnifyVerifyView(APIView):
                 "status": payment_status,
             }, status=status.HTTP_402_PAYMENT_REQUIRED)
 
+        # Validate amount paid
+        from decimal import Decimal
+        try:
+            paid_amount = Decimal(str(body.get("amountPaid", "0")))
+        except Exception:
+            paid_amount = Decimal("0")
+
+        if paid_amount < payment.amount:
+            logger.critical(
+                "Monnify verify UNDERPAYMENT alert! payment=%s expected=%s got=%s",
+                payment.public_id, payment.amount, paid_amount,
+            )
+            return Response({
+                "detail": "Amount paid does not match the order total.",
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             confirm_pending_payment(payment, verified_by="monnify_verify")
         except CheckoutError as e:
@@ -773,10 +824,15 @@ class RefundRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check escrow status is eligible (held, released, disputed)
-        if group.escrow_status == OrderGroup.EscrowStatus.REFUNDED:
+        # Check escrow status is eligible (must be held or disputed; cannot refund unpaid or already refunded orders)
+        if group.escrow_status not in (OrderGroup.EscrowStatus.HELD, OrderGroup.EscrowStatus.DISPUTED):
+            if group.escrow_status == OrderGroup.EscrowStatus.REFUNDED:
+                return Response(
+                    {"detail": "This order group has already been refunded."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(
-                {"detail": "This order group has already been refunded."},
+                {"detail": "Refunds can only be requested for orders with confirmed payment."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

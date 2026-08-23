@@ -35,6 +35,11 @@ def process_subscription_referral_reward(subscription) -> Decimal:
     bonus = getattr(settings, "SUBSCRIPTION_REFERRAL_BONUS", Decimal("500.00"))
     gross = Decimal(str(getattr(subscription, "price", 3500)))
 
+    ref_key = f"ref-sub-{subscription.pk}"
+    if WalletTransaction.objects.filter(reference=ref_key).exists():
+        logger.info("Subscription referral reward already processed for %s", ref_key)
+        return Decimal("0.00")
+
     with transaction.atomic():
         # Get or create seller wallet for referrer
         from shops.models import Shop
@@ -57,7 +62,7 @@ def process_subscription_referral_reward(subscription) -> Decimal:
             kind=WalletTransaction.Kind.ESCROW_RELEASE,
             amount=bonus,
             balance_after=wallet.balance,
-            reference=f"ref-sub-{subscription.pk}",
+            reference=ref_key,
             notes=f"Referral reward: {owner.email} subscribed to {getattr(subscription, 'plan_name', 'Plan')}",
         )
 
@@ -105,6 +110,11 @@ def process_order_referral_reward(order_group) -> Decimal:
     if reward_amount <= Decimal("0.00"):
         return Decimal("0.00")
 
+    ref_ord_key = f"ref-ord-{order_group.pk}"
+    if WalletTransaction.objects.filter(reference=ref_ord_key).exists():
+        logger.info("Order referral reward already processed for %s", ref_ord_key)
+        return Decimal("0.00")
+
     with transaction.atomic():
         from shops.models import Shop
         referrer_shop = Shop.objects.filter(owner=referrer).first()
@@ -125,7 +135,7 @@ def process_order_referral_reward(order_group) -> Decimal:
             kind=WalletTransaction.Kind.ESCROW_RELEASE,
             amount=reward_amount,
             balance_after=wallet.balance,
-            reference=f"ref-ord-{order_group.pk}",
+            reference=ref_ord_key,
             notes=f"Referral share ({share_pct}%) of commission on order #{order_group.order.public_id}",
         )
 
