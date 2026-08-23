@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
@@ -402,26 +403,95 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
     return sub
 
 
-def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
-                                  callback_url: str = "", provider: str = "") -> dict:
-    """Start a transaction for a paid plan upgrade (Paystack, Monnify, etc.).
+def validate_subscription_coupon(code: str, plan: SubscriptionPlan) -> dict:
+    """Validate a promo coupon for a specific subscription tier and calculate discount."""
+    from .models import SubscriptionCoupon
+    clean_code = (code or "").strip().upper()
+    coupon = SubscriptionCoupon.objects.filter(code=clean_code).first()
+    if not coupon:
+        raise SubscriptionError(f"Coupon code '{clean_code}' is invalid.")
 
-    Returns the provider payload containing the ``authorization_url`` the
-    frontend redirects to. On the free plan we activate immediately with no
-    payment. Enterprise plans are not self-serve.
+    is_valid, err_msg = coupon.is_valid_for_plan(plan)
+    if not is_valid:
+        raise SubscriptionError(err_msg)
+
+    discount = coupon.calculate_discount(plan.monthly_price)
+    final_price = max(Decimal("0.00"), plan.monthly_price - discount)
+    is_100_percent_free = (final_price <= Decimal("0.00")) or (
+        coupon.discount_type == SubscriptionCoupon.DiscountType.PERCENTAGE and coupon.discount_value >= Decimal("100.00")
+    )
+
+    return {
+        "valid": True,
+        "code": coupon.code,
+        "plan_code": plan.code,
+        "plan_name": plan.name,
+        "target_plan_name": coupon.plan.name if coupon.plan else "All Tiers",
+        "original_price": plan.monthly_price,
+        "discount_applied": discount,
+        "discount_type": coupon.discount_type,
+        "discount_value": coupon.discount_value,
+        "final_price": final_price,
+        "is_100_percent_free": is_100_percent_free,
+        "duration_months": coupon.duration_months,
+        "expires_at": coupon.expires_at,
+    }
+
+
+def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
+                                  callback_url: str = "", provider: str = "",
+                                  coupon_code: str = "") -> dict:
+    """Start a transaction for a plan upgrade (with optional coupon discount).
+
+    If the coupon provides 100% off or the plan is free, activates immediately.
     """
     if plan.is_enterprise:
         raise SubscriptionError(
             "Enterprise plans use custom pricing. Please contact sales."
         )
 
-    if plan.is_free:
-        assert_can_switch_to_plan(user, plan)
+    # Block any downgrade that would exceed the target plan's limits.
+    assert_can_switch_to_plan(user, plan)
+
+    from .models import SubscriptionCoupon, SubscriptionCouponRedemption
+
+    coupon = None
+    discount = Decimal("0.00")
+    final_price = plan.monthly_price
+    duration_months = 1
+
+    clean_coupon = (coupon_code or "").strip().upper()
+    if clean_coupon:
+        coupon_info = validate_subscription_coupon(clean_coupon, plan)
+        coupon = SubscriptionCoupon.objects.filter(code=clean_coupon).first()
+        discount = coupon_info["discount_applied"]
+        final_price = coupon_info["final_price"]
+        duration_months = coupon_info["duration_months"] or 1
+
+        if coupon_info["is_100_percent_free"] or final_price <= Decimal("0.00"):
+            # 100% Free Coupon! Activate immediately without gateway
+            sub = activate_plan(user, plan, months=duration_months, auto_renew=False)
+            SubscriptionCouponRedemption.objects.create(
+                coupon=coupon,
+                user=user,
+                plan=plan,
+                discount_applied=discount,
+                duration_months_granted=duration_months,
+            )
+            coupon.times_used += 1
+            coupon.save(update_fields=["times_used"])
+
+            return {
+                "free": True,
+                "coupon_applied": True,
+                "coupon_code": coupon.code,
+                "duration_months": duration_months,
+                "detail": f"Coupon {coupon.code} applied! {plan.name} tier activated for {duration_months} month(s) free of charge.",
+            }
+
+    if plan.is_free and final_price <= Decimal("0.00"):
         activate_plan(user, plan, months=1, auto_renew=False)
         return {"free": True, "detail": "Switched to the free plan."}
-
-    # Block any paid downgrade that would exceed the target plan's limits.
-    assert_can_switch_to_plan(user, plan)
 
     from django.conf import settings
     from payments.gateways import get_gateway
@@ -429,7 +499,6 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
     chosen_provider = (provider or "").strip().lower()
 
     if not chosen_provider:
-        # Auto-detect: check configured credentials in settings
         paystack_key = settings.PAYMENTS.get("PAYSTACK", {}).get("SECRET_KEY", "")
         monnify_key = settings.PAYMENTS.get("MONNIFY", {}).get("API_KEY", "")
 
@@ -443,13 +512,16 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
     gateway = get_gateway(chosen_provider)
     idempotency_key = f"sub-{user.pk}-{plan.code}-{int(timezone.now().timestamp())}"
     result = gateway.charge(
-        amount=plan.monthly_price,
+        amount=final_price,
         currency=plan.currency,
         idempotency_key=idempotency_key,
         metadata={
             "purpose": "subscription",
             "plan_code": plan.code,
             "user_id": str(user.pk),
+            "coupon_code": coupon.code if coupon else "",
+            "duration_months": duration_months,
+            "discount_applied": str(discount),
         },
         email=user.email,
         full_name=user.get_full_name() or user.username or "Customer",
@@ -461,7 +533,7 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         user=user,
         provider=chosen_provider,
         provider_payment_id=result.provider_payment_id or idempotency_key,
-        amount=plan.monthly_price,
+        amount=final_price,
         currency=plan.currency,
         status=Payment.Status.PENDING,
         metadata={
@@ -469,6 +541,9 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
             "plan_code": plan.code,
             "user_id": str(user.pk),
             "callback_url": callback_url,
+            "coupon_code": coupon.code if coupon else "",
+            "duration_months": duration_months,
+            "discount_applied": str(discount),
         },
     )
 
@@ -487,6 +562,8 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         "reference": result.provider_payment_id,
         "payment_id": str(payment.pk),
         "plan": plan.code,
+        "discount_applied": str(discount),
+        "final_price": str(final_price),
     }
 
 

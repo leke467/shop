@@ -30,7 +30,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import SubscriptionPlan, UserSubscription
+from .models import SubscriptionPlan, UserSubscription, SubscriptionCoupon, SubscriptionCouponRedemption
 from .serializers import (
     AdminChangePlanSerializer,
     CurrentSubscriptionSerializer,
@@ -39,6 +39,9 @@ from .serializers import (
     SubscriptionStatsSerializer,
     UpgradeRequestSerializer,
     UserSubscriptionSerializer,
+    SubscriptionCouponSerializer,
+    SubscriptionCouponRedemptionSerializer,
+    ValidateCouponRequestSerializer,
 )
 from .services import (
     DowngradeBlocked,
@@ -48,6 +51,7 @@ from .services import (
     get_usage,
     initiate_paystack_upgrade,
     initiate_subscription_upgrade,
+    validate_subscription_coupon,
     verify_and_activate_subscription,
 )
 
@@ -125,11 +129,13 @@ class UpgradeView(APIView):
         plan = ser.context["plan"]
 
         provider = ser.validated_data.get("provider") or ser.validated_data.get("payment_provider") or ""
+        coupon_code = ser.validated_data.get("coupon_code") or ""
         try:
             result = initiate_subscription_upgrade(
                 request.user, plan,
                 callback_url=ser.validated_data.get("callback_url", ""),
                 provider=provider,
+                coupon_code=coupon_code,
             )
         except DowngradeBlocked:
             raise
@@ -302,3 +308,51 @@ class AdminStatsView(APIView):
             "currency": currency,
         }
         return Response(SubscriptionStatsSerializer(payload).data)
+
+
+class ValidateSubscriptionCouponView(APIView):
+    """
+    POST /api/subscription/validate-coupon/
+    Validates a coupon code against a target subscription tier.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        code = request.data.get("code") or request.data.get("coupon_code") or ""
+        plan_code = request.data.get("plan_code") or ""
+        if not code:
+            return Response({"detail": "Coupon code is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not plan_code:
+            return Response({"detail": "Subscription plan_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = SubscriptionPlan.objects.filter(code=plan_code, is_active=True).first()
+        if not plan:
+            return Response({"detail": f"Subscription tier '{plan_code}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            res = validate_subscription_coupon(code, plan)
+            return Response(res, status=status.HTTP_200_OK)
+        except SubscriptionError as e:
+            return Response({"valid": False, "detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminSubscriptionCouponListCreateView(generics.ListCreateAPIView):
+    """Admin: list all subscription promo coupons or create a new one."""
+    permission_classes = [IsAdminUser]
+    serializer_class = SubscriptionCouponSerializer
+    queryset = SubscriptionCoupon.objects.all().select_related("plan").order_by("-created_at")
+
+
+class AdminSubscriptionCouponDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Admin: retrieve, update, toggle, or delete a subscription coupon."""
+    permission_classes = [IsAdminUser]
+    serializer_class = SubscriptionCouponSerializer
+    queryset = SubscriptionCoupon.objects.all()
+    lookup_field = "pk"
+
+
+class AdminSubscriptionCouponRedemptionListView(generics.ListAPIView):
+    """Admin: view all user redemptions of subscription coupons."""
+    permission_classes = [IsAdminUser]
+    serializer_class = SubscriptionCouponRedemptionSerializer
+    queryset = SubscriptionCouponRedemption.objects.all().select_related("user", "coupon", "plan").order_by("-created_at")

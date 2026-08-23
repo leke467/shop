@@ -25,6 +25,7 @@ export default function PricingPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const highlightCode = searchParams.get('plan')
+  const initialCoupon = searchParams.get('coupon') || ''
 
   const [plans, setPlans] = useState([])
   const [current, setCurrent] = useState(null)
@@ -33,34 +34,79 @@ export default function PricingPage() {
   const [error, setError] = useState('')
   const [downgradeBlockers, setDowngradeBlockers] = useState(null)
 
+  // Coupon state
+  const [couponInput, setCouponInput] = useState(initialCoupon)
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponMessage, setCouponMessage] = useState('')
+
   useEffect(() => {
     setLoading(true)
     const calls = [subscriptionAPI.plans()]
     if (isAuthenticated) calls.push(subscriptionAPI.current().catch(() => null))
     Promise.all(calls)
       .then(([plansData, currentData]) => {
-        setPlans(Array.isArray(plansData) ? plansData : (plansData?.results || []))
+        const loadedPlans = Array.isArray(plansData) ? plansData : (plansData?.results || [])
+        setPlans(loadedPlans)
         if (currentData) setCurrent(currentData)
+
+        // Auto-validate initial coupon from URL query param
+        if (initialCoupon && loadedPlans.length > 0) {
+          handleValidateCoupon(initialCoupon, loadedPlans[1]?.code || loadedPlans[0]?.code)
+        }
       })
       .catch(() => setError('Could not load plans. Please try again.'))
       .finally(() => setLoading(false))
-  }, [isAuthenticated])
+  }, [isAuthenticated, initialCoupon])
+
+  const handleValidateCoupon = async (codeToTest, targetPlanCode) => {
+    const clean = (codeToTest || couponInput || '').trim().toUpperCase()
+    if (!clean) return
+    setCouponLoading(true)
+    setCouponMessage('')
+    setError('')
+    try {
+      // Test against target plan or first paid plan
+      const testPlan = plans.find(p => p.code === targetPlanCode) || plans.find(p => !p.is_free) || plans[0]
+      if (!testPlan) return
+      const res = await subscriptionAPI.validateCoupon({
+        code: clean,
+        plan_code: testPlan.code,
+      })
+      setAppliedCoupon(res)
+      setCouponMessage(`🎉 Coupon '${res.code}' applied! ${res.is_100_percent_free ? '100% Free' : `${res.discount_applied} Discount`} for ${res.duration_months} month(s).`)
+    } catch (err) {
+      setAppliedCoupon(null)
+      const msg = err.response?.data?.detail || 'Invalid or expired coupon code.'
+      setCouponMessage(`❌ ${msg}`)
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponInput('')
+    setCouponMessage('')
+  }
 
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState(null)
 
   const handleUpgrade = async (plan, provider = '') => {
     setError('')
     if (!isAuthenticated) {
-      navigate('/login')
+      navigate(`/login?redirect=/pricing${appliedCoupon ? `&coupon=${appliedCoupon.code}` : ''}`)
       return
     }
     if (plan.is_enterprise) {
-      window.location.href = 'mailto:sales@marketplace.example?subject=Enterprise%20Plan%20Enquiry'
+      window.location.href = 'mailto:sales@multishopng.com?subject=Enterprise%20Plan%20Enquiry'
       return
     }
 
-    // If it's a paid plan and no provider is selected yet, prompt for payment method choice
-    if (!plan.is_free && Number(plan.monthly_price) > 0 && !provider) {
+    const isFreeWithCoupon = appliedCoupon && (appliedCoupon.is_100_percent_free || Number(appliedCoupon.final_price) <= 0)
+
+    // If it's a paid plan and no provider is selected yet (and not 100% free with coupon), prompt for provider choice
+    if (!plan.is_free && Number(plan.monthly_price) > 0 && !isFreeWithCoupon && !provider) {
       setSelectedPlanForPayment(plan)
       return
     }
@@ -72,12 +118,11 @@ export default function PricingPage() {
         plan_code: plan.code,
         callback_url: `${window.location.origin}/subscription`,
         provider: provider,
+        coupon_code: appliedCoupon?.code || '',
       })
-      if (res.free) {
-        // Switched to free immediately
+      if (res.free || res.coupon_applied) {
         navigate('/subscription')
       } else if (res.authorization_url || res.checkout_url) {
-        // Redirect to gateway checkout (Paystack or Monnify)
         window.location.href = res.authorization_url || res.checkout_url
       } else {
         navigate('/subscription')
@@ -100,11 +145,56 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50 pt-24 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-12">
+        <div className="text-center max-w-2xl mx-auto mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Simple, transparent pricing</h1>
           <p className="text-gray-500 mt-3">
             Choose the plan that fits your business. Upgrade or downgrade anytime.
           </p>
+        </div>
+
+        {/* Promo / Coupon Input Banner */}
+        <div className="max-w-xl mx-auto mb-10 bg-white rounded-2xl border border-emerald-500/30 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+              <span>🎟️</span> Have a Promo or Registration Coupon?
+            </span>
+            {appliedCoupon && (
+              <button
+                onClick={handleRemoveCoupon}
+                className="text-xs text-red-500 hover:text-red-700 font-semibold"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter coupon code (e.g. VIP-GROWTH)"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+              disabled={Boolean(appliedCoupon)}
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100"
+            />
+            {!appliedCoupon ? (
+              <button
+                onClick={() => handleValidateCoupon(couponInput, plans[1]?.code || plans[0]?.code)}
+                disabled={couponLoading || !couponInput.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow active:scale-95 disabled:opacity-50"
+              >
+                {couponLoading ? 'Checking...' : 'Apply Code'}
+              </button>
+            ) : (
+              <span className="px-4 py-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl flex items-center">
+                ✓ Applied
+              </span>
+            )}
+          </div>
+          {couponMessage && (
+            <p className={`text-xs mt-2 font-medium ${appliedCoupon ? 'text-emerald-600' : 'text-red-500'}`}>
+              {couponMessage}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -124,20 +214,29 @@ export default function PricingPage() {
             {plans.map(plan => {
               const isCurrent = plan.code === currentPlanCode
               const isHighlighted = plan.code === highlightCode
+              const planPriceNum = Number(plan.monthly_price || 0)
+              const isCouponApplicable = appliedCoupon && (!appliedCoupon.plan_code || appliedCoupon.plan_code === plan.code)
+              const isFreeWithCoupon = isCouponApplicable && (appliedCoupon.is_100_percent_free || Number(appliedCoupon.final_price) <= 0)
+              const discountedPrice = isCouponApplicable
+                ? isFreeWithCoupon
+                  ? 0
+                  : Math.max(0, planPriceNum - Number(appliedCoupon.discount_applied || 0))
+                : planPriceNum
+
               return (
                 <motion.div
                   key={plan.code}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`relative bg-white rounded-3xl border p-6 flex flex-col ${
-                    isHighlighted
-                      ? 'border-primary-400 ring-2 ring-primary-400/40 shadow-xl'
+                    isHighlighted || isCouponApplicable
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl'
                       : 'border-gray-100 shadow-sm'
                   }`}
                 >
-                  {isHighlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary-600 text-white text-xs font-bold shadow">
-                      Recommended
+                  {(isHighlighted || isCouponApplicable) && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold shadow">
+                      {isCouponApplicable ? `🎟️ ${appliedCoupon.code} Eligible` : 'Recommended'}
                     </span>
                   )}
 
@@ -147,9 +246,23 @@ export default function PricingPage() {
                   )}
 
                   <div className="mt-4 mb-5">
-                    <span className="text-3xl font-extrabold text-gray-900">{fmtPrice(plan)}</span>
-                    {!plan.is_enterprise && Number(plan.monthly_price) > 0 && (
-                      <span className="text-sm text-gray-400 font-medium">/month</span>
+                    {isCouponApplicable && planPriceNum > 0 ? (
+                      <div>
+                        <span className="text-gray-400 line-through text-lg mr-2">₦{planPriceNum.toLocaleString()}</span>
+                        <span className="text-3xl font-extrabold text-emerald-600">
+                          {discountedPrice === 0 ? 'Free' : `₦${discountedPrice.toLocaleString()}`}
+                        </span>
+                        <span className="block text-xs font-bold text-emerald-700 mt-0.5">
+                          {appliedCoupon.is_100_percent_free ? `100% Free for ${appliedCoupon.duration_months} mo` : `Save ₦${Number(appliedCoupon.discount_applied).toLocaleString()}`}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-extrabold text-gray-900">{fmtPrice(plan)}</span>
+                        {!plan.is_enterprise && Number(plan.monthly_price) > 0 && (
+                          <span className="text-sm text-gray-400 font-medium">/month</span>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -179,20 +292,26 @@ export default function PricingPage() {
                     className={`mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                       isCurrent
                         ? 'bg-gray-100 text-gray-400 cursor-default'
-                        : isHighlighted
-                          ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl'
-                          : 'bg-gray-900 text-white hover:bg-gray-800'
+                        : isFreeWithCoupon
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl'
+                          : isHighlighted
+                            ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl'
+                            : 'bg-gray-900 text-white hover:bg-gray-800'
                     }`}
                   >
                     {isCurrent
                       ? 'Current Plan'
                       : upgrading === plan.code
                         ? 'Processing…'
-                        : plan.is_enterprise
-                          ? 'Contact Sales'
-                          : Number(plan.monthly_price) === 0
-                            ? 'Switch to Free'
-                            : `Upgrade to ${plan.name}`}
+                        : isFreeWithCoupon
+                          ? `🎉 Activate Free ${plan.name}`
+                          : plan.is_enterprise
+                            ? 'Contact Sales'
+                            : Number(plan.monthly_price) === 0
+                              ? 'Switch to Free'
+                              : isCouponApplicable
+                                ? `Upgrade for ₦${discountedPrice.toLocaleString()}`
+                                : `Upgrade to ${plan.name}`}
                   </button>
                 </motion.div>
               )

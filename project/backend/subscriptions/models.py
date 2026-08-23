@@ -195,3 +195,135 @@ class UserSubscription(BaseModel):
     def next_renewal_date(self):
         """Datetime the plan next renews, or None for open-ended plans."""
         return self.end_date
+
+
+class SubscriptionCoupon(BaseModel):
+    """
+    Promotional / registration coupon code for subscription tiers.
+    Can be configured for a specific SubscriptionPlan (e.g. Pro tier only) or open to All Tiers.
+    """
+    class DiscountType(models.TextChoices):
+        PERCENTAGE = "percentage", _("Percentage (%)")
+        FIXED = "fixed", _("Fixed Amount (₦)")
+
+    code = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text="Unique coupon code, e.g. 'LAUNCH100', 'PROMO50', 'GROWTHFREE'."
+    )
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="coupons",
+        help_text="Specific subscription tier this coupon applies to. Leave empty for All Tiers."
+    )
+    discount_type = models.CharField(
+        max_length=16,
+        choices=DiscountType.choices,
+        default=DiscountType.PERCENTAGE,
+    )
+    discount_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("100.00"),
+        help_text="Discount value (e.g. 100 for 100% free trial, 50 for 50% off, or 5000 for ₦5,000 off)."
+    )
+    duration_months = models.PositiveIntegerField(
+        default=1,
+        help_text="Number of free/discounted subscription months granted (e.g. 1, 3, 12). 0 = perpetual/lifetime."
+    )
+    max_uses = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum total redemptions allowed. Leave blank for unlimited."
+    )
+    times_used = models.PositiveIntegerField(
+        default=0,
+        help_text="Total number of times this coupon has been successfully redeemed."
+    )
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional expiration date. Leave blank for no expiration."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Whether this coupon is currently active."
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_subscription_coupons",
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        tier_name = self.plan.name if self.plan else "All Tiers"
+        val = f"{self.discount_value}%" if self.discount_type == self.DiscountType.PERCENTAGE else f"₦{self.discount_value}"
+        return f"{self.code} ({val} off for {tier_name})"
+
+    def clean(self):
+        if self.code:
+            self.code = self.code.strip().upper()
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+    def is_valid_for_plan(self, plan: SubscriptionPlan) -> tuple[bool, str]:
+        if not self.is_active:
+            return False, "This coupon is no longer active."
+        if self.expires_at and self.expires_at < timezone.now():
+            return False, "This coupon has expired."
+        if self.max_uses is not None and self.times_used >= self.max_uses:
+            return False, "This coupon has reached its maximum usage limit."
+        if self.plan and self.plan_id != plan.id:
+            return False, f"This coupon is only valid for the '{self.plan.name}' subscription tier."
+        return True, ""
+
+    def calculate_discount(self, plan_price: Decimal) -> Decimal:
+        if self.discount_type == self.DiscountType.PERCENTAGE:
+            discount = (plan_price * (self.discount_value / Decimal("100"))).quantize(Decimal("0.01"))
+            return min(plan_price, max(Decimal("0"), discount))
+        else:
+            return min(plan_price, max(Decimal("0"), self.discount_value))
+
+
+class SubscriptionCouponRedemption(BaseModel):
+    """Audit log of coupon redemptions by users."""
+    coupon = models.ForeignKey(
+        SubscriptionCoupon,
+        on_delete=models.CASCADE,
+        related_name="redemptions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="subscription_coupon_redemptions",
+    )
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.PROTECT,
+        related_name="coupon_redemptions",
+    )
+    discount_applied = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    duration_months_granted = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.user.email} redeemed {self.coupon.code} on {self.plan.name}"

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { adminDashboardAPI } from '../services/api'
+import { adminDashboardAPI, subscriptionAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
 import Logo from '../components/Logo'
+import SubscriptionCouponCardModal from '../components/admin/SubscriptionCouponCardModal'
 
 export default function AdminPanel() {
   const { user, isAdmin, isStaff, isAuthenticated, loading: userLoading } = useUser()
@@ -23,6 +24,20 @@ export default function AdminPanel() {
   const [payments, setPayments] = useState(null)
   const [disputes, setDisputes] = useState([])
   const [referrals, setReferrals] = useState(null)
+  const [couponsList, setCouponsList] = useState([])
+  const [availablePlans, setAvailablePlans] = useState([])
+  const [redemptionsList, setRedemptionsList] = useState([])
+  const [activeCouponModal, setActiveCouponModal] = useState(null)
+  const [isCreatingCoupon, setIsCreatingCoupon] = useState(false)
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    target_plan_code: '',
+    discount_type: 'percentage',
+    discount_value: '100',
+    duration_months: 1,
+    max_uses: '',
+    expires_at: '',
+  })
 
   // Filters & Search
   const [orderFilter, setOrderFilter] = useState('')
@@ -68,6 +83,15 @@ export default function AdminPanel() {
       } else if (tab === 'referrals') {
         const data = await adminDashboardAPI.referrals()
         setReferrals(data)
+      } else if (tab === 'coupons') {
+        const [coups, plansData, redemps] = await Promise.all([
+          subscriptionAPI.admin.listCoupons().catch(() => []),
+          subscriptionAPI.plans().catch(() => []),
+          subscriptionAPI.admin.listRedemptions().catch(() => []),
+        ])
+        setCouponsList(Array.isArray(coups) ? coups : (coups?.results || []))
+        setAvailablePlans(Array.isArray(plansData) ? plansData : (plansData?.results || []))
+        setRedemptionsList(Array.isArray(redemps) ? redemps : (redemps?.results || []))
       }
     } catch (err) {
       console.error(`Failed to load ${tab} data:`, err)
@@ -124,6 +148,76 @@ export default function AdminPanel() {
     }
   }
 
+  // --- Subscription Coupon Actions ---
+  const handleGenerateRandomCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let rand = ''
+    for (let i = 0; i < 6; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    const tierPrefix = couponForm.target_plan_code ? couponForm.target_plan_code.toUpperCase().slice(0, 3) : 'VIP'
+    setCouponForm(prev => ({ ...prev, code: `${tierPrefix}-${rand}` }))
+  }
+
+  const handleCreateCouponSubmit = async (e) => {
+    e.preventDefault()
+    if (!couponForm.code.trim()) {
+      toast('Please enter or generate a coupon code.', 'error')
+      return
+    }
+    try {
+      setIsCreatingCoupon(true)
+      const payload = {
+        code: couponForm.code.trim().toUpperCase(),
+        target_plan_code: couponForm.target_plan_code || null,
+        discount_type: couponForm.discount_type,
+        discount_value: parseFloat(couponForm.discount_value) || 100,
+        duration_months: parseInt(couponForm.duration_months, 10) || 1,
+        max_uses: couponForm.max_uses ? parseInt(couponForm.max_uses, 10) : null,
+        expires_at: couponForm.expires_at ? new Date(couponForm.expires_at).toISOString() : null,
+      }
+      const newCoupon = await subscriptionAPI.admin.createCoupon(payload)
+      toast(`Registration Coupon '${newCoupon.code}' created successfully!`, 'success')
+      setCouponForm({
+        code: '',
+        target_plan_code: '',
+        discount_type: 'percentage',
+        discount_value: '100',
+        duration_months: 1,
+        max_uses: '',
+        expires_at: '',
+      })
+      fetchTabData('coupons')
+      setActiveCouponModal(newCoupon)
+    } catch (err) {
+      const msg = err.response?.data?.code?.[0] || err.response?.data?.detail || 'Failed to create coupon.'
+      toast(msg, 'error')
+    } finally {
+      setIsCreatingCoupon(false)
+    }
+  }
+
+  const handleToggleCouponActive = async (coupon) => {
+    try {
+      await subscriptionAPI.admin.updateCoupon(coupon.id, { is_active: !coupon.is_active })
+      toast(`Coupon ${coupon.code} ${!coupon.is_active ? 'activated' : 'deactivated'}!`, 'success')
+      fetchTabData('coupons')
+    } catch (err) {
+      toast('Failed to update coupon status.', 'error')
+    }
+  }
+
+  const handleDeleteCoupon = async (coupon) => {
+    if (!window.confirm(`Are you sure you want to delete coupon '${coupon.code}'?`)) return
+    try {
+      await subscriptionAPI.admin.deleteCoupon(coupon.id)
+      toast(`Coupon ${coupon.code} deleted.`, 'success')
+      fetchTabData('coupons')
+    } catch (err) {
+      toast('Failed to delete coupon.', 'error')
+    }
+  }
+
   const tabs = [
     { key: 'overview', label: 'Overview', icon: '📊' },
     { key: 'orders', label: 'Order Management', icon: '📦' },
@@ -132,6 +226,7 @@ export default function AdminPanel() {
     { key: 'payments', label: 'Payments & Revenue', icon: '💳' },
     { key: 'disputes', label: 'Disputes & Returns', icon: '⚖️' },
     { key: 'referrals', label: 'Referral Program', icon: '🎁' },
+    { key: 'coupons', label: 'Subscription Coupons', icon: '🎟️' },
   ]
 
   return (
@@ -596,9 +691,289 @@ export default function AdminPanel() {
                 </div>
               </motion.div>
             )}
+
+            {/* SUBSCRIPTION COUPONS TAB */}
+            {activeTab === 'coupons' && (
+              <motion.div key="coupons" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-white">Subscription Promo & Registration Coupons</h2>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Create discount vouchers and 100% free trial codes for vendor subscription tiers with shareable graphics.
+                  </p>
+                </div>
+
+                {/* Create Coupon Card */}
+                <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6 sm:p-8 shadow-xl">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Create New Subscription Coupon</h3>
+                      <p className="text-xs text-gray-400">Generate a voucher code for a specific plan or all tiers.</p>
+                    </div>
+                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">
+                      🎟️ Promo Pass
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleCreateCouponSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Code Input */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-gray-300">Coupon Code *</label>
+                        <button
+                          type="button"
+                          onClick={handleGenerateRandomCode}
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold hover:underline"
+                        >
+                          ⚡ Auto-Generate
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. GROWTH-FREE100"
+                        value={couponForm.code}
+                        onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white font-mono text-sm uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+
+                    {/* Target Subscription Tier */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-300">Target Subscription Tier</label>
+                      <select
+                        value={couponForm.target_plan_code}
+                        onChange={(e) => setCouponForm({ ...couponForm, target_plan_code: e.target.value })}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="">🌐 All Subscription Tiers (Universal)</option>
+                        {availablePlans.map((p) => (
+                          <option key={p.code} value={p.code}>
+                            👑 {p.name} (₦{Number(p.monthly_price).toLocaleString()}/mo)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Discount Type */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-300">Discount Type</label>
+                      <select
+                        value={couponForm.discount_type}
+                        onChange={(e) => setCouponForm({ ...couponForm, discount_type: e.target.value })}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="percentage">Percentage (%) - e.g. 100% Free</option>
+                        <option value="fixed">Fixed Amount (₦) Off</option>
+                      </select>
+                    </div>
+
+                    {/* Discount Value */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-300">
+                        {couponForm.discount_type === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount (₦)'}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max={couponForm.discount_type === 'percentage' ? '100' : '1000000'}
+                        value={couponForm.discount_value}
+                        onChange={(e) => setCouponForm({ ...couponForm, discount_value: e.target.value })}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+
+                    {/* Free Duration */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-300">Access Duration (Months)</label>
+                      <select
+                        value={couponForm.duration_months}
+                        onChange={(e) => setCouponForm({ ...couponForm, duration_months: parseInt(e.target.value, 10) })}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="1">1 Month Access</option>
+                        <option value="3">3 Months Access</option>
+                        <option value="6">6 Months Access</option>
+                        <option value="12">12 Months (1 Year) Access</option>
+                        <option value="0">Lifetime / Open-Ended Access</option>
+                      </select>
+                    </div>
+
+                    {/* Max Uses & Expiry */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-300">Max Uses</label>
+                        <input
+                          type="number"
+                          placeholder="∞ Unlimited"
+                          min="1"
+                          value={couponForm.max_uses}
+                          onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-300">Expiration</label>
+                        <input
+                          type="date"
+                          value={couponForm.expires_at}
+                          onChange={(e) => setCouponForm({ ...couponForm, expires_at: e.target.value })}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="sm:col-span-2 lg:col-span-3 flex justify-end pt-2">
+                      <button
+                        type="submit"
+                        disabled={isCreatingCoupon}
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {isCreatingCoupon ? 'Creating Voucher...' : '✨ Create Subscription Coupon'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Coupons List Table */}
+                <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-xl">
+                  <div className="p-6 border-b border-gray-700 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Active Promotional Coupons</h3>
+                      <p className="text-xs text-gray-400">Total coupons: {couponsList.length}</p>
+                    </div>
+                  </div>
+
+                  {couponsList.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <p className="text-3xl mb-2">🎟️</p>
+                      <p className="font-semibold text-sm">No subscription coupons created yet.</p>
+                      <p className="text-xs text-gray-500 mt-1">Use the form above to generate your first promo code.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-900 text-gray-400 uppercase text-xs">
+                          <tr>
+                            <th className="px-6 py-4">Code & Tier</th>
+                            <th className="px-6 py-4">Discount</th>
+                            <th className="px-6 py-4">Duration</th>
+                            <th className="px-6 py-4">Usage / Cap</th>
+                            <th className="px-6 py-4">Expiration</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {couponsList.map((c) => {
+                            const is100 = c.discount_type === 'percentage' && Number(c.discount_value) >= 100
+                            return (
+                              <tr key={c.id} className="hover:bg-gray-750 transition-colors">
+                                <td className="px-6 py-4">
+                                  <p className="font-mono font-black text-white text-base tracking-wider">{c.code}</p>
+                                  <span className="inline-block mt-0.5 text-xs px-2 py-0.5 rounded bg-gray-900 text-cyan-300 font-semibold border border-gray-700">
+                                    {c.plan_name ? `👑 ${c.plan_name}` : '🌐 All Tiers'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                    is100 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                  }`}>
+                                    {is100 ? '100% FREE' : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₦${Number(c.discount_value).toLocaleString()} OFF`}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-gray-300">
+                                  {c.duration_months === 0 ? 'Lifetime' : `${c.duration_months} mo`}
+                                </td>
+                                <td className="px-6 py-4 font-mono text-gray-300">
+                                  <span className="font-bold text-white">{c.times_used}</span> / {c.max_uses ?? '∞'}
+                                </td>
+                                <td className="px-6 py-4 text-xs text-gray-400">
+                                  {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'No Expiry'}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <button
+                                    onClick={() => handleToggleCouponActive(c)}
+                                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                                      c.is_active ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                    }`}
+                                  >
+                                    {c.is_active ? '● Active' : '○ Inactive'}
+                                  </button>
+                                </td>
+                                <td className="px-6 py-4 text-right space-x-2">
+                                  <button
+                                    onClick={() => setActiveCouponModal(c)}
+                                    className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-gray-950 font-bold text-xs rounded-lg shadow transition-all active:scale-95"
+                                  >
+                                    🎨 Share Card
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteCoupon(c)}
+                                    className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-950/50 rounded-lg transition-colors"
+                                    title="Delete Coupon"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Redemptions Audit Log */}
+                {redemptionsList.length > 0 && (
+                  <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-xl">
+                    <div className="p-6 border-b border-gray-700">
+                      <h3 className="text-lg font-bold text-white">Recent Vendor Redemptions Log</h3>
+                      <p className="text-xs text-gray-400">Total redemptions recorded: {redemptionsList.length}</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-900 text-gray-400 uppercase text-xs">
+                          <tr>
+                            <th className="px-6 py-3">Vendor</th>
+                            <th className="px-6 py-3">Coupon Code</th>
+                            <th className="px-6 py-3">Activated Plan</th>
+                            <th className="px-6 py-3">Discount Applied</th>
+                            <th className="px-6 py-3">Duration</th>
+                            <th className="px-6 py-3">Redeemed At</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {redemptionsList.map((r) => (
+                            <tr key={r.id} className="hover:bg-gray-750">
+                              <td className="px-6 py-3 text-white font-medium">{r.user_email}</td>
+                              <td className="px-6 py-3 font-mono font-bold text-cyan-400">{r.coupon_code}</td>
+                              <td className="px-6 py-3 text-gray-300">{r.plan_name}</td>
+                              <td className="px-6 py-3 font-mono text-emerald-400">₦{Number(r.discount_applied).toLocaleString()}</td>
+                              <td className="px-6 py-3 text-gray-300">{r.duration_months_granted} mo</td>
+                              <td className="px-6 py-3 text-xs text-gray-400">{new Date(r.created_at).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         )}
       </main>
+
+      {/* Shareable Coupon Card Modal */}
+      {activeCouponModal && (
+        <SubscriptionCouponCardModal
+          coupon={activeCouponModal}
+          onClose={() => setActiveCouponModal(null)}
+        />
+      )}
     </div>
   )
 }

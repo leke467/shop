@@ -318,6 +318,8 @@ export const subscriptionAPI = {
     api.post('/subscription/upgrade/', data).then(r => r.data),
   verifyPayment: (params) =>
     api.get('/subscription/verify-payment/', { params }).then(r => r.data),
+  validateCoupon: (data) =>
+    api.post('/subscription/validate-coupon/', data).then(r => r.data),
 
   // Admin
   admin: {
@@ -335,6 +337,16 @@ export const subscriptionAPI = {
       api.post('/subscription/admin/change-plan/', data).then(r => r.data),
     stats: () =>
       api.get('/subscription/admin/stats/').then(r => r.data),
+    listCoupons: (params) =>
+      api.get('/subscription/admin/coupons/', { params }).then(r => r.data),
+    createCoupon: (data) =>
+      api.post('/subscription/admin/coupons/', data).then(r => r.data),
+    updateCoupon: (id, data) =>
+      api.patch(`/subscription/admin/coupons/${id}/`, data).then(r => r.data),
+    deleteCoupon: (id) =>
+      api.delete(`/subscription/admin/coupons/${id}/`).then(r => r.data),
+    listRedemptions: (params) =>
+      api.get('/subscription/admin/coupon-redemptions/', { params }).then(r => r.data),
   },
 }
 
