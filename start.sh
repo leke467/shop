@@ -19,10 +19,10 @@ fi
 
 echo "==> Working Directory: $(pwd)"
 
-# Ensure DJANGO_SECRET_KEY is present
+# Ensure DJANGO_SECRET_KEY is persistent across restarts
 if [ -z "$DJANGO_SECRET_KEY" ] && [ -z "$SECRET_KEY" ]; then
-    export DJANGO_SECRET_KEY="railway-prod-key-$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9')"
-    echo "==> Auto-generated runtime DJANGO_SECRET_KEY for security."
+    export DJANGO_SECRET_KEY="multishopng-stable-production-secret-key-signing-2026-v1"
+    echo "==> Using stable production DJANGO_SECRET_KEY for persistent JWT auth."
 elif [ -n "$SECRET_KEY" ] && [ -z "$DJANGO_SECRET_KEY" ]; then
     export DJANGO_SECRET_KEY="$SECRET_KEY"
 fi
