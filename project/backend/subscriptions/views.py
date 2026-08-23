@@ -331,7 +331,7 @@ class ValidateSubscriptionCouponView(APIView):
             return Response({"detail": f"Subscription tier '{plan_code}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            res = validate_subscription_coupon(code, plan)
+            res = validate_subscription_coupon(code, plan, user=request.user)
             return Response(res, status=status.HTTP_200_OK)
         except SubscriptionError as e:
             return Response({"valid": False, "detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

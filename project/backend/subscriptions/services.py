@@ -403,9 +403,9 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
     return sub
 
 
-def validate_subscription_coupon(code: str, plan: SubscriptionPlan) -> dict:
+def validate_subscription_coupon(code: str, plan: SubscriptionPlan, user=None) -> dict:
     """Validate a promo coupon for a specific subscription tier and calculate discount."""
-    from .models import SubscriptionCoupon
+    from .models import SubscriptionCoupon, SubscriptionCouponRedemption
     clean_code = (code or "").strip().upper()
     coupon = SubscriptionCoupon.objects.filter(code=clean_code).first()
     if not coupon:
@@ -414,6 +414,10 @@ def validate_subscription_coupon(code: str, plan: SubscriptionPlan) -> dict:
     is_valid, err_msg = coupon.is_valid_for_plan(plan)
     if not is_valid:
         raise SubscriptionError(err_msg)
+
+    if user and getattr(user, "is_authenticated", False):
+        if SubscriptionCouponRedemption.objects.filter(coupon=coupon, user=user).exists():
+            raise SubscriptionError(f"You have already redeemed coupon '{coupon.code}'.")
 
     discount = coupon.calculate_discount(plan.monthly_price)
     final_price = max(Decimal("0.00"), plan.monthly_price - discount)
@@ -462,7 +466,7 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
 
     clean_coupon = (coupon_code or "").strip().upper()
     if clean_coupon:
-        coupon_info = validate_subscription_coupon(clean_coupon, plan)
+        coupon_info = validate_subscription_coupon(clean_coupon, plan, user=user)
         coupon = SubscriptionCoupon.objects.filter(code=clean_coupon).first()
         discount = coupon_info["discount_applied"]
         final_price = coupon_info["final_price"]
