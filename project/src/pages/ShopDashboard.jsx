@@ -159,7 +159,7 @@ export default function ShopDashboard() {
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState(false)
   const [tab, setTab] = useState(searchParams.get('tab') || 'overview')
-  const [productForm, setProductForm] = useState({ name: '', description: '', base_price: '', status: 'active' })
+  const [productForm, setProductForm] = useState({ name: '', description: '', base_price: '', stock: 100, status: 'active' })
   const [editingProduct, setEditingProduct] = useState(null)
   const [saving, setSaving] = useState(false)
   const [themeSaving, setThemeSaving] = useState(false)
@@ -434,6 +434,7 @@ export default function ShopDashboard() {
       name: product.name,
       description: product.description,
       base_price: product.base_price,
+      stock: product.inventory_quantity ?? 100,
       status: product.status
     })
     setTab('add-product')
@@ -1262,13 +1263,18 @@ export default function ShopDashboard() {
                     <textarea rows={4} value={productForm.description} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all resize-none" placeholder="Describe your product…" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Price ({shop?.currency === 'USD' ? '$' : shop?.currency === 'EUR' ? '€' : shop?.currency === 'GBP' ? '£' : '₦'})
                       </label>
                       <input type="number" step="0.01" min="0" required value={productForm.base_price} onChange={e => setProductForm(f => ({ ...f, base_price: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" placeholder="1000.00" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Quantity</label>
+                      <input type="number" min="0" required value={productForm.stock ?? 100} onChange={e => setProductForm(f => ({ ...f, stock: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" placeholder="100" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>

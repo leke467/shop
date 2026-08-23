@@ -314,12 +314,25 @@ export default function ProductPage() {
               {product.purchase_count > 0 && <span className="text-sm text-gray-400">• {product.purchase_count} sold</span>}
             </div>
 
-            {/* Price */}
-            <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-gray-900">₦{Number(price).toLocaleString()}</span>
-              {comparePrice && (
-                <span className="text-xl text-gray-400 line-through">₦{Number(comparePrice).toLocaleString()}</span>
-              )}
+            {/* Price & Stock */}
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-gray-900">₦{Number(price).toLocaleString()}</span>
+                {comparePrice && (
+                  <span className="text-xl text-gray-400 line-through">₦{Number(comparePrice).toLocaleString()}</span>
+                )}
+              </div>
+              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                (product.is_out_of_stock || (product.inventory_quantity ?? 100) <= 0) 
+                  ? 'bg-red-100 text-red-700' 
+                  : (product.inventory_quantity ?? 100) <= 10 
+                    ? 'bg-amber-100 text-amber-700' 
+                    : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                {(product.is_out_of_stock || (product.inventory_quantity ?? 100) <= 0) 
+                  ? 'Out of Stock' 
+                  : `${product.inventory_quantity ?? 100} in stock`}
+              </span>
             </div>
 
             {/* Variants */}
@@ -350,18 +363,24 @@ export default function ProductPage() {
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
                 <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">−</button>
                 <span className="px-5 py-3 text-gray-900 font-semibold min-w-[3rem] text-center">{quantity}</span>
-                <button onClick={() => setQuantity(q => q + 1)} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">+</button>
+                <button onClick={() => setQuantity(q => Math.min(product.inventory_quantity ?? 100, q + 1))} className="px-4 py-3 text-gray-500 hover:bg-gray-50 transition-colors font-bold">+</button>
               </div>
 
               <motion.button
                 onClick={handleAddToCart}
-                disabled={addingToCart}
-                className="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl disabled:opacity-60 transition-all duration-300 flex items-center justify-center gap-2"
-                whileHover={{ scale: addingToCart ? 1 : 1.01 }}
+                disabled={addingToCart || (product.is_out_of_stock || (product.inventory_quantity ?? 100) <= 0)}
+                className={`flex-1 py-3.5 px-6 rounded-xl text-white font-semibold shadow-lg disabled:opacity-60 transition-all duration-300 flex items-center justify-center gap-2 ${
+                  (product.is_out_of_stock || (product.inventory_quantity ?? 100) <= 0)
+                    ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                    : 'bg-gradient-to-r from-primary-600 to-secondary-600 shadow-primary-500/25 hover:shadow-xl'
+                }`}
+                whileHover={{ scale: (addingToCart || product.is_out_of_stock) ? 1 : 1.01 }}
                 whileTap={{ scale: 0.98 }}
               >
                 {addingToCart ? (
                   <span>Adding…</span>
+                ) : (product.is_out_of_stock || (product.inventory_quantity ?? 100) <= 0) ? (
+                  <span>Out of Stock</span>
                 ) : cartSuccess ? (
                   <span>✓ Added to Cart!</span>
                 ) : (

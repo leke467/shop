@@ -16,11 +16,13 @@ function ProductCard({ product }) {
   const shopId = product.shop_slug || product.shopId
   const rating = Number(product.rating_average || product.rating || 0).toFixed(1)
   const reviewCount = product.rating_count || product.reviewCount || 0
-  const inventory = product.inventory ?? 100
+  const inventory = product.inventory_quantity ?? product.inventory ?? 100
+  const isOutOfStock = product.is_out_of_stock || inventory <= 0
 
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isOutOfStock) return
     const activeVariant = product.variants?.[0] || {
       id: product.public_id || product.id || id,
       public_id: product.public_id || product.id || id,
@@ -50,14 +52,14 @@ function ProductCard({ product }) {
             onError={(e) => handleImageError(e, 'product', name)}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
-          {inventory < 10 && inventory > 0 && (
-            <div className="absolute top-2 left-2 bg-warning-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+          {inventory > 0 && inventory <= 10 && (
+            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
               Only {inventory} left
             </div>
           )}
-          {inventory === 0 && (
-            <div className="absolute top-2 left-2 bg-error-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-              Sold Out
+          {isOutOfStock && (
+            <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+              Out of Stock
             </div>
           )}
         </div>
@@ -80,6 +82,9 @@ function ProductCard({ product }) {
           <div>
             <div className="flex justify-between items-center mb-3">
               <p className="text-base font-bold text-gray-900">₦{Number(price || 0).toLocaleString()}</p>
+              <span className={`text-[11px] font-medium ${isOutOfStock ? 'text-red-500' : 'text-emerald-600'}`}>
+                {isOutOfStock ? 'Out of Stock' : `${inventory} in stock`}
+              </span>
             </div>
             
             <div className="flex gap-2">
@@ -92,10 +97,14 @@ function ProductCard({ product }) {
               </Link>
               <button 
                 onClick={handleAddToCart}
-                className="flex-1 inline-flex items-center justify-center py-2 text-[11px] font-semibold text-white bg-gradient-to-r from-primary-600 to-secondary-600 rounded-xl shadow-md shadow-primary-500/20 hover:opacity-95 transition-opacity"
+                disabled={isOutOfStock}
+                className={`flex-1 inline-flex items-center justify-center py-2 text-[11px] font-semibold text-white rounded-xl transition-all ${
+                  isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-primary-600 to-secondary-600 shadow-md shadow-primary-500/20 hover:opacity-95'
+                }`}
               >
-                Add to Cart
+                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
               </button>
+            </div>
             </div>
           </div>
         </div>

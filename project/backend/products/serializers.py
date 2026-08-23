@@ -66,6 +66,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True, default=None)
     primary_image = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
+    inventory_quantity = serializers.SerializerMethodField()
+    is_out_of_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -74,7 +76,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "currency", "status", "is_featured",
             "rating_average", "rating_count", "view_count",
             "shop_name", "shop_slug", "category_name", "primary_image",
-            "is_locked", "created_at",
+            "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
 
@@ -91,6 +93,18 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_is_locked(self, obj):
         return is_user_locked(obj.shop.owner)
 
+    def get_inventory_quantity(self, obj):
+        try:
+            var = obj.variants.first()
+            if var and hasattr(var, 'inventory') and var.inventory:
+                return max(0, var.inventory.quantity - var.inventory.reserved)
+        except Exception:
+            pass
+        return 100
+
+    def get_is_out_of_stock(self, obj):
+        return self.get_inventory_quantity(obj) <= 0
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     """Full detail with variants, images, reviews."""
@@ -100,6 +114,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     is_locked = serializers.SerializerMethodField()
+    inventory_quantity = serializers.SerializerMethodField()
+    is_out_of_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -110,6 +126,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "rating_average", "rating_count", "view_count", "purchase_count",
             "shop_name", "shop_slug", "category",
             "variants", "images", "is_locked",
+            "inventory_quantity", "is_out_of_stock",
             "created_at", "updated_at",
         )
         read_only_fields = (
@@ -120,16 +137,57 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     def get_is_locked(self, obj):
         return is_user_locked(obj.shop.owner)
 
+    def get_inventory_quantity(self, obj):
+        try:
+            var = obj.variants.first()
+            if var and hasattr(var, 'inventory') and var.inventory:
+                return max(0, var.inventory.quantity - var.inventory.reserved)
+        except Exception:
+            pass
+        return 100
+
+    def get_is_out_of_stock(self, obj):
+        return self.get_inventory_quantity(obj) <= 0
+
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
+    stock = serializers.IntegerField(write_only=True, required=False, default=100)
+
     class Meta:
         model = Product
         fields = (
             "public_id", "name", "slug", "description", "category",
             "base_price", "compare_at_price", "currency",
-            "status", "is_featured", "tags",
+            "status", "is_featured", "tags", "stock",
         )
         read_only_fields = ("public_id", "slug",)
+
+    def create(self, validated_data):
+        stock = validated_data.pop("stock", 100)
+        product = super().create(validated_data)
+        self._sync_inventory(product, stock)
+        return product
+
+    def update(self, instance, validated_data):
+        stock = validated_data.pop("stock", None)
+        product = super().update(instance, validated_data)
+        if stock is not None:
+            self._sync_inventory(product, stock)
+        return product
+
+    def _sync_inventory(self, product, stock):
+        variant = product.variants.filter(is_default=True).first() or product.variants.first()
+        if not variant:
+            variant = ProductVariant.objects.create(
+                product=product,
+                name="Default",
+                price=product.base_price,
+                is_default=True,
+                is_active=True,
+            )
+        inv, _ = Inventory.objects.get_or_create(variant=variant)
+        inv.quantity = stock
+        inv.save()
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
