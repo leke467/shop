@@ -477,6 +477,8 @@ class SellerWallet(TimeStampedModel):
 
     def credit(self, amount: Decimal, *, save: bool = True) -> None:
         """Add released escrow funds to the balance."""
+        if amount <= Decimal("0.00"):
+            return
         self.balance += amount
         self.total_earned += amount
         if save:
@@ -542,7 +544,9 @@ class PayoutRequest(BaseModel):
         FAILED = "failed", _("Failed")
 
     wallet = models.ForeignKey(SellerWallet, on_delete=models.CASCADE, related_name="payout_requests")
-    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    amount = models.DecimalField(
+        max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal("100.00"))]
+    )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PENDING
     )

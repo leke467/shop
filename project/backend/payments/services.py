@@ -44,6 +44,7 @@ def checkout(
     delivery_state: str = "",
     manual_delivery_shops: list[str] = None,
     shop_slug: str = None,
+    coupon_code: str = "",
     **provider_kwargs,
 ) -> Order:
     """
@@ -179,12 +180,40 @@ def checkout(
         for group in shops_seen.values():
             group.save(update_fields=["subtotal"])
 
+        # --- Process Coupon / Discount ---
+        discount_amount = Decimal("0.00")
+        applied_coupon_id = None
+        if coupon_code and str(coupon_code).strip():
+            from orders.models import Coupon
+            coupon = Coupon.objects.filter(code__iexact=str(coupon_code).strip()).first()
+            if not coupon:
+                raise CheckoutError("Invalid coupon code.")
+            if not coupon.is_valid:
+                raise CheckoutError("This coupon is expired or inactive.")
+            if coupon.minimum_order_value > Decimal("0") and subtotal < coupon.minimum_order_value:
+                raise CheckoutError(f"Minimum order value of {coupon.minimum_order_value} required for this coupon.")
+
+            applicable_subtotal = subtotal
+            if coupon.shop:
+                shop_group = shops_seen.get(coupon.shop.pk)
+                if not shop_group:
+                    raise CheckoutError("Coupon is only valid for items from a specific shop.")
+                applicable_subtotal = shop_group.subtotal
+
+            if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
+                discount_amount = (applicable_subtotal * coupon.value) / Decimal("100.0")
+            else:
+                discount_amount = coupon.value
+            discount_amount = min(discount_amount, subtotal).quantize(Decimal("0.01"))
+            applied_coupon_id = coupon.pk
+
         # Update order totals.
         order.subtotal = subtotal
-        order.tax_total = (subtotal * Decimal("0.075")).quantize(Decimal("0.01"))
+        order.discount_total = discount_amount
+        order.tax_total = (max(Decimal("0.00"), subtotal - discount_amount) * Decimal("0.075")).quantize(Decimal("0.01"))
         order.shipping_total = sum(g.shipping_total for g in shops_seen.values())
-        order.grand_total = subtotal + order.shipping_total + order.tax_total - order.discount_total
-        order.save(update_fields=["subtotal", "tax_total", "shipping_total", "grand_total"])
+        order.grand_total = max(Decimal("0.00"), subtotal - discount_amount) + order.shipping_total + order.tax_total
+        order.save(update_fields=["subtotal", "discount_total", "tax_total", "shipping_total", "grand_total"])
 
         # --- Reserve inventory ---
         for item in cart_items:
@@ -192,6 +221,11 @@ def checkout(
             if inv and inv.track_inventory:
                 inv.reserved += item.quantity
                 inv.save(update_fields=["reserved"])
+
+    # Attach coupon metadata to payment kwargs if used
+    if applied_coupon_id:
+        provider_kwargs.setdefault("metadata", {})
+        provider_kwargs["metadata"]["coupon_id"] = applied_coupon_id
 
     # --- Charge payment (outside the inventory lock) ---
     gateway = get_gateway(provider)
@@ -459,6 +493,11 @@ def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
                             })
                 except Exception:
                     pass  # Non-blocking
+
+        # Atomically increment coupon used_count if a coupon was redeemed on this order
+        if order.discount_total > Decimal("0.00") and isinstance(payment.metadata, dict) and payment.metadata.get("coupon_id"):
+            from orders.models import Coupon
+            Coupon.objects.filter(pk=payment.metadata["coupon_id"]).update(used_count=models_F("used_count") + 1)
 
     # Clear the buyer's cart.
     cart = Cart.objects.filter(user=order.user).first()

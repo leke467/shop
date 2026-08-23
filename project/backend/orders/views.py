@@ -474,6 +474,9 @@ class PayoutRequestCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         amount = serializer.validated_data["amount"]
+        if amount < Decimal("100.00"):
+            raise serializers.ValidationError({"amount": "Minimum payout amount is ₦100.00."})
+
         bank_account = serializer.validated_data["bank_account"]
         shop = bank_account.shop
 

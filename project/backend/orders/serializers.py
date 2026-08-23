@@ -1,4 +1,5 @@
 """Orders serializers."""
+from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -129,6 +130,10 @@ class SellerBankAccountSerializer(serializers.ModelSerializer):
 
 
 class PayoutRequestSerializer(serializers.ModelSerializer):
+    amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal("100.00"),
+        help_text="Minimum payout withdrawal amount is ₦100.00."
+    )
     bank_account_details = SellerBankAccountSerializer(source="bank_account", read_only=True)
 
     class Meta:

@@ -61,6 +61,7 @@ class CheckoutSerializer(serializers.Serializer):
     delivery_fees = serializers.DictField(child=serializers.DictField(), required=False)
     manual_delivery_shops = serializers.ListField(child=serializers.CharField(), required=False, default=list)
     shop_slug = serializers.CharField(required=False, default="", allow_blank=True)
+    coupon_code = serializers.CharField(required=False, default="", allow_blank=True)
 
 
 
@@ -93,6 +94,7 @@ class CheckoutView(APIView):
         }
 
         shop_slug = d.get("shop_slug") or request.data.get("shop_slug") or request.data.get("shop")
+        coupon_code = d.get("coupon_code") or request.data.get("coupon_code") or ""
 
         try:
             order = checkout(
@@ -106,6 +108,7 @@ class CheckoutView(APIView):
                 delivery_state=d["delivery_state"],
                 manual_delivery_shops=d.get("manual_delivery_shops", []),
                 shop_slug=shop_slug if shop_slug else None,
+                coupon_code=coupon_code,
             )
 
         except DuplicateOrderError as e:
