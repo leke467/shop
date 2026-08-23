@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
 import Logo from '../components/Logo'
@@ -8,6 +8,8 @@ import GoogleLoginButton from '../components/GoogleLoginButton'
 export default function LoginPage() {
   const { login } = useUser()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/'
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(form.email, form.password)
-      navigate('/')
+      navigate(redirectUrl)
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid credentials. Please try again.')
     } finally {
