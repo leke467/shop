@@ -147,10 +147,10 @@ FRONTEND_URL = env("FRONTEND_URL", "http://localhost:5173")
 # Middleware
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -411,17 +411,19 @@ CELERY_BEAT_SCHEDULE = {
 # CORS / CSRF
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
 )
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", True)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.workers\.dev$",
     r"^https://.*\.pages\.dev$",
     r"^https://.*\.netlify\.app$",
     r"^https://.*\.railway\.app$",
+    r"^https://.*\.multishopng\.com$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com"
+    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
 )
 
 

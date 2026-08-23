@@ -30,6 +30,9 @@ function ShopCreationPage() {
 
   /** Extract field-level and general errors from backend response. */
   const parseBackendErrors = (error) => {
+    if (!error?.response) {
+      return { fields: {}, general: 'Network connection issue or server CORS block. Please reload the page and try again.' }
+    }
     const data = error?.response?.data
     // Wrapped format: {error: {detail: {...}}}
     const detail = data?.error?.detail ?? data?.detail ?? data
@@ -48,7 +51,7 @@ function ShopCreationPage() {
         if (key === 'non_field_errors' || key === 'detail') {
           generals.push(message)
         } else {
-          fields[key] = message
+          fields[key] = `${key}: ${message}`
         }
       }
     }
