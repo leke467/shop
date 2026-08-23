@@ -14,37 +14,44 @@ export default function GoogleLoginButton({ onSuccess, onError, text = "Continue
   useEffect(() => {
     if (!googleClientId) return
 
+    const initGsi = () => {
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          })
+          const btnContainer = document.getElementById('google-signin-btn-div')
+          if (btnContainer) {
+            btnContainer.innerHTML = ''
+            window.google.accounts.id.renderButton(
+              btnContainer,
+              { theme: 'outline', size: 'large', width: 320, shape: 'pill', text: 'continue_with' }
+            )
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    if (window.google?.accounts?.id) {
+      initGsi()
+      return
+    }
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+    if (existingScript) {
+      existingScript.addEventListener('load', initGsi)
+      return () => existingScript.removeEventListener('load', initGsi)
+    }
+
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
     script.defer = true
-    script.onload = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: handleGoogleResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        })
-
-        // Render official native Google Sign-In button
-        const btnContainer = document.getElementById('google-signin-btn-div')
-        if (btnContainer) {
-          window.google.accounts.id.renderButton(
-            btnContainer,
-            { theme: 'outline', size: 'large', width: 320, shape: 'pill', text: 'continue_with' }
-          )
-        }
-
-        // Trigger Google One-Tap Account Selector sheet
-        window.google.accounts.id.prompt()
-      }
-    }
+    script.onload = initGsi
     document.body.appendChild(script)
-
-    return () => {
-      try { document.body.removeChild(script) } catch { /* ignore */ }
-    }
   }, [googleClientId])
 
   const handleGoogleResponse = async (response) => {
