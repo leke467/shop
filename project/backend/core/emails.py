@@ -11,9 +11,13 @@ def send_order_placed_buyer_email(order, order_groups):
     Send receipt and delivery codes to the buyer.
     """
     subject = f"Your Order #{order.public_id} is Confirmed"
+    buyer_name = order.shipping_full_name or (order.user.first_name if order.user else "") or "Customer"
+    buyer_email = (order.user.email if order.user else "")
+    if not buyer_email:
+        return
     
     body_lines = [
-        f"Hi {order.customer_name or 'there'},",
+        f"Hi {buyer_name},",
         "",
         f"Thank you for your order #{order.public_id}!",
         "",
@@ -37,7 +41,7 @@ def send_order_placed_buyer_email(order, order_groups):
             subject,
             body,
             DEFAULT_FROM_EMAIL,
-            [order.customer_email],
+            [buyer_email],
             fail_silently=False,
         )
     except Exception as e:
@@ -48,15 +52,16 @@ def send_order_placed_seller_email(order_group):
     Notify seller of a new order.
     """
     shop = order_group.shop
-    if not shop.owner:
+    if not shop.owner or not shop.owner.email:
         return
         
     subject = f"New Order Received: #{order_group.order.public_id}"
+    seller_name = shop.owner.first_name or shop.owner.email.split("@")[0]
     body = (
-        f"Hello {shop.owner.first_name},\n\n"
+        f"Hello {seller_name},\n\n"
         f"You have received a new order for {shop.name}!\n"
         f"Order ID: {order_group.order.public_id}\n"
-        f"Total: {order_group.total}\n\n"
+        f"Total: NGN {order_group.total_price:,.2f}\n\n"
         f"Please check your seller dashboard for details and arrange delivery.\n\n"
         f"Thanks,\nThe Multishop Team"
     )
