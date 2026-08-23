@@ -1264,9 +1264,11 @@ export default function ShopDashboard() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Price ({shop?.currency === 'USD' ? '$' : shop?.currency === 'EUR' ? '€' : shop?.currency === 'GBP' ? '£' : '₦'})
+                      </label>
                       <input type="number" step="0.01" min="0" required value={productForm.base_price} onChange={e => setProductForm(f => ({ ...f, base_price: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" placeholder="29.99" />
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" placeholder="1000.00" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>

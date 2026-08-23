@@ -51,6 +51,7 @@ function ShopCard({ shop }) {
 
 function ProductCard({ product }) {
   const firstImage = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
+  const imgSrc = getImageUrl(typeof firstImage === 'string' ? firstImage : (firstImage?.medium || firstImage?.image), product.name)
   return (
     <Link to={`/product/${product.slug || product.public_id}`}>
       <motion.div
@@ -58,20 +59,12 @@ function ProductCard({ product }) {
         whileHover={{ y: -6 }}
       >
         <div className="aspect-square bg-gray-100 relative overflow-hidden">
-          {firstImage ? (
-            <img
-              src={getImageUrl(typeof firstImage === 'string' ? firstImage : (firstImage.medium || firstImage.image))}
-              alt={product.name}
-              onError={(e) => handleImageError(e, 'product')}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          )}
+          <img
+            src={imgSrc}
+            alt={product.name}
+            onError={(e) => handleImageError(e, 'product', product.name)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
           {/* Price badge */}
           <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
             <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
