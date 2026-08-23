@@ -81,7 +81,7 @@ def _bank_transfer_accounts() -> list[dict]:
 # ---------------------------------------------------------------------------
 # Core security
 # ---------------------------------------------------------------------------
-SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-me-in-production-min-32-bytes-long-secret")
+SECRET_KEY = env("DJANGO_SECRET_KEY", "multishopng-stable-production-secret-key-signing-2026-v1")
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
@@ -348,6 +348,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": True,
+    "SIGNING_KEY": env("JWT_SIGNING_KEY", SECRET_KEY),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
