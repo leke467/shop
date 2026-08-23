@@ -19,12 +19,19 @@ class CookieJWTAuthentication(JWTAuthentication):
         if header is not None:
             raw_token = self.get_raw_token(header)
             if raw_token is not None:
-                validated = self.get_validated_token(raw_token)
-                return self.get_user(validated), validated
+                try:
+                    validated = self.get_validated_token(raw_token)
+                    return self.get_user(validated), validated
+                except Exception:
+                    return None
 
         # 2) Fall back to the HttpOnly access cookie (browser clients).
         raw_token = request.COOKIES.get(settings.AUTH_COOKIE_ACCESS)
         if not raw_token:
             return None
-        validated = self.get_validated_token(raw_token)
-        return self.get_user(validated), validated
+        try:
+            validated = self.get_validated_token(raw_token)
+            return self.get_user(validated), validated
+        except Exception:
+            # Expired or corrupted cookie — treat as unauthenticated so AllowAny views can run
+            return None

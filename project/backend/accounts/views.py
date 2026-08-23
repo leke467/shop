@@ -29,6 +29,7 @@ User = get_user_model()
 class RegisterView(generics.CreateAPIView):
     """Public registration endpoint."""
     serializer_class = RegisterSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
@@ -273,6 +274,7 @@ class GoogleAuthView(APIView):
     Verifies Google ID Token or Access Token, gets or creates user,
     issues SimpleJWT tokens and HttpOnly auth cookies.
     """
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 

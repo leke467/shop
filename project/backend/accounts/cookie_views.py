@@ -69,6 +69,7 @@ class CookieLoginView(APIView):
 
     Throttled to 10/min to prevent credential stuffing.
     """
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
@@ -143,6 +144,7 @@ class TwoFactorLoginVerifyView(APIView):
 
     Security (H2): Completes the login flow when 2FA is enabled.
     """
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
@@ -164,14 +166,13 @@ class TwoFactorLoginVerifyView(APIView):
         pending = cache.get(f"2fa_pending:{token_2fa}")
         if not pending:
             return Response(
-                {"detail": "2FA session expired or invalid. Please login again."},
-                status=status.HTTP_401_UNAUTHORIZED,
+                {"detail": "Invalid or expired 2FA session. Please log in again."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         User = get_user_model()
-        try:
-            user = User.objects.get(pk=pending["user_pk"])
-        except User.DoesNotExist:
+        user = User.objects.filter(pk=pending["user_id"]).first()
+        if not user:
             return Response({"detail": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -206,6 +207,7 @@ class CookieTokenRefreshView(APIView):
     No request body needed — the refresh token is read from the HttpOnly cookie.
     Falls back to the request body for non-browser clients.
     """
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):

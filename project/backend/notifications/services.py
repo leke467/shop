@@ -65,13 +65,16 @@ class EmailService:
             or "multishopng@apexlabs.it.com"
         )
 
-        sender_email = from_email or getattr(settings, "DEFAULT_FROM_EMAIL", brevo_sender_email)
+        sender_email = from_email or brevo_sender_email or getattr(settings, "DEFAULT_FROM_EMAIL", "multishopng@apexlabs.it.com")
         if "<" in sender_email and ">" in sender_email:
-            sender_name = sender_email.split("<")[0].strip()
+            sender_name = sender_email.split("<")[0].strip() or "MultiShop Marketplace"
             sender_addr = sender_email.split("<")[1].replace(">", "").strip()
         else:
             sender_name = "MultiShop Marketplace"
             sender_addr = sender_email
+
+        if not sender_addr or "example.com" in sender_addr or sender_addr == "admin@apexlabs.it.com":
+            sender_addr = "multishopng@apexlabs.it.com"
 
         # Try Brevo REST API v3 if API key available
         if brevo_api_key:
@@ -135,13 +138,16 @@ class EmailService:
             or "multishopng@apexlabs.it.com"
         )
 
-        sender_email = from_email or getattr(settings, "DEFAULT_FROM_EMAIL", brevo_sender_email)
+        sender_email = from_email or brevo_sender_email or getattr(settings, "DEFAULT_FROM_EMAIL", "multishopng@apexlabs.it.com")
         if "<" in sender_email and ">" in sender_email:
-            sender_name = sender_email.split("<")[0].strip()
+            sender_name = sender_email.split("<")[0].strip() or "MultiShop Marketplace"
             sender_addr = sender_email.split("<")[1].replace(">", "").strip()
         else:
             sender_name = "MultiShop Marketplace"
             sender_addr = sender_email
+
+        if not sender_addr or "example.com" in sender_addr or sender_addr == "admin@apexlabs.it.com":
+            sender_addr = "multishopng@apexlabs.it.com"
 
         if brevo_api_key:
             try:
