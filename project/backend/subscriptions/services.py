@@ -491,51 +491,22 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
 
 
 def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> dict:
-    """Verify subscription payment with provider and activate plan."""
+    """Verify subscription payment with provider gateway API and activate plan."""
     from payments.models import Payment
     from payments.gateways import get_gateway
+    from django.conf import settings as django_settings
+    import requests as http_requests
 
     payment = Payment.objects.filter(provider_payment_id=payment_ref).first()
 
     if not payment and payment_ref.isdigit():
         payment = Payment.objects.filter(pk=int(payment_ref)).first()
 
-    # Fallback if reference contains sub-<user_pk>-<plan_code>
-    if not payment and payment_ref.startswith("sub-"):
-        parts = payment_ref.split("-")
-        if len(parts) >= 3:
-            user_pk = parts[1]
-            plan_code = parts[2]
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            u = User.objects.filter(pk=user_pk).first()
-            p = SubscriptionPlan.objects.filter(code=plan_code).first()
-            if u and p:
-                activate_plan(u, p, months=1)
-                # Create captured payment record for receipt
-                payment = Payment.objects.create(
-                    user=u,
-                    provider=provider or "monnify",
-                    provider_payment_id=payment_ref,
-                    amount=p.monthly_price,
-                    currency=p.currency,
-                    status=Payment.Status.CAPTURED,
-                    captured_at=timezone.now(),
-                    metadata={"purpose": "subscription", "plan_code": p.code, "user_id": str(u.pk)},
-                )
-                return {
-                    "status": "activated",
-                    "detail": f"Successfully upgraded to {p.name} plan!",
-                    "plan": p.code,
-                    "payment_id": str(payment.pk),
-                    "receipt_url": f"/api/payments/receipt/{payment.pk}/html/",
-                }
-
     if not payment:
         raise SubscriptionError("Payment record not found for this reference.")
 
     user = payment.user
-    plan_code = payment.metadata.get("plan_code", "")
+    plan_code = payment.metadata.get("plan_code", "") if isinstance(payment.metadata, dict) else ""
     plan = SubscriptionPlan.objects.filter(code=plan_code).first()
     if not plan:
         raise SubscriptionError("Target plan not found.")
@@ -549,6 +520,73 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
             "payment_id": str(payment.pk),
             "receipt_url": f"/api/payments/receipt/{payment.pk}/html/",
         }
+
+    # Server-side verification with Payment Provider (Paystack or Monnify)
+    chosen_provider = payment.provider or provider or "paystack"
+    verified_paid = False
+
+    if chosen_provider == "paystack":
+        secret_key = django_settings.PAYMENTS.get("PAYSTACK", {}).get("SECRET_KEY", "")
+        if secret_key:
+            try:
+                resp = http_requests.get(
+                    f"https://api.paystack.co/transaction/verify/{payment_ref}",
+                    headers={
+                        "Authorization": f"Bearer {secret_key}",
+                        "Content-Type": "application/json",
+                    },
+                    timeout=15,
+                )
+                data = resp.json()
+                if data.get("status") and data.get("data", {}).get("status") == "success":
+                    paid_kobo = data.get("data", {}).get("amount", 0)
+                    expected_kobo = int(plan.monthly_price * 100)
+                    if paid_kobo >= expected_kobo:
+                        verified_paid = True
+                    else:
+                        raise SubscriptionError("Underpayment detected. Subscription could not be activated.")
+            except SubscriptionError:
+                raise
+            except Exception as e:
+                logger.warning("Paystack subscription verify failed: %s", e)
+
+    elif chosen_provider == "monnify":
+        gateway = get_gateway("monnify")
+        token = gateway._get_access_token()
+        if token:
+            base_url = django_settings.PAYMENTS.get("MONNIFY", {}).get("BASE_URL", "").rstrip("/")
+            import urllib.parse
+            encoded_ref = urllib.parse.quote(payment_ref)
+            try:
+                resp = http_requests.get(
+                    f"{base_url}/api/v2/transactions/searchByPaymentReference?paymentReference={encoded_ref}",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json",
+                    },
+                    timeout=15,
+                    verify=False,
+                )
+                data = resp.json()
+                body = data.get("responseBody", {})
+                if body.get("paymentStatus") in ("PAID", "SUCCESS", "OVERPAID"):
+                    paid_amount = Decimal(str(body.get("amountPaid", "0")))
+                    if paid_amount >= plan.monthly_price:
+                        verified_paid = True
+                    else:
+                        raise SubscriptionError("Underpayment detected. Subscription could not be activated.")
+            except SubscriptionError:
+                raise
+            except Exception as e:
+                logger.warning("Monnify subscription verify failed: %s", e)
+
+    # In local development DEBUG mode only, allow sandbox bypass if running local tests
+    if not verified_paid and django_settings.DEBUG:
+        logger.info("DEBUG mode: activating sandbox subscription test.")
+        verified_paid = True
+
+    if not verified_paid:
+        raise SubscriptionError("Payment has not been confirmed by the payment gateway.")
 
     # Mark as captured and activate plan
     payment.status = Payment.Status.CAPTURED
