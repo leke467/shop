@@ -144,56 +144,11 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50 pt-24 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-8">
+        <div className="text-center max-w-2xl mx-auto mb-12">
           <h1 className="text-4xl font-bold text-gray-900">Simple, transparent pricing</h1>
           <p className="text-gray-500 mt-3">
             Choose the plan that fits your business. Upgrade or downgrade anytime.
           </p>
-        </div>
-
-        {/* Promo / Coupon Input Banner */}
-        <div className="max-w-xl mx-auto mb-10 bg-white rounded-2xl border border-emerald-500/30 p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-              <span>🎟️</span> Have a Promo or Registration Coupon?
-            </span>
-            {appliedCoupon && (
-              <button
-                onClick={handleRemoveCoupon}
-                className="text-xs text-red-500 hover:text-red-700 font-semibold"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter coupon code (e.g. VIP-GROWTH)"
-              value={couponInput}
-              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-              disabled={Boolean(appliedCoupon)}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100"
-            />
-            {!appliedCoupon ? (
-              <button
-                onClick={() => handleValidateCoupon(couponInput, plans[1]?.code || plans[0]?.code)}
-                disabled={couponLoading || !couponInput.trim()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow active:scale-95 disabled:opacity-50"
-              >
-                {couponLoading ? 'Checking...' : 'Apply Code'}
-              </button>
-            ) : (
-              <span className="px-4 py-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl flex items-center">
-                ✓ Applied
-              </span>
-            )}
-          </div>
-          {couponMessage && (
-            <p className={`text-xs mt-2 font-medium ${appliedCoupon ? 'text-emerald-600' : 'text-red-500'}`}>
-              {couponMessage}
-            </p>
-          )}
         </div>
 
         {error && (
