@@ -375,66 +375,174 @@ export default function PricingPage() {
         )}
       </AnimatePresence>
 
-      {/* Payment Gateway Provider Selector Modal */}
+      {/* Payment Gateway Provider & Coupon Checkout Modal */}
       <AnimatePresence>
         {selectedPlanForPayment && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
               onClick={() => setSelectedPlanForPayment(null)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
+              className="relative bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6"
             >
-              <div className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-2xl mb-4 mx-auto">
-                💳
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-1">Select Payment Provider</h3>
-              <p className="text-gray-500 text-center text-sm mb-6">
-                Upgrading to <strong>{selectedPlanForPayment.name}</strong> ({fmtPrice(selectedPlanForPayment)}/mo)
-              </p>
-
-              <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Subscribe to {selectedPlanForPayment.name}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Choose your payment method or apply a coupon code.</p>
+                </div>
                 <button
-                  onClick={() => handleUpgrade(selectedPlanForPayment, 'paystack')}
-                  className="w-full p-4 rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 transition-all flex items-center justify-between text-left group"
+                  onClick={() => setSelectedPlanForPayment(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-lg">
-                      P
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 group-hover:text-primary-600">Paystack</p>
-                      <p className="text-xs text-gray-500">Debit Card, Bank Transfer, USSD</p>
-                    </div>
-                  </div>
-                  <span className="text-gray-400 group-hover:text-primary-600 font-bold">→</span>
-                </button>
-
-                <button
-                  onClick={() => handleUpgrade(selectedPlanForPayment, 'monnify')}
-                  className="w-full p-4 rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 transition-all flex items-center justify-between text-left group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
-                      M
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 group-hover:text-primary-600">Monnify (Moniepoint)</p>
-                      <p className="text-xs text-gray-500">Instant Bank Transfer, Card, Account</p>
-                    </div>
-                  </div>
-                  <span className="text-gray-400 group-hover:text-primary-600 font-bold">→</span>
+                  ✕
                 </button>
               </div>
+
+              {/* In-Modal Promo / Coupon Input Section */}
+              <div className="bg-emerald-50/50 border border-emerald-500/30 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                    <span>🎟️</span> Have a Coupon or Promo Code?
+                  </span>
+                  {appliedCoupon && (
+                    <button
+                      onClick={handleRemoveCoupon}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter code (e.g. VIP-GROWTH)"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    disabled={Boolean(appliedCoupon)}
+                    className="flex-1 bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100"
+                  />
+                  {!appliedCoupon ? (
+                    <button
+                      type="button"
+                      onClick={() => handleValidateCoupon(couponInput, selectedPlanForPayment.code)}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow active:scale-95 disabled:opacity-50"
+                    >
+                      {couponLoading ? 'Checking...' : 'Apply'}
+                    </button>
+                  ) : (
+                    <span className="px-3 py-2 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-xl flex items-center">
+                      ✓ Valid
+                    </span>
+                  )}
+                </div>
+
+                {couponMessage && (
+                  <p className={`text-xs font-medium ${appliedCoupon ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {couponMessage}
+                  </p>
+                )}
+              </div>
+
+              {/* Price Calculation Summary */}
+              {(() => {
+                const origPrice = Number(selectedPlanForPayment.monthly_price || 0)
+                const isApplicable = appliedCoupon && (!appliedCoupon.plan_code || appliedCoupon.plan_code === selectedPlanForPayment.code)
+                const is100Free = isApplicable && (appliedCoupon.is_100_percent_free || Number(appliedCoupon.final_price) <= 0)
+                const finalDue = isApplicable
+                  ? is100Free ? 0 : Math.max(0, origPrice - Number(appliedCoupon.discount_applied || 0))
+                  : origPrice
+
+                return (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
+                      <div className="flex justify-between text-gray-600">
+                        <span>{selectedPlanForPayment.name} Monthly Plan</span>
+                        <span>₦{origPrice.toLocaleString()}</span>
+                      </div>
+                      {isApplicable && (
+                        <div className="flex justify-between text-emerald-600 font-semibold">
+                          <span>Coupon Discount ({appliedCoupon.code})</span>
+                          <span>-₦{is100Free ? origPrice.toLocaleString() : Number(appliedCoupon.discount_applied).toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-gray-900 text-base">
+                        <span>Total Due Now</span>
+                        <span className={finalDue === 0 ? 'text-emerald-600 text-lg' : 'text-gray-900'}>
+                          {finalDue === 0 ? '₦0.00 (Free Trial)' : `₦${finalDue.toLocaleString()}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action: Free Activation vs Gateway Selection */}
+                    {finalDue === 0 ? (
+                      <button
+                        onClick={() => handleUpgrade(selectedPlanForPayment)}
+                        disabled={upgrading === selectedPlanForPayment.code}
+                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base shadow-xl shadow-emerald-600/30 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {upgrading === selectedPlanForPayment.code
+                          ? 'Activating Free Plan…'
+                          : `🎉 Activate ${selectedPlanForPayment.name} Free of Charge`}
+                      </button>
+                    ) : (
+                      <div className="space-y-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 text-center">
+                          Select Payment Provider
+                        </p>
+                        <button
+                          onClick={() => handleUpgrade(selectedPlanForPayment, 'paystack')}
+                          disabled={upgrading === selectedPlanForPayment.code}
+                          className="w-full p-4 rounded-2xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-lg">
+                              P
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 group-hover:text-emerald-600">Paystack</p>
+                              <p className="text-xs text-gray-500">Debit Card, Bank Transfer, USSD</p>
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-emerald-600">
+                            Pay ₦{finalDue.toLocaleString()} →
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => handleUpgrade(selectedPlanForPayment, 'monnify')}
+                          disabled={upgrading === selectedPlanForPayment.code}
+                          className="w-full p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                              M
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 group-hover:text-blue-600">Monnify (Moniepoint)</p>
+                              <p className="text-xs text-gray-500">Instant Bank Transfer, Card, Account</p>
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-blue-600">
+                            Pay ₦{finalDue.toLocaleString()} →
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               <button
                 onClick={() => setSelectedPlanForPayment(null)}
-                className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl hover:bg-gray-200 text-sm transition-colors"
+                className="w-full py-2.5 bg-gray-100 text-gray-600 font-semibold rounded-xl hover:bg-gray-200 text-xs transition-colors"
               >
                 Cancel
               </button>

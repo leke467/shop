@@ -56,6 +56,49 @@ export default function SubscriptionDashboard() {
   const [loading, setLoading] = useState(true)
   const [paymentNotice, setPaymentNotice] = useState(null)
 
+  // Coupon Voucher Redemption
+  const [couponInput, setCouponInput] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponSuccess, setCouponSuccess] = useState('')
+  const [couponError, setCouponError] = useState('')
+
+  const handleRedeemCoupon = async (e) => {
+    e.preventDefault()
+    const cleanCode = couponInput.trim().toUpperCase()
+    if (!cleanCode) return
+    setCouponLoading(true)
+    setCouponError('')
+    setCouponSuccess('')
+    try {
+      const plansData = await subscriptionAPI.plans()
+      const allPlans = Array.isArray(plansData) ? plansData : (plansData?.results || [])
+      
+      const testPlan = allPlans.find(p => p.code !== 'free') || allPlans[0]
+      const valRes = await subscriptionAPI.validateCoupon({ code: cleanCode, plan_code: testPlan.code })
+      const targetPlan = allPlans.find(p => p.code === valRes.plan_code) || testPlan
+
+      const upRes = await subscriptionAPI.upgrade({
+        plan_code: targetPlan.code,
+        coupon_code: cleanCode,
+        callback_url: window.location.href,
+      })
+
+      if (upRes.free || upRes.coupon_applied) {
+        setCouponSuccess(upRes.detail || `🎉 Voucher '${cleanCode}' applied! You are now upgraded to the ${targetPlan.name} plan.`)
+        setCouponInput('')
+        subscriptionAPI.current().then(setData)
+        subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
+      } else if (upRes.authorization_url || upRes.checkout_url) {
+        window.location.href = upRes.authorization_url || upRes.checkout_url
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || 'Invalid, expired, or already redeemed coupon code.'
+      setCouponError(msg)
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (userLoading) return
     if (!isAuthenticated) { navigate('/login'); return }
@@ -199,6 +242,48 @@ export default function SubscriptionDashboard() {
             </div>
           </div>
         </motion.div>
+
+        {/* Promo Voucher Redemption Card */}
+        <div className="bg-white rounded-3xl p-6 border border-emerald-500/30 shadow-sm mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <span>🎟️</span> Have a Promo or Registration Coupon?
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Redeem a promotional voucher code for a free tier trial or instant discount.
+              </p>
+            </div>
+            <form onSubmit={handleRedeemCoupon} className="flex gap-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="e.g. VIP-GROWTH"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                className="flex-1 sm:w-56 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                required
+              />
+              <button
+                type="submit"
+                disabled={couponLoading || !couponInput.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow active:scale-95 disabled:opacity-50 shrink-0"
+              >
+                {couponLoading ? 'Redeeming…' : 'Redeem Code'}
+              </button>
+            </form>
+          </div>
+
+          {couponSuccess && (
+            <p className="text-xs text-emerald-600 font-semibold mt-3 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+              {couponSuccess}
+            </p>
+          )}
+          {couponError && (
+            <p className="text-xs text-red-600 font-semibold mt-3 bg-red-50 p-2.5 rounded-xl border border-red-200">
+              ❌ {couponError}
+            </p>
+          )}
+        </div>
 
         {/* Usage */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
