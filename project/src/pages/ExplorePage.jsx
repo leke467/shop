@@ -7,6 +7,9 @@ import SEOHead from '../components/SEOHead'
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
   const imgSrc = getImageUrl(typeof img === 'string' ? img : (img?.medium || img?.image), product.name)
+  const inventory = product.inventory_quantity ?? product.inventory ?? 100
+  const isOutOfStock = product.is_out_of_stock || inventory <= 0
+
   return (
     <Link to={`/product/${product.slug || product.public_id}`}>
       <motion.div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 h-full flex flex-col justify-between" whileHover={{ y: -4 }}>
@@ -18,13 +21,27 @@ function ProductCard({ product }) {
               onError={(e) => handleImageError(e, 'product', product.name)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             />
+            {isOutOfStock ? (
+              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-red-600 text-white text-[10px] font-bold shadow-sm">
+                Out of Stock
+              </div>
+            ) : inventory <= 10 ? (
+              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-amber-500 text-white text-[10px] font-bold shadow-sm">
+                Only {inventory} left
+              </div>
+            ) : null}
             <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
               <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
             </div>
           </div>
           <div className="p-4">
             <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{product.name}</h3>
-            <p className="text-sm text-gray-500 mt-1">{product.shop_name || ''}</p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-sm text-gray-500">{product.shop_name || ''}</p>
+              <span className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : 'text-emerald-600'}`}>
+                {isOutOfStock ? 'Out of Stock' : `${inventory} in stock`}
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>

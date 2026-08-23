@@ -1213,6 +1213,7 @@ export default function ShopDashboard() {
                       <tr>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Product</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Price</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Stock</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
                         <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                       </tr>
@@ -1229,6 +1230,17 @@ export default function ShopDashboard() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm font-semibold text-gray-900">₦{Number(p.base_price || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-sm font-medium">
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                              (p.inventory_quantity ?? 100) <= 0 
+                                ? 'bg-red-100 text-red-700' 
+                                : (p.inventory_quantity ?? 100) <= 10 
+                                  ? 'bg-amber-100 text-amber-700' 
+                                  : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {(p.inventory_quantity ?? 100) <= 0 ? '0 (Out of stock)' : `${p.inventory_quantity ?? 100} in stock`}
+                            </span>
+                          </td>
                           <td className="px-6 py-4">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
                               }`}>{p.status}</span>

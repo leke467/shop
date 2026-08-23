@@ -52,6 +52,9 @@ function ShopCard({ shop }) {
 function ProductCard({ product }) {
   const firstImage = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
   const imgSrc = getImageUrl(typeof firstImage === 'string' ? firstImage : (firstImage?.medium || firstImage?.image), product.name)
+  const inventory = product.inventory_quantity ?? product.inventory ?? 100
+  const isOutOfStock = product.is_out_of_stock || inventory <= 0
+
   return (
     <Link to={`/product/${product.slug || product.public_id}`}>
       <motion.div
@@ -65,6 +68,17 @@ function ProductCard({ product }) {
             onError={(e) => handleImageError(e, 'product', product.name)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
+          {/* Out of Stock or Low Stock Badge */}
+          {isOutOfStock ? (
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-red-600 text-white text-[10px] font-bold shadow-sm">
+              Out of Stock
+            </div>
+          ) : inventory <= 10 ? (
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-amber-500 text-white text-[10px] font-bold shadow-sm">
+              Only {inventory} left
+            </div>
+          ) : null}
+
           {/* Price badge */}
           <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
             <span className="font-bold text-gray-900">₦{Number(product.base_price || 0).toLocaleString()}</span>
@@ -75,7 +89,12 @@ function ProductCard({ product }) {
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{product.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">{product.shop_name || product.shop?.name || ''}</p>
+          <div className="flex justify-between items-center mt-1">
+            <p className="text-sm text-gray-500">{product.shop_name || product.shop?.name || ''}</p>
+            <span className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : 'text-emerald-600'}`}>
+              {isOutOfStock ? 'Out of Stock' : `${inventory} in stock`}
+            </span>
+          </div>
           <div className="flex items-center gap-2 mt-3">
             <div className="flex items-center gap-1">
               <svg className="w-3.5 h-3.5 text-warning-400 fill-current" viewBox="0 0 20 20">
