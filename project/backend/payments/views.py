@@ -167,23 +167,6 @@ class CheckoutView(APIView):
             if request.user.email:
                 send_order_confirmation_email.delay(request.user.email, buyer_context)
 
-            # Alert each seller whose shop received items in this order
-            for group in order.groups.select_related("shop__owner"):
-                shop = group.shop
-                if shop and shop.owner and shop.owner.email:
-                    group_items = [
-                        i for i in email_items
-                    ]
-                    seller_context = {
-                        "shop_name": shop.name,
-                        "order_id": str(order.public_id),
-                        "items": group_items,
-                        "total": str(group.subtotal),
-                        "buyer_name": buyer_context["buyer_name"],
-                        "buyer_email": request.user.email,
-                        "shipping_address": buyer_context["shipping_address"],
-                    }
-                    send_new_order_alert_to_seller.delay(shop.owner.email, seller_context)
         except Exception:
             pass  # Never block the checkout response on email failures
 

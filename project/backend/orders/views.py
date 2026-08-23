@@ -318,7 +318,15 @@ class ShopOrdersView(APIView):
         shop = generics.get_object_or_404(Shop, slug=shop_slug, owner=request.user)
         groups = (
             OrderGroup.objects
-            .filter(shop=shop)
+            .filter(
+                shop=shop,
+                escrow_status__in=[
+                    OrderGroup.EscrowStatus.HELD,
+                    OrderGroup.EscrowStatus.RELEASED,
+                    OrderGroup.EscrowStatus.DISPUTED,
+                    OrderGroup.EscrowStatus.REFUNDED,
+                ],
+            )
             .select_related("order__user")
             .prefetch_related("items")
             .order_by("-created_at")[:50]
