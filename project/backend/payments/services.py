@@ -153,7 +153,7 @@ def checkout(
                     shipping_total=shipping_fee,
                     logistics_markup=markup_amount,
                     delivery_code=OrderGroup.generate_delivery_code(),
-                    escrow_status=OrderGroup.EscrowStatus.HELD,
+                    escrow_status=OrderGroup.EscrowStatus.PENDING,
                 )
                 shops_seen[shop.pk] = group
             else:
@@ -423,10 +423,13 @@ def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
             order.confirmed_at = order.confirmed_at or timezone.now()
             order.save(update_fields=["status", "confirmed_at"])
 
-        # Confirm each escrow group (still HELD, but now funded).
+        # Confirm each escrow group and set escrow_status to HELD once payment is received.
         OrderGroup.objects.filter(
-            order=order, status=OrderGroup.FulfilmentStatus.PENDING,
-        ).update(status=OrderGroup.FulfilmentStatus.ACCEPTED)
+            order=order,
+        ).update(
+            status=OrderGroup.FulfilmentStatus.ACCEPTED,
+            escrow_status=OrderGroup.EscrowStatus.HELD,
+        )
 
         # Deduct reserved → actual stock & check for low stock alerts.
         for item in OrderItem.objects.filter(group__order=order).select_related("variant__product__shop__owner", "variant__inventory"):

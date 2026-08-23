@@ -235,9 +235,10 @@ export default function OrdersPage() {
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold
                         ${order.status === 'delivered' ? 'bg-success-100 text-success-700' :
                           order.status === 'cancelled' ? 'bg-error-100 text-error-700' :
+                          order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
                           'bg-primary-100 text-primary-700'}`}
                       >
-                        {order.status.toUpperCase()}
+                        {order.status === 'pending' ? 'UNPAID (PENDING PAYMENT)' : order.status.toUpperCase()}
                       </span>
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()} • {order.groups?.length || 0} Shop(s)</p>
@@ -273,6 +274,15 @@ export default function OrdersPage() {
                           
                           {/* Actions for this group */}
                           <div className="flex flex-wrap items-center gap-2">
+                            {(order.status === 'pending' || group.escrow_status === 'pending') && (
+                              <Link
+                                to="/cart"
+                                className="px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-sm hover:opacity-95 transition-all"
+                              >
+                                💳 Complete Payment
+                              </Link>
+                            )}
+
                             {(group.escrow_status === 'held' || group.escrow_status === 'disputed') && (
                               <button 
                                 onClick={() => {
@@ -304,7 +314,7 @@ export default function OrdersPage() {
                             )}
 
                             {/* Refund Request button / status badge */}
-                            {(() => {
+                            {group.escrow_status !== 'pending' && (() => {
                               const existingRR = refundRequests.find(rr => rr.order_group === group.id)
                               if (existingRR) {
                                 return (
