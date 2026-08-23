@@ -333,27 +333,12 @@ class GoogleAuthView(APIView):
 
             # Trigger welcome email instantly for new social registrations
             try:
-                from notifications.services import EmailService
-                EmailService.send_email(
-                    "Welcome to MultiShop! 🎉",
-                    "notifications/email/welcome.html",
-                    {"user_name": user.first_name or user.email.split("@")[0]},
-                    [user.email],
-                )
+                from notifications.tasks import send_welcome_email
+                send_welcome_email.delay(user.email, {
+                    "user_name": user.first_name or user.email.split("@")[0],
+                })
             except Exception as e:
                 logger.error("Failed to send welcome email on Google sign up: %s", e)
-        else:
-            # Existing user — send sign-in security notification email
-            try:
-                from notifications.services import EmailService
-                EmailService.send_email(
-                    "MultiShop — Google Account Sign In Alert 🔐",
-                    "notifications/email/welcome.html",
-                    {"user_name": user.first_name or user.email.split("@")[0]},
-                    [user.email],
-                )
-            except Exception:
-                pass
 
         # Generate SimpleJWT Tokens
         from rest_framework_simplejwt.tokens import RefreshToken
