@@ -162,7 +162,7 @@ class Shop(BaseModel, SoftDeleteModel):
 
     # Lifecycle & trust.
     status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True
+        max_length=16, choices=Status.choices, default=Status.ACTIVE, db_index=True
     )
     is_verified = models.BooleanField(default=False)
 

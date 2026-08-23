@@ -193,6 +193,8 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         if not validated_data.get("email"):
             validated_data["email"] = user.email
+        if not validated_data.get("status"):
+            validated_data["status"] = Shop.Status.ACTIVE
         # Enforce the subscription shop limit before creating.
         from subscriptions.services import assert_can_create_shop
         assert_can_create_shop(user)  # raises LimitReached if at cap
