@@ -7,6 +7,9 @@ from .models import Cart, CartItem, Coupon, Order, OrderGroup, OrderItem, Seller
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_slug = serializers.CharField(source="variant.product.slug", read_only=True)
+    product_public_id = serializers.CharField(source="variant.product.public_id", read_only=True)
+    image = serializers.SerializerMethodField()
     variant_name = serializers.CharField(source="variant.name", read_only=True)
     shop_slug = serializers.CharField(source="variant.product.shop.slug", read_only=True)
     allow_manual_delivery = serializers.BooleanField(source="variant.product.shop.allow_manual_delivery", read_only=True)
@@ -15,10 +18,24 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = (
-            "id", "variant", "product_name", "variant_name", "shop_slug", "allow_manual_delivery",
+            "id", "variant", "product_name", "product_slug", "product_public_id", "image",
+            "variant_name", "shop_slug", "allow_manual_delivery",
             "quantity", "unit_price", "line_total",
         )
         read_only_fields = ("id", "unit_price", "line_total")
+
+    def get_image(self, obj):
+        try:
+            prod = obj.variant.product
+            img = prod.primary_image
+            if img:
+                return img.medium.url if hasattr(img, 'medium') and img.medium else img.image.url
+            first_img = prod.images.first()
+            if first_img:
+                return first_img.medium.url if hasattr(first_img, 'medium') and first_img.medium else first_img.image.url
+        except Exception:
+            pass
+        return None
 
 
 class CartSerializer(serializers.ModelSerializer):

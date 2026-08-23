@@ -122,6 +122,7 @@ export function CartProvider({ children }) {
           variant_name,
           quantity,
           unit_price,
+          image: param.image || param.primary_image || (typeof param.images?.[0] === 'string' ? param.images[0] : (param.images?.[0]?.medium || param.images?.[0]?.image)),
           line_total: unit_price * quantity
         })
       }

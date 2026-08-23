@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { orderAPI, shopAPI, getImageUrl, couponAPI } from '../services/api'
+import { orderAPI, shopAPI, getImageUrl, handleImageError, couponAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 import SEOHead from '../components/SEOHead'
@@ -435,25 +435,12 @@ export default function CartPage() {
                   >
                     {/* Thumbnail */}
                     <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center relative">
-                      {getImageUrl(item.image || item.variant?.image || item.variant_image) ? (
-                        <img
-                          src={getImageUrl(item.image || item.variant?.image || item.variant_image)}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          onError={e => {
-                            e.target.style.display = 'none'
-                            if (e.target.nextElementSibling) {
-                              e.target.nextElementSibling.style.display = 'flex'
-                            }
-                          }}
-                        />
-                      ) : null}
-                      <div
-                        className="w-full h-full flex items-center justify-center text-gray-400 text-lg sm:text-xl bg-gray-50"
-                        style={{ display: getImageUrl(item.image || item.variant?.image || item.variant_image) ? 'none' : 'flex' }}
-                      >
-                        📦
-                      </div>
+                      <img
+                        src={getImageUrl(item.image || item.variant?.image || item.variant_image, item.product_name || item.name)}
+                        alt={item.product_name || item.name || 'Product'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => handleImageError(e, 'product', item.product_name || item.name)}
+                      />
                     </div>
 
                     {/* Info & Controls */}
