@@ -26,10 +26,11 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import IsSuperadminOrStaff
 from .models import SubscriptionPlan, UserSubscription, SubscriptionCoupon, SubscriptionCouponRedemption
 from .serializers import (
     AdminChangePlanSerializer,
@@ -201,7 +202,7 @@ class AdminPlanListCreateView(generics.ListCreateAPIView):
 
     queryset = SubscriptionPlan.objects.all().order_by("display_order")
     serializer_class = SubscriptionPlanAdminSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     pagination_class = None
 
 
@@ -210,7 +211,7 @@ class AdminPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanAdminSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     lookup_field = "code"
 
 
@@ -218,7 +219,7 @@ class AdminSubscriptionListView(generics.ListAPIView):
     """Admin: view all user subscriptions, optionally filtered by status/plan."""
 
     serializer_class = UserSubscriptionSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     filterset_fields = ["status", "plan__code"]
     search_fields = ["user__email", "payment_reference"]
 
@@ -231,7 +232,7 @@ class AdminSubscriptionListView(generics.ListAPIView):
 class AdminChangePlanView(APIView):
     """Admin: manually move a user onto a plan (upgrade or downgrade)."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
 
     @extend_schema(request=AdminChangePlanSerializer,
                    responses=UserSubscriptionSerializer)
@@ -263,7 +264,7 @@ class AdminChangePlanView(APIView):
 class AdminStatsView(APIView):
     """Admin: subscription statistics — paying users, per-plan, MRR estimate."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
 
     @extend_schema(responses=SubscriptionStatsSerializer)
     def get(self, request):
@@ -338,14 +339,14 @@ class ValidateSubscriptionCouponView(APIView):
 
 class AdminSubscriptionCouponListCreateView(generics.ListCreateAPIView):
     """Admin: list all subscription promo coupons or create a new one."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     serializer_class = SubscriptionCouponSerializer
     queryset = SubscriptionCoupon.objects.all().select_related("plan").order_by("-created_at")
 
 
 class AdminSubscriptionCouponDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Admin: retrieve, update, toggle, or delete a subscription coupon."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     serializer_class = SubscriptionCouponSerializer
     queryset = SubscriptionCoupon.objects.all()
     lookup_field = "pk"
@@ -353,6 +354,6 @@ class AdminSubscriptionCouponDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class AdminSubscriptionCouponRedemptionListView(generics.ListAPIView):
     """Admin: view all user redemptions of subscription coupons."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperadminOrStaff]
     serializer_class = SubscriptionCouponRedemptionSerializer
     queryset = SubscriptionCouponRedemption.objects.all().select_related("user", "coupon", "plan").order_by("-created_at")

@@ -49,14 +49,14 @@ echo "==> Ensuring Production Superuser Account Exists..."
 python manage.py shell -c "
 from accounts.models import User
 pwd = 'Admin12345!'
-if not User.objects.filter(is_superuser=True).exists():
-    User.objects.create_superuser(email='admin@multishopng.com', password=pwd)
-    print('==> Auto-created production superuser: admin@multishopng.com')
-else:
-    u = User.objects.filter(is_superuser=True).first()
-    u.set_password(pwd)
-    u.save()
-    print('==> Verified & set superuser password for:', u.email)
+u, created = User.objects.get_or_create(email='admin@multishopng.com', defaults={'role': 'admin', 'is_staff': True, 'is_superuser': True, 'is_active': True})
+u.set_password(pwd)
+u.role = 'admin'
+u.is_staff = True
+u.is_superuser = True
+u.is_active = True
+u.save()
+print('==> Verified admin@multishopng.com superuser & staff status.')
 " || echo "Notice: Superuser setup check completed."
 
 PORT_TO_USE="${PORT:-8080}"
