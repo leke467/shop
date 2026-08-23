@@ -407,7 +407,7 @@ def validate_subscription_coupon(code: str, plan: SubscriptionPlan, user=None) -
     """Validate a promo coupon for a specific subscription tier and calculate discount."""
     from .models import SubscriptionCoupon, SubscriptionCouponRedemption
     clean_code = (code or "").strip().upper()
-    coupon = SubscriptionCoupon.objects.filter(code=clean_code).first()
+    coupon = SubscriptionCoupon.objects.filter(code__iexact=clean_code).first()
     if not coupon:
         raise SubscriptionError(f"Coupon code '{clean_code}' is invalid.")
 

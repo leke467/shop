@@ -286,7 +286,7 @@ class SubscriptionCoupon(BaseModel):
             return False, "This coupon has expired."
         if self.max_uses is not None and self.times_used >= self.max_uses:
             return False, "This coupon has reached its maximum usage limit."
-        if self.plan and self.plan_id != plan.id:
+        if self.plan and plan and (self.plan.code.lower() != plan.code.lower()):
             return False, f"This coupon is only valid for the '{self.plan.name}' subscription tier."
         return True, ""
 

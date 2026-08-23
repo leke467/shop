@@ -66,15 +66,14 @@ export default function PricingPage() {
     setCouponMessage('')
     setError('')
     try {
-      // Test against target plan or first paid plan
-      const testPlan = plans.find(p => p.code === targetPlanCode) || plans.find(p => !p.is_free) || plans[0]
-      if (!testPlan) return
+      const planCodeToUse = targetPlanCode || (plans.find(p => !p.is_free)?.code) || (plans[0]?.code) || 'growth'
       const res = await subscriptionAPI.validateCoupon({
         code: clean,
-        plan_code: testPlan.code,
+        coupon_code: clean,
+        plan_code: planCodeToUse,
       })
       setAppliedCoupon(res)
-      setCouponMessage(`🎉 Coupon '${res.code}' applied! ${res.is_100_percent_free ? '100% Free' : `${res.discount_applied} Discount`} for ${res.duration_months} month(s).`)
+      setCouponMessage(`🎉 Coupon '${res.code}' applied! ${res.is_100_percent_free ? '100% Free' : `₦${Number(res.discount_applied).toLocaleString()} Discount`} for ${res.duration_months} month(s).`)
     } catch (err) {
       setAppliedCoupon(null)
       const msg = err.response?.data?.detail || 'Invalid or expired coupon code.'

@@ -319,14 +319,16 @@ class ValidateSubscriptionCouponView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        code = request.data.get("code") or request.data.get("coupon_code") or ""
-        plan_code = request.data.get("plan_code") or ""
+        raw_code = request.data.get("code") or request.data.get("coupon_code") or ""
+        raw_plan = request.data.get("plan_code") or ""
+        code = str(raw_code).strip().upper()
+        plan_code = str(raw_plan).strip()
         if not code:
             return Response({"detail": "Coupon code is required."}, status=status.HTTP_400_BAD_REQUEST)
         if not plan_code:
             return Response({"detail": "Subscription plan_code is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        plan = SubscriptionPlan.objects.filter(code=plan_code, is_active=True).first()
+        plan = SubscriptionPlan.objects.filter(code__iexact=plan_code, is_active=True).first()
         if not plan:
             return Response({"detail": f"Subscription tier '{plan_code}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
