@@ -27,9 +27,12 @@ export function UserProvider({ children }) {
     }
     authAPI.profile()
       .then(data => setUser(data))
-      .catch(() => {
-        localStorage.removeItem('access_token')
-        setUser(null)
+      .catch((err) => {
+        // Only clear token if server explicitly responded with 401 Unauthorized
+        if (err.response?.status === 401) {
+          localStorage.removeItem('access_token')
+          setUser(null)
+        }
       })
       .finally(() => setLoading(false))
   }, [])
@@ -48,6 +51,7 @@ export function UserProvider({ children }) {
 
   const logout = useCallback(async () => {
     try { await authAPI.logout() } catch { /* ignore */ }
+    localStorage.removeItem('access_token')
     setUser(null)
   }, [])
 
@@ -55,7 +59,12 @@ export function UserProvider({ children }) {
     try {
       const data = await authAPI.profile()
       setUser(data)
-    } catch { setUser(null) }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token')
+        setUser(null)
+      }
+    }
   }, [])
 
   const googleLogin = useCallback(async (token) => {
