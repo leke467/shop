@@ -353,8 +353,8 @@ SIMPLE_JWT = {
 # Cookie names / attributes for the auth transport (see accounts.authentication).
 AUTH_COOKIE_ACCESS = "access_token"
 AUTH_COOKIE_REFRESH = "refresh_token"
-AUTH_COOKIE_SECURE = env_bool("AUTH_COOKIE_SECURE", not DEBUG)
-AUTH_COOKIE_SAMESITE = env("AUTH_COOKIE_SAMESITE", "Lax")
+AUTH_COOKIE_SECURE = env_bool("AUTH_COOKIE_SECURE", True)
+AUTH_COOKIE_SAMESITE = env("AUTH_COOKIE_SAMESITE", "None")
 AUTH_COOKIE_DOMAIN = env("AUTH_COOKIE_DOMAIN", None)
 
 

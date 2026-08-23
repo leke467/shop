@@ -26,10 +26,13 @@ from .serializers import UserProfileSerializer
 
 def _set_auth_cookies(response: Response, access: str, refresh: str) -> Response:
     """Attach access & refresh tokens as HttpOnly cookies."""
+    samesite_val = getattr(settings, "AUTH_COOKIE_SAMESITE", "None")
+    # Browsers reject SameSite=None unless Secure=True
+    secure_val = True if samesite_val.lower() == "none" else getattr(settings, "AUTH_COOKIE_SECURE", True)
     common = {
         "httponly": True,
-        "secure": getattr(settings, "AUTH_COOKIE_SECURE", True),
-        "samesite": getattr(settings, "AUTH_COOKIE_SAMESITE", "Lax"),
+        "secure": secure_val,
+        "samesite": samesite_val,
         "domain": getattr(settings, "AUTH_COOKIE_DOMAIN", None),
         "path": "/",
     }
