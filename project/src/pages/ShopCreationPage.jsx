@@ -198,6 +198,11 @@ function ShopCreationPage() {
       } catch { /* ignore */ }
       navigate('/dashboard')
     } catch (error) {
+      if (error?.response?.status === 401) {
+        setGeneralError('Your session has expired. Redirecting to login...')
+        setTimeout(() => navigate('/login'), 1500)
+        return
+      }
 
       // If the account has hit its plan's shop limit, the backend returns a
       // structured 402/403 — show the upgrade modal instead of a generic error.

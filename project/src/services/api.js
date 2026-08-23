@@ -52,15 +52,21 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
-      // For public endpoints (search, products, shops, etc.), if 401 occurs due to an expired Bearer token,
-      // remove the expired token and retry request unauthenticated so public data still loads cleanly.
-      const isPublicEndpoint = 
-        original.url?.includes('/search/') || 
-        original.url?.includes('/products/') || 
-        original.url?.includes('/shops/') ||
-        original.url?.includes('/categories/')
+      // For public GET read endpoints (search, products listing, public shop page),
+      // if 401 occurs due to an expired Bearer token, retry unauthenticated so public data still loads cleanly.
+      // NEVER strip token or retry unauthenticated for POST/PUT/DELETE creation endpoints (e.g. /shops/create/).
+      const method = (original.method || '').toLowerCase()
+      const url = original.url || ''
+      const isGet = method === 'get'
 
-      if (isPublicEndpoint && original.headers?.Authorization) {
+      const isPublicReadEndpoint = isGet && (
+        url.includes('/search/') || 
+        (url.includes('/products/') && !url.includes('/create/')) || 
+        (url.includes('/shops/') && !url.includes('/create/') && !url.includes('/mine/') && !url.includes('/theme/') && !url.includes('/update/')) ||
+        url.includes('/categories/')
+      )
+
+      if (isPublicReadEndpoint && original.headers?.Authorization) {
         original._retry = true
         localStorage.removeItem('access_token')
         delete original.headers.Authorization
