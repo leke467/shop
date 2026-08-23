@@ -63,14 +63,16 @@ class Payment(BaseModel):
 
     order = models.ForeignKey(
         "orders.Order",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="payments",
         null=True,
         blank=True,
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="payments",
     )
 
@@ -295,7 +297,9 @@ class RefundRequest(BaseModel):
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="refund_requests",
     )
     reason = models.CharField(max_length=24, choices=Reason.choices)

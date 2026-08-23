@@ -142,7 +142,9 @@ class Order(BaseModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,   # never lose order history on account delete
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="orders",
     )
 
