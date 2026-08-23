@@ -96,7 +96,15 @@ api.interceptors.response.use(
         localStorage.removeItem('access_token')
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
           const currentPath = window.location.pathname
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
+          const isProtectedRoute = currentPath.startsWith('/dashboard') ||
+                                   currentPath.startsWith('/checkout') ||
+                                   currentPath.startsWith('/profile') ||
+                                   currentPath.startsWith('/settings') ||
+                                   currentPath.startsWith('/admin') ||
+                                   currentPath.startsWith('/orders')
+          if (isProtectedRoute) {
+            window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
+          }
         }
         return Promise.reject(err)
       } finally {
