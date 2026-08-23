@@ -86,11 +86,13 @@ export function CartProvider({ children }) {
   const addToCart = async (param) => {
     if (!param) return
     const rawVariant = param.variant_id || param.variants?.[0] || param.variant
-    const variant_id = typeof rawVariant === 'object' ? (rawVariant.public_id || rawVariant.id || rawVariant.pk) : rawVariant
     const product_id = param.product_id || param.public_id || param.id || param.pk || param.slug
+    const variant_id = typeof rawVariant === 'object' 
+      ? (rawVariant.public_id || rawVariant.id || rawVariant.pk) 
+      : (rawVariant || product_id)
     const quantity = Number(param.quantity || 1)
     const product_name = param.product_name || param.name || 'Product'
-    const variant_name = param.variant_name || (typeof rawVariant === 'object' ? rawVariant.name : '') || ''
+    const variant_name = param.variant_name || (typeof rawVariant === 'object' ? rawVariant.name : '') || 'Default'
     const unit_price = Number(param.unit_price || param.base_price || param.price || (typeof rawVariant === 'object' ? rawVariant.price : 0) || 0)
 
     let backendSuccess = false

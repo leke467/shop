@@ -21,9 +21,20 @@ function ProductCard({ product }) {
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    // Normalise cart call to use standard variant if available
-    const standardVariant = product.variants?.[0] || { id: id, public_id: id, price: price }
-    addToCart(product, shopId)
+    const activeVariant = product.variants?.[0] || {
+      id: product.public_id || product.id || id,
+      public_id: product.public_id || product.id || id,
+      name: 'Default',
+      price: price
+    }
+    addToCart({
+      variant_id: activeVariant.public_id || activeVariant.id,
+      product_id: product.public_id || product.id || id,
+      quantity: 1,
+      product_name: name,
+      variant_name: activeVariant.name || 'Default',
+      unit_price: price
+    })
   }
 
   return (

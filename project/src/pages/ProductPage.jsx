@@ -109,15 +109,22 @@ export default function ProductPage() {
   }, [productSlug, isAuthenticated])
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return
+    if (!product) return
     setAddingToCart(true)
     try {
+      const activeVariant = selectedVariant || product.variants?.[0] || {
+        id: product.public_id || product.id,
+        public_id: product.public_id || product.id,
+        name: 'Default',
+        price: product.base_price || product.price || 0
+      }
       await addToCart({
-        variant_id: selectedVariant.id,
+        variant_id: activeVariant.public_id || activeVariant.id,
+        product_id: product.public_id || product.id || productSlug,
         quantity,
         product_name: product.name,
-        variant_name: selectedVariant.name,
-        unit_price: selectedVariant.price,
+        variant_name: activeVariant.name || 'Default',
+        unit_price: activeVariant.price || product.base_price || 0,
       })
       setCartSuccess(true)
       setTimeout(() => setCartSuccess(false), 3000)
