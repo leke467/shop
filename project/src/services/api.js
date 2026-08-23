@@ -43,11 +43,12 @@ api.interceptors.response.use(
   async error => {
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
-      // Don't attempt refresh loop if the failed endpoint was login, register, or refresh itself
+      // Don't attempt refresh loop if the failed endpoint was login, register, refresh, or silent profile check without token
       if (
         original.url?.includes('/users/login/') ||
         original.url?.includes('/users/register/') ||
-        original.url?.includes('/users/token/refresh/')
+        original.url?.includes('/users/token/refresh/') ||
+        (original.url?.includes('/users/profile/') && !localStorage.getItem('access_token'))
       ) {
         return Promise.reject(error)
       }

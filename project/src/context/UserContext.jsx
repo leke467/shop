@@ -17,11 +17,20 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // On mount, try to fetch the profile (cookie-based — no localStorage needed)
+  // On mount, try to fetch the profile if access_token exists
   useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      setUser(null)
+      setLoading(false)
+      return
+    }
     authAPI.profile()
       .then(data => setUser(data))
-      .catch(() => setUser(null))
+      .catch(() => {
+        localStorage.removeItem('access_token')
+        setUser(null)
+      })
       .finally(() => setLoading(false))
   }, [])
 
