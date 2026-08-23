@@ -922,7 +922,17 @@ class AdminRefundRequestActionView(APIView):
 
             # Mark order group escrow_status as REFUNDED
             rr.order_group.escrow_status = OrderGroup.EscrowStatus.REFUNDED
-            rr.order_group.save(update_fields=["escrow_status", "updated_at"])
+            rr.order_group.status = OrderGroup.FulfilmentStatus.CANCELLED
+            rr.order_group.save(update_fields=["escrow_status", "status", "updated_at"])
+
+            # Restock physical inventory for the refunded items
+            from products.models import Inventory
+            from django.db.models import F as models_F
+            for item in rr.order_group.items.all():
+                if item.variant_id:
+                    Inventory.objects.filter(
+                        variant_id=item.variant_id, track_inventory=True
+                    ).update(quantity=models_F("quantity") + item.quantity)
 
             rr.status = RefundRequest.Status.APPROVED
             rr.admin_notes = admin_notes
