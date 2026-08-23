@@ -167,9 +167,15 @@ function ShopCreationPage() {
     payload.append('enable_social_links', formData.features.socialLinks)
     
     if (formData.features.socialLinks) {
-      if (formData.socialLinks.facebook) payload.append('facebook_url', formData.socialLinks.facebook)
-      if (formData.socialLinks.instagram) payload.append('instagram_url', formData.socialLinks.instagram)
-      if (formData.socialLinks.twitter) payload.append('twitter_url', formData.socialLinks.twitter)
+      const formatUrl = (u) => {
+        if (!u) return ''
+        const trimmed = u.trim()
+        if (!trimmed) return ''
+        return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`
+      }
+      if (formData.socialLinks.facebook) payload.append('facebook_url', formatUrl(formData.socialLinks.facebook))
+      if (formData.socialLinks.instagram) payload.append('instagram_url', formatUrl(formData.socialLinks.instagram))
+      if (formData.socialLinks.twitter) payload.append('twitter_url', formatUrl(formData.socialLinks.twitter))
     }
 
     setSubmitting(true)
@@ -212,9 +218,8 @@ function ShopCreationPage() {
       } else {
         const { fields, general } = parseBackendErrors(error)
         setFieldErrors(fields)
-        setGeneralError(general || (Object.keys(fields).length === 0
-          ? 'Failed to create shop. Please check your inputs and try again.'
-          : ''))
+        const fieldMsgs = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join(' | ')
+        setGeneralError(general || fieldMsgs || 'Failed to create shop. Please check your inputs and try again.')
 
         // Jump to the step that contains the first errored field.
         const firstField = Object.keys(fields)[0]

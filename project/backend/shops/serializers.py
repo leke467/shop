@@ -173,10 +173,20 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
         # always required at the DB level), which otherwise makes DRF treat it
         # as a required input and reject creates that don't send one -> HTTP 400.
         extra_kwargs = {
-            "slug": {"required": False},
+            "slug": {"required": False, "allow_blank": True},
+            "tagline": {"required": False, "allow_blank": True},
+            "description": {"required": False, "allow_blank": True},
+            "logo": {"required": False, "allow_null": True},
+            "banner": {"required": False, "allow_null": True},
             "email": {"required": False, "allow_blank": True},
             "phone": {"required": False, "allow_blank": True},
             "address": {"required": False, "allow_blank": True},
+            "country": {"required": False, "allow_blank": True},
+            "facebook_url": {"required": False, "allow_blank": True},
+            "instagram_url": {"required": False, "allow_blank": True},
+            "twitter_url": {"required": False, "allow_blank": True},
+            "website_url": {"required": False, "allow_blank": True},
+            "template_id": {"required": False, "allow_blank": True},
         }
 
     def create(self, validated_data):
