@@ -16,11 +16,14 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-/// Request interceptor: attach Bearer token if present
+// Request interceptor: attach Bearer token if present & auto-set multipart/form-data for FormData
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers['Content-Type'] = 'multipart/form-data'
   }
   return config
 })
