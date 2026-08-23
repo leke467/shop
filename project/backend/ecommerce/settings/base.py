@@ -539,7 +539,9 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "MultiShop <no-reply@multishopng.com>")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "MultiShop <multishopng@apexlabs.it.com>")
+BREVO_API_KEY = env("BREVO_API_KEY", "")
+BREVO_SENDER_EMAIL = env("BREVO_SENDER_EMAIL", "multishopng@apexlabs.it.com")
 SITE_URL = env("SITE_URL", "https://multishopng.com")
 
 # ---------------------------------------------------------------------------

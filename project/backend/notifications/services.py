@@ -120,6 +120,70 @@ class EmailService:
                 exc_info=True,
             )
 
+    @staticmethod
+    def send_raw_email(subject, text_content, recipient_list, html_content=None, from_email=None):
+        """
+        Send a raw text or HTML email via Brevo REST API v3 with fallback to Django send_mail().
+        """
+        if not recipient_list:
+            return
+
+        brevo_api_key = os.environ.get("BREVO_API_KEY") or getattr(settings, "BREVO_API_KEY", "")
+        brevo_sender_email = (
+            os.environ.get("BREVO_SENDER_EMAIL")
+            or getattr(settings, "BREVO_SENDER_EMAIL", "")
+            or "multishopng@apexlabs.it.com"
+        )
+
+        sender_email = from_email or getattr(settings, "DEFAULT_FROM_EMAIL", brevo_sender_email)
+        if "<" in sender_email and ">" in sender_email:
+            sender_name = sender_email.split("<")[0].strip()
+            sender_addr = sender_email.split("<")[1].replace(">", "").strip()
+        else:
+            sender_name = "MultiShop Marketplace"
+            sender_addr = sender_email
+
+        if brevo_api_key:
+            try:
+                brevo_url = "https://api.brevo.com/v3/smtp/email"
+                headers = {
+                    "accept": "application/json",
+                    "api-key": brevo_api_key,
+                    "content-type": "application/json",
+                }
+                to_payload = [{"email": r} for r in recipient_list]
+                payload = {
+                    "sender": {"name": sender_name, "email": sender_addr},
+                    "to": to_payload,
+                    "subject": subject,
+                    "textContent": text_content,
+                }
+                if html_content:
+                    payload["htmlContent"] = html_content
+                else:
+                    payload["htmlContent"] = f"<pre style='font-family:sans-serif;white-space:pre-wrap;'>{text_content}</pre>"
+
+                res = requests.post(brevo_url, headers=headers, json=payload, timeout=12)
+                if res.status_code in (200, 201, 202):
+                    logger.info("Raw email sent via Brevo API v3: subject='%s' to=%s msg_id=%s", subject, recipient_list, res.json().get("messageId"))
+                    return
+                else:
+                    logger.warning("Brevo API v3 raw email returned status %s: %s", res.status_code, res.text)
+            except Exception as b_exc:
+                logger.warning("Brevo API v3 raw email failed: %s", b_exc)
+
+        try:
+            send_mail(
+                subject,
+                text_content,
+                f"{sender_name} <{sender_addr}>",
+                recipient_list,
+                html_message=html_content,
+                fail_silently=False,
+            )
+        except Exception as exc:
+            logger.error("Failed to send raw email via send_mail: %s", exc)
+
 
 class SMSService:
     """Termii SMS gateway integration."""

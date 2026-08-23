@@ -68,8 +68,8 @@ CACHES = {
     }
 }
 
-# Real Celery broker in production (never eager).
-CELERY_TASK_ALWAYS_EAGER = False
+# Run tasks eagerly unless a dedicated Celery worker is configured
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", True)
 
 
 # ---------------------------------------------------------------------------
