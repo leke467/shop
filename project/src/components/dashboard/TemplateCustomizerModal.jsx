@@ -609,8 +609,17 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                           </label>
                         </div>
                         {form[key] && (
-                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 mt-1">
-                            <img src={getImageUrl(form[key])} alt="" className="w-full h-full object-cover" />
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 bg-gray-100">
+                              <img src={getImageUrl(form[key])} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setForm(prev => ({ ...prev, [key]: '' }))}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                            >
+                              ✕ Remove Image
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1077,8 +1086,20 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                     </label>
                   </div>
                   {form.logo_url && (
-                    <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 mt-2 bg-gray-50 flex items-center justify-center">
-                      <img src={getImageUrl(form.logo_url)} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center">
+                        <img src={getImageUrl(form.logo_url)} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({ ...prev, logo_url: '' }))
+                          setLogoFile(null)
+                        }}
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        ✕ Remove Logo
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1161,6 +1182,23 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                       />
                     </label>
                   </div>
+                  {form.banner_url && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="w-24 h-14 rounded-xl overflow-hidden border border-gray-300 bg-gray-100">
+                        <img src={getImageUrl(form.banner_url)} alt="Banner" className="w-full h-full object-cover" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({ ...prev, banner_url: '' }))
+                          setBannerFile(null)
+                        }}
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        ✕ Remove Banner
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>

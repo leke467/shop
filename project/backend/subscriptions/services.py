@@ -400,6 +400,12 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
         except Exception as ref_err:
             logger.warning("Subscription referral reward failed for user %s: %s", user.email, ref_err)
 
+    try:
+        from core.emails import send_subscription_success_email
+        send_subscription_success_email(user, plan, sub)
+    except Exception as mail_err:
+        logger.warning("Failed to send subscription confirmation email: %s", mail_err)
+
     return sub
 
 

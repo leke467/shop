@@ -568,18 +568,20 @@ class PayoutRequestCreateView(generics.CreateAPIView):
 
 class CouponApplyView(APIView):
     """Apply a coupon to the cart/order. (H4: throttled to prevent enumeration)"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_scope = "coupon"
 
     def post(self, request):
         code = request.data.get("code")
         shop_slug = request.data.get("shop_slug")
+        passed_subtotal = request.data.get("subtotal")
 
-        if not code:
+        if not code or not str(code).strip():
             return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        code_clean = str(code).strip()
         try:
-            coupon = Coupon.objects.get(code=code)
+            coupon = Coupon.objects.get(code__iexact=code_clean)
         except Coupon.DoesNotExist:
             return Response({"detail": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -589,22 +591,32 @@ class CouponApplyView(APIView):
         if shop_slug and coupon.shop and coupon.shop.slug != shop_slug:
             return Response({"detail": "Coupon is not valid for this shop."}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        total = cart.total
+        total = Decimal("0.00")
+        if passed_subtotal is not None:
+            try:
+                total = Decimal(str(passed_subtotal))
+            except Exception:
+                total = Decimal("0.00")
+        elif request.user and request.user.is_authenticated:
+            cart = Cart.objects.filter(user=request.user).first()
+            if cart:
+                total = cart.total
 
         if coupon.minimum_order_value > 0 and total < coupon.minimum_order_value:
-            return Response({"detail": f"Minimum order value of {coupon.minimum_order_value} required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": f"Minimum order value of ₦{coupon.minimum_order_value:,.2f} required."}, status=status.HTTP_400_BAD_REQUEST)
 
         if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount_amount = (total * coupon.value) / 100
+            discount_amount = (total * coupon.value) / Decimal("100.0")
         else:
             discount_amount = coupon.value
             
-        discount_amount = min(discount_amount, total)
+        discount_amount = min(discount_amount, total) if total > 0 else discount_amount
 
         return Response({
+            "code": coupon.code,
             "discount_amount": str(discount_amount),
             "discount_type": coupon.discount_type,
+            "value": str(coupon.value),
             "coupon_details": CouponSerializer(coupon).data
         })
 

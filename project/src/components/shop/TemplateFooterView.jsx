@@ -155,6 +155,7 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
             <Link to={base ? `/shop/${base}/catalog` : '/catalog'} className={styles.link}>🛍️ Catalog & Products</Link>
             <Link to={base ? `/shop/${base}/about` : '/about'} className={styles.link}>📖 About Our Story</Link>
             <Link to={base ? `/shop/${base}/reviews` : '/reviews'} className={styles.link}>⭐ Customer Reviews</Link>
+            <Link to={base ? `/shop/${base}/orders` : '/orders'} className={styles.link}>📦 Track Store Orders</Link>
             {setIsCartOpen && (
               <button onClick={() => setIsCartOpen(true)} className={`${styles.link} text-left`}>🛒 View Shopping Bag</button>
             )}

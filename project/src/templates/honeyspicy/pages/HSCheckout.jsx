@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import { useUser } from '../../../context/UserContext'
-import { orderAPI, payoutAPI } from '../../../services/api'
+import { orderAPI, payoutAPI, shopAPI, couponAPI, paymentSettingsAPI } from '../../../services/api'
 import HSPageTransition from '../components/HSPageTransition'
 
 const NIGERIAN_STATES = [
@@ -20,10 +20,22 @@ export default function HSCheckout({ shop, shopSlug }) {
   const { user } = useUser() || {}
 
   const cartList = Array.isArray(cart) && cart.length > 0 ? cart : (cart?.items || (Array.isArray(items) ? items : []))
-  const total = ctxTotal || cartList.reduce((sum, item) => sum + Number(item.unit_price || item.base_price || item.price || 0) * (item.quantity || 1), 0)
+  const subtotal = ctxTotal || cartList.reduce((sum, item) => sum + Number(item.unit_price || item.base_price || item.price || 0) * (item.quantity || 1), 0)
+  
   const [selectedState, setSelectedState] = useState('Lagos')
+  const [deliveryZones, setDeliveryZones] = useState([])
   const [bankAccounts, setBankAccounts] = useState([])
   const [selectedBankIndex, setSelectedBankIndex] = useState(0)
+
+  // Payment gateway settings
+  const [gatewaySettings, setGatewaySettings] = useState({ paystack_enabled: true, monnify_enabled: true, default_provider: 'monnify' })
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponApplied, setCouponApplied] = useState(null)
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
 
   const [form, setForm] = useState({
     full_name: user?.name || user?.first_name ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim() : '',
@@ -31,27 +43,87 @@ export default function HSCheckout({ shop, shopSlug }) {
     phone_number: user?.phone_number || '',
     shipping_address: '',
     notes: '',
-    provider: 'paystack', // 'paystack' or 'bank_transfer'
+    provider: 'monnify', // Dynamically updated on gateway settings load
   })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderComplete, setOrderComplete] = useState(null)
 
+  // Load gateway settings
   useEffect(() => {
-    if (shop?.slug) {
+    paymentSettingsAPI.getSettings()
+      .then(res => {
+        setGatewaySettings(res)
+        const def = res.default_provider || (res.monnify_enabled ? 'monnify' : (res.paystack_enabled ? 'paystack' : 'bank_transfer'))
+        setForm(prev => ({
+          ...prev,
+          provider: (!res.paystack_enabled && prev.provider === 'paystack') ? def : (prev.provider || def)
+        }))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Load delivery zones and bank accounts
+  useEffect(() => {
+    const slug = shop?.slug || shopSlug
+    if (slug) {
+      if (typeof shopAPI?.deliveryZones === 'function') {
+        shopAPI.deliveryZones(slug)
+          .then(res => setDeliveryZones(Array.isArray(res) ? res : (res?.results || [])))
+          .catch(() => setDeliveryZones([]))
+      }
       const getBanks = payoutAPI.listBanks || payoutAPI.bankAccounts
       if (typeof getBanks === 'function') {
-        getBanks(shop.slug)
+        getBanks(slug)
           .then(res => setBankAccounts(res || []))
           .catch(() => setBankAccounts([]))
       }
     }
-  }, [shop])
+  }, [shop, shopSlug])
+
+  // Calculate dynamic delivery fee
+  const deliveryFee = (() => {
+    if (!deliveryZones || deliveryZones.length === 0) {
+      return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
+    }
+    const matchedZone = deliveryZones.find(z => z.state?.toLowerCase() === selectedState.toLowerCase() && z.is_active !== false)
+    if (matchedZone) return Number(matchedZone.fee || 0)
+    return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
+  })()
+
+  // Calculate financial totals
+  const discount = Number(couponDiscount || 0)
+  const netSubtotal = Math.max(0, subtotal - discount)
+  const vat = Math.round(netSubtotal * 0.075)
+  const grandTotal = netSubtotal + deliveryFee + vat
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault()
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const res = await couponAPI.apply({
+        code: couponCode.trim(),
+        shop_slug: shop?.slug || shopSlug,
+        subtotal: subtotal,
+      })
+      const disc = Number(res.discount_amount || 0)
+      setCouponDiscount(disc)
+      setCouponApplied(res.code || couponCode.trim())
+    } catch (err) {
+      setCouponError(err.response?.data?.detail || 'Invalid or expired coupon.')
+      setCouponDiscount(0)
+      setCouponApplied(null)
+    } finally {
+      setCouponLoading(false)
+    }
   }
 
   const handlePlaceOrder = async (e) => {
@@ -78,9 +150,12 @@ export default function HSCheckout({ shop, shopSlug }) {
         country: 'NG',
         delivery_state: selectedState,
         bank_index: selectedBankIndex,
+        coupon_code: couponApplied || undefined,
         idempotency_key: idempotencyKey,
         shop_slug: shop?.slug || shopSlug,
       })
+
+      const amountToPay = Number(result.payment?.amount || result.order?.grand_total || grandTotal)
 
       // Handle Moniepoint (Monnify) inline popup flow
       if (result.payment && (result.payment.provider === 'monnify' || form.provider === 'monnify')) {
@@ -89,7 +164,7 @@ export default function HSCheckout({ shop, shopSlug }) {
 
         if (window.MonnifySDK) {
           window.MonnifySDK.initialize({
-            amount: total,
+            amount: amountToPay,
             currency: 'NGN',
             customerName: form.full_name || user?.email || 'Customer',
             customerEmail: form.email || user?.email,
@@ -135,7 +210,7 @@ export default function HSCheckout({ shop, shopSlug }) {
           const handler = window.PaystackPop.setup({
             key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
             email: form.email || user?.email,
-            amount: Math.round(total * 100),
+            amount: Math.round(amountToPay * 100),
             ref: reference,
             access_code: accessCode,
             onSuccess: async (transaction) => {
@@ -308,6 +383,45 @@ export default function HSCheckout({ shop, shopSlug }) {
                 </div>
               </div>
 
+              {/* Coupon Section */}
+              <div className="hs-menu-item" style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>🎟️</span> Have a Coupon / Promo Code?
+                </h3>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Enter coupon code (e.g. SAVE10)"
+                    disabled={Boolean(couponApplied)}
+                    style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: 12, border: '1.5px solid #CBD5E1', background: '#FFFFFF', color: '#111827', outline: 'none', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase' }}
+                  />
+                  {couponApplied ? (
+                    <button
+                      type="button"
+                      onClick={() => { setCouponApplied(null); setCouponDiscount(0); setCouponCode(''); }}
+                      className="hs-btn"
+                      style={{ padding: '0.75rem 1.25rem', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 12, fontSize: '0.85rem', fontWeight: 700 }}
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="hs-btn hs-btn-primary"
+                      style={{ padding: '0.75rem 1.25rem', borderRadius: 12, fontSize: '0.85rem', fontWeight: 700 }}
+                    >
+                      {couponLoading ? 'Checking...' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+                {couponError && <p style={{ color: '#DC2626', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 600 }}>{couponError}</p>}
+                {couponApplied && <p style={{ color: '#16A34A', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 700 }}>✓ Coupon {couponApplied} applied (-₦{couponDiscount.toLocaleString()})</p>}
+              </div>
+
               {/* Payment Method */}
               <div className="hs-menu-item" style={{ padding: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -315,33 +429,53 @@ export default function HSCheckout({ shop, shopSlug }) {
                 </h3>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: form.provider === 'monnify' ? '2px solid var(--hs-color-honey, #E5A43B)' : '1px solid #E2E8F0', cursor: 'pointer', background: form.provider === 'monnify' ? '#FFFDF9' : '#fff' }}>
-                    <input
-                      type="radio"
-                      name="provider"
-                      value="monnify"
-                      checked={form.provider === 'monnify'}
-                      onChange={handleChange}
-                    />
-                    <div>
-                      <span style={{ fontWeight: 700, display: 'block', fontSize: '0.95rem' }}>⚡ Moniepoint / Monnify</span>
-                      <span style={{ fontSize: '0.8rem', color: '#666' }}>Instant Bank Transfer, Account Numbers & Cards</span>
-                    </div>
-                  </label>
+                  {gatewaySettings.monnify_enabled !== false && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: form.provider === 'monnify' ? '2px solid var(--hs-color-honey, #E5A43B)' : '1px solid #E2E8F0', cursor: 'pointer', background: form.provider === 'monnify' ? '#FFFDF9' : '#fff' }}>
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="monnify"
+                        checked={form.provider === 'monnify'}
+                        onChange={handleChange}
+                      />
+                      <div>
+                        <span style={{ fontWeight: 700, display: 'block', fontSize: '0.95rem' }}>⚡ Moniepoint / Monnify</span>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>Instant Bank Transfer, Account Numbers & Cards</span>
+                      </div>
+                    </label>
+                  )}
 
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: form.provider === 'paystack' ? '2px solid var(--hs-color-honey, #E5A43B)' : '1px solid #E2E8F0', cursor: 'pointer', background: form.provider === 'paystack' ? '#FFFDF9' : '#fff' }}>
-                    <input
-                      type="radio"
-                      name="provider"
-                      value="paystack"
-                      checked={form.provider === 'paystack'}
-                      onChange={handleChange}
-                    />
-                    <div>
-                      <span style={{ fontWeight: 700, display: 'block', fontSize: '0.95rem' }}>💳 Paystack (Cards / USSD / Transfer)</span>
-                      <span style={{ fontSize: '0.8rem', color: '#666' }}>Instant & secure Paystack checkout</span>
-                    </div>
-                  </label>
+                  {gatewaySettings.paystack_enabled && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: form.provider === 'paystack' ? '2px solid var(--hs-color-honey, #E5A43B)' : '1px solid #E2E8F0', cursor: 'pointer', background: form.provider === 'paystack' ? '#FFFDF9' : '#fff' }}>
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="paystack"
+                        checked={form.provider === 'paystack'}
+                        onChange={handleChange}
+                      />
+                      <div>
+                        <span style={{ fontWeight: 700, display: 'block', fontSize: '0.95rem' }}>💳 Paystack</span>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>Cards, USSD & Bank Transfer</span>
+                      </div>
+                    </label>
+                  )}
+
+                  {bankAccounts.length > 0 && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: 12, border: form.provider === 'bank_transfer' ? '2px solid var(--hs-color-honey, #E5A43B)' : '1px solid #E2E8F0', cursor: 'pointer', background: form.provider === 'bank_transfer' ? '#FFFDF9' : '#fff' }}>
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="bank_transfer"
+                        checked={form.provider === 'bank_transfer'}
+                        onChange={handleChange}
+                      />
+                      <div>
+                        <span style={{ fontWeight: 700, display: 'block', fontSize: '0.95rem' }}>🏦 Direct Bank Transfer</span>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>Transfer directly to vendor account</span>
+                      </div>
+                    </label>
+                  )}
                 </div>
 
                 {form.provider === 'bank_transfer' && bankAccounts.length > 0 && (
@@ -361,7 +495,7 @@ export default function HSCheckout({ shop, shopSlug }) {
                 className="hs-btn hs-btn-primary"
                 style={{ width: '100%', padding: '1.1rem', fontSize: '1.1rem', fontWeight: 800, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                {loading ? 'Processing Order...' : `Place Order (₦${Number(total).toLocaleString()})`}
+                {loading ? 'Processing Order...' : `Place Order (₦${Number(grandTotal).toLocaleString()})`}
               </button>
             </form>
 
@@ -371,7 +505,7 @@ export default function HSCheckout({ shop, shopSlug }) {
                 Order Summary ({cartList.length} items)
               </h3>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
                 {cartList.map(item => (
                   <div key={item.id || item.public_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
                     <div>
@@ -388,15 +522,29 @@ export default function HSCheckout({ shop, shopSlug }) {
               <div style={{ borderTop: '1px solid #EEE', marginTop: '1.25rem', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#666' }}>
                   <span>Subtotal</span>
-                  <span>₦{Number(total).toLocaleString()}</span>
+                  <span>₦{Number(subtotal).toLocaleString()}</span>
                 </div>
+
+                {discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#16A34A', fontWeight: 600 }}>
+                    <span>Coupon Discount</span>
+                    <span>-₦{Number(discount).toLocaleString()}</span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#666' }}>
-                  <span>Delivery Fee</span>
-                  <span style={{ color: '#16A34A', fontWeight: 600 }}>Calculated by Seller</span>
+                  <span>Delivery ({selectedState})</span>
+                  <span style={{ color: '#0F172A', fontWeight: 600 }}>₦{Number(deliveryFee).toLocaleString()}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 800, color: '#2B1F0C', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '2px dashed #E2E8F0' }}>
-                  <span>Total</span>
-                  <span>₦{Number(total).toLocaleString()}</span>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#666' }}>
+                  <span>VAT (7.5%)</span>
+                  <span>₦{Number(vat).toLocaleString()}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#2B1F0C', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '2px dashed #E2E8F0' }}>
+                  <span>Total Amount</span>
+                  <span>₦{Number(grandTotal).toLocaleString()}</span>
                 </div>
               </div>
             </div>

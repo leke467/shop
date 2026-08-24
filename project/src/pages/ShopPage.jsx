@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, getImageUrl, handleImageError, getProductPlaceholderUrl } from '../services/api'
 import { useUser } from '../context/UserContext'
@@ -41,6 +41,7 @@ function ProductCard({ product }) {
 
 export default function ShopPage() {
   const { shopSlug } = useParams()
+  const [searchParams] = useSearchParams()
   const [shop, setShop] = useState(null)
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
@@ -136,11 +137,15 @@ export default function ShopPage() {
     )
   }
 
-  // If this shop has a premium template, render it instead of the default storefront
-  if (shop.template_id) {
+  // If this shop has a premium template or user is previewing one, render it
+  const previewTemplateId = searchParams.get('preview_template')
+  const activeTemplateId = previewTemplateId || shop.template_id
+
+  if (activeTemplateId) {
+    const previewShop = previewTemplateId ? { ...shop, template_id: previewTemplateId } : shop
     return (
       <TemplateRouter
-        shop={shop}
+        shop={previewShop}
         products={products}
         reviews={reviews}
         shopSlug={shopSlug}

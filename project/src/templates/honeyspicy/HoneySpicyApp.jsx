@@ -10,6 +10,7 @@ import HSAbout from './pages/HSAbout'
 import HSContact from './pages/HSContact'
 import HSCheckout from './pages/HSCheckout'
 import HSReviews from './pages/HSReviews'
+import TemplateOrdersView from '../../components/shop/TemplateOrdersView'
 import './styles/honeyspicy.css'
 
 export default function HoneySpicyApp({ shop, products, reviews, shopSlug }) {
@@ -56,6 +57,7 @@ export default function HoneySpicyApp({ shop, products, reviews, shopSlug }) {
           <Route path="contact" element={<HSContact shop={shop} />} />
           <Route path="reviews" element={<HSReviews shop={shop} reviews={reviews} shopSlug={baseSlug} />} />
           <Route path="checkout" element={<HSCheckout shop={shop} shopSlug={baseSlug} />} />
+          <Route path="orders" element={<TemplateOrdersView shop={shop} shopSlug={baseSlug} theme="honeyspicy" />} />
           <Route path="*" element={<HSHome shop={shop} products={products} reviews={reviews} shopSlug={baseSlug} />} />
         </Routes>
       </AnimatePresence>

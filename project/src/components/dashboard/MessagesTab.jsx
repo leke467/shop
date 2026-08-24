@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { messagingAPI } from '../../services/api'
+import { messagingAPI, shopAPI } from '../../services/api'
 import { useUser } from '../../context/UserContext'
 
 export default function MessagesTab({ shop }) {
   const { user } = useUser()
   const [conversations, setConversations] = useState([])
+  const [deliveryNotes, setDeliveryNotes] = useState([])
+  const [filterType, setFilterType] = useState('all') // 'all' | 'chats' | 'delivery_notes'
   const [activeConv, setActiveConv] = useState(null)
   const [loadingConv, setLoadingConv] = useState(false)
   const [reply, setReply] = useState('')
@@ -15,11 +17,43 @@ export default function MessagesTab({ shop }) {
 
   const loadConversations = async () => {
     try {
-      const data = await messagingAPI.list(shop?.slug)
-      const list = Array.isArray(data) ? data : (data?.results || [])
-      setConversations(list)
-      if (list.length > 0 && !activeConv) {
-        selectConversation(list[0])
+      const slug = shop?.slug
+      const [msgData, notesData] = await Promise.allSettled([
+        messagingAPI.list(slug),
+        shopAPI.deliveryNotes ? shopAPI.deliveryNotes(slug) : Promise.resolve([])
+      ])
+
+      const rawMsgs = msgData.status === 'fulfilled' ? (Array.isArray(msgData.value) ? msgData.value : (msgData.value?.results || [])) : []
+      const rawNotes = notesData.status === 'fulfilled' ? (Array.isArray(notesData.value) ? notesData.value : (notesData.value?.results || [])) : []
+
+      // Normalize delivery notes into conversation-like items
+      const formattedNotes = rawNotes.map(n => ({
+        id: `note_${n.id}`,
+        rawNoteId: n.id,
+        is_delivery_note: true,
+        customer_name: n.sender_name,
+        customer_email: n.sender_email,
+        subject: `📍 Delivery Request to ${n.state_requested || 'Location'}`,
+        last_message: n.message || `Customer requested delivery to ${n.state_requested}.`,
+        updated_at: n.created_at,
+        is_read: n.is_read,
+        messages: [
+          {
+            id: `msg_note_${n.id}`,
+            sender_name: n.sender_name,
+            sender_email: n.sender_email,
+            is_seller: false,
+            content: `Hello! I would like to order from your store but my state (${n.state_requested}) is not currently listed for delivery.\n\n${n.message || 'Please let me know if you can deliver to my location!'}`
+          }
+        ]
+      }))
+
+      setDeliveryNotes(formattedNotes)
+      const merged = [...formattedNotes, ...rawMsgs].sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
+      setConversations(merged)
+
+      if (merged.length > 0 && !activeConv) {
+        selectConversation(merged[0])
       }
     } catch (e) {
       console.error('Failed to load conversations:', e)
@@ -29,6 +63,14 @@ export default function MessagesTab({ shop }) {
 
   const selectConversation = async (conv) => {
     if (!conv?.id) return
+    if (conv.is_delivery_note) {
+      setActiveConv(conv)
+      if (conv.rawNoteId && shopAPI.markNoteRead && !conv.is_read) {
+        shopAPI.markNoteRead(shop.slug, conv.rawNoteId).catch(() => {})
+      }
+      return
+    }
+
     setLoadingConv(true)
     try {
       const detail = await messagingAPI.conversationDetail(conv.id)
@@ -130,18 +172,30 @@ export default function MessagesTab({ shop }) {
             </div>
 
             <div className="p-3.5 bg-white border-t border-gray-100">
-              <form onSubmit={handleSend} className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={reply} 
-                  onChange={e => setReply(e.target.value)} 
-                  placeholder="Type your reply to customer..." 
-                  className="flex-1 px-4 py-2.5 bg-gray-50 text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500/30 outline-none text-xs sm:text-sm font-medium"
-                />
-                <button type="submit" disabled={!reply.trim()} className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all shrink-0">
-                  Send
-                </button>
-              </form>
+              {activeConv.is_delivery_note ? (
+                <div className="flex items-center justify-between gap-3 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200">
+                  <span className="text-xs text-amber-800 font-medium">This is an undelivered location inquiry. Respond directly to the customer's email address:</span>
+                  <a
+                    href={`mailto:${activeConv.customer_email}?subject=Re: Delivery Inquiry for ${shop?.name}&body=Hello ${activeConv.customer_name},%0D%0A%0D%0AThank you for reaching out regarding delivery to your location!`}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shrink-0 transition-all shadow-xs"
+                  >
+                    ✉️ Reply to {activeConv.customer_email}
+                  </a>
+                </div>
+              ) : (
+                <form onSubmit={handleSend} className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={reply} 
+                    onChange={e => setReply(e.target.value)} 
+                    placeholder="Type your reply to customer..." 
+                    className="flex-1 px-4 py-2.5 bg-gray-50 text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500/30 outline-none text-xs sm:text-sm font-medium"
+                  />
+                  <button type="submit" disabled={!reply.trim()} className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all shrink-0">
+                    Send
+                  </button>
+                </form>
+              )}
             </div>
           </>
         ) : (

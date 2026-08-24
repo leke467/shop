@@ -9,6 +9,7 @@ import ObsidianCatalogPage from './pages/ObsidianCatalogPage'
 import ObsidianAboutPage from './pages/ObsidianAboutPage'
 import ObsidianContactPage from './pages/ObsidianContactPage'
 import ObsidianCheckout from './pages/ObsidianCheckout'
+import TemplateOrdersView from '../../components/shop/TemplateOrdersView'
 
 import './styles/obsidian.css'
 
@@ -28,6 +29,7 @@ export default function ObsidianApp({ shop, products = [], reviews = [], shopSlu
         <Route path="about" element={<ObsidianAboutPage shop={shop} products={products} shopSlug={baseSlug} />} />
         <Route path="contact" element={<ObsidianContactPage shop={shop} products={products} shopSlug={baseSlug} />} />
         <Route path="checkout" element={<ObsidianCheckout shop={shop} shopSlug={baseSlug} />} />
+        <Route path="orders" element={<TemplateOrdersView shop={shop} shopSlug={baseSlug} theme="obsidian" />} />
         <Route path="*" element={<ObsidianHome shop={shop} products={products} shopSlug={baseSlug} />} />
       </Routes>
 

@@ -56,7 +56,8 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
 
   const handlePreview = (templateId) => {
     if (!shop?.slug) return
-    window.open(`/shop/${shop.slug}`, '_blank')
+    const url = templateId ? `/shop/${shop.slug}?preview_template=${templateId}` : `/shop/${shop.slug}`
+    window.open(url, '_blank')
   }
 
   return (

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useCart } from '../../../context/CartContext'
 import { useUser } from '../../../context/UserContext'
-import { orderAPI, payoutAPI } from '../../../services/api'
+import { orderAPI, payoutAPI, shopAPI, couponAPI, paymentSettingsAPI } from '../../../services/api'
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
@@ -18,25 +18,109 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
   const { cart, clearCart } = useCart()
   const { user } = useUser()
 
+  const cartList = Array.isArray(cart) && cart.length > 0 ? cart : (cart?.items || [])
+  const subtotal = cartList.reduce((sum, item) => sum + Number(item.unit_price || item.price || item.base_price || 0) * (item.quantity || 1), 0)
+
+  const [selectedState, setSelectedState] = useState('Lagos')
+  const [deliveryZones, setDeliveryZones] = useState([])
+  const [bankAccounts, setBankAccounts] = useState([])
+
+  // Gateway settings
+  const [gatewaySettings, setGatewaySettings] = useState({ paystack_enabled: true, monnify_enabled: true, default_provider: 'monnify' })
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponApplied, setCouponApplied] = useState(null)
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
+
   const [form, setForm] = useState({
-    full_name: user?.first_name ? `${user.first_name} ${user.last_name || ''}` : '',
+    full_name: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '',
+    email: user?.email || '',
     phone_number: user?.phone_number || '',
     shipping_address: '',
     notes: '',
     provider: 'monnify',
   })
 
-  const [selectedState, setSelectedState] = useState('Lagos')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderComplete, setOrderComplete] = useState(null)
 
-  const cartList = Array.isArray(cart) && cart.length > 0 ? cart : (cart?.items || [])
-  const subtotal = cartList.reduce((sum, item) => sum + Number(item.unit_price || item.price || item.base_price || 0) * (item.quantity || 1), 0)
-  const total = subtotal
+  // Load gateway settings
+  useEffect(() => {
+    paymentSettingsAPI.getSettings()
+      .then(res => {
+        setGatewaySettings(res)
+        const def = res.default_provider || (res.monnify_enabled ? 'monnify' : (res.paystack_enabled ? 'paystack' : 'bank_transfer'))
+        setForm(prev => ({
+          ...prev,
+          provider: (!res.paystack_enabled && prev.provider === 'paystack') ? def : (prev.provider || def)
+        }))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Load delivery zones & bank accounts
+  useEffect(() => {
+    const slug = shop?.slug || shopSlug
+    if (slug) {
+      if (typeof shopAPI?.deliveryZones === 'function') {
+        shopAPI.deliveryZones(slug)
+          .then(res => setDeliveryZones(Array.isArray(res) ? res : (res?.results || [])))
+          .catch(() => setDeliveryZones([]))
+      }
+      const getBanks = payoutAPI.listBanks || payoutAPI.bankAccounts
+      if (typeof getBanks === 'function') {
+        getBanks(slug)
+          .then(res => setBankAccounts(res || []))
+          .catch(() => setBankAccounts([]))
+      }
+    }
+  }, [shop, shopSlug])
+
+  // Calculate dynamic delivery fee
+  const deliveryFee = (() => {
+    if (!deliveryZones || deliveryZones.length === 0) {
+      return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
+    }
+    const matchedZone = deliveryZones.find(z => z.state?.toLowerCase() === selectedState.toLowerCase() && z.is_active !== false)
+    if (matchedZone) return Number(matchedZone.fee || 0)
+    return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
+  })()
+
+  // Calculate financial totals
+  const discount = Number(couponDiscount || 0)
+  const netSubtotal = Math.max(0, subtotal - discount)
+  const vat = Math.round(netSubtotal * 0.075)
+  const grandTotal = netSubtotal + deliveryFee + vat
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault()
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const res = await couponAPI.apply({
+        code: couponCode.trim(),
+        shop_slug: shop?.slug || shopSlug,
+        subtotal: subtotal,
+      })
+      const disc = Number(res.discount_amount || 0)
+      setCouponDiscount(disc)
+      setCouponApplied(res.code || couponCode.trim())
+    } catch (err) {
+      setCouponError(err.response?.data?.detail || 'Invalid or expired coupon.')
+      setCouponDiscount(0)
+      setCouponApplied(null)
+    } finally {
+      setCouponLoading(false)
+    }
   }
 
   const handlePlaceOrder = async (e) => {
@@ -62,9 +146,12 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
         state: selectedState,
         country: 'NG',
         delivery_state: selectedState,
+        coupon_code: couponApplied || undefined,
         idempotency_key: idempotencyKey,
         shop_slug: shop?.slug || shopSlug,
       })
+
+      const amountToPay = Number(result.payment?.amount || result.order?.grand_total || grandTotal)
 
       // Handle Moniepoint (Monnify) inline popup flow
       if (result.payment && (result.payment.provider === 'monnify' || form.provider === 'monnify')) {
@@ -73,7 +160,7 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
 
         if (window.MonnifySDK) {
           window.MonnifySDK.initialize({
-            amount: total,
+            amount: amountToPay,
             currency: 'NGN',
             customerName: form.full_name || user?.email || 'Customer',
             customerEmail: form.email || user?.email,
@@ -103,6 +190,9 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
             }
           })
           return
+        } else if (monnifyData.checkout_url) {
+          window.location.href = monnifyData.checkout_url
+          return
         }
       }
 
@@ -116,7 +206,7 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
           const handler = window.PaystackPop.setup({
             key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
             email: form.email || user?.email,
-            amount: Math.round(total * 100),
+            amount: Math.round(amountToPay * 100),
             ref: reference,
             access_code: accessCode,
             onSuccess: async (transaction) => {
@@ -272,6 +362,43 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
             </div>
           </div>
 
+          {/* Coupon Section */}
+          <div className="p-6 rounded-3xl bg-[#0F1420] border border-white/10 space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>🎟️</span> Have a Coupon / Promo Code?
+            </h3>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="Enter code (e.g. SAVE10)"
+                disabled={Boolean(couponApplied)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 outline-none focus:border-purple-500 text-sm font-bold uppercase"
+              />
+              {couponApplied ? (
+                <button
+                  type="button"
+                  onClick={() => { setCouponApplied(null); setCouponDiscount(0); setCouponCode(''); }}
+                  className="px-4 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs hover:bg-rose-500/30 transition-all"
+                >
+                  Remove
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponCode.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all disabled:opacity-50"
+                >
+                  {couponLoading ? 'Checking...' : 'Apply'}
+                </button>
+              )}
+            </div>
+            {couponError && <p className="text-xs text-rose-400 font-medium">{couponError}</p>}
+            {couponApplied && <p className="text-xs text-emerald-400 font-bold">✓ Coupon {couponApplied} applied (-₦{couponDiscount.toLocaleString()})</p>}
+          </div>
+
           {/* Payment Provider Selection */}
           <div className="p-6 rounded-3xl bg-[#0F1420] border border-white/10 space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
@@ -279,35 +406,56 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
             </h3>
 
             <div className="space-y-3">
-              <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${form.provider === 'monnify' ? 'bg-purple-500/10 border-purple-500' : 'bg-white/5 border-white/10'}`}>
-                <input
-                  type="radio"
-                  name="provider"
-                  value="monnify"
-                  checked={form.provider === 'monnify'}
-                  onChange={handleChange}
-                  className="text-purple-500"
-                />
-                <div>
-                  <span className="font-bold block text-sm">⚡ Moniepoint / Monnify</span>
-                  <span className="text-xs text-slate-400">Instant Bank Transfer, Dynamic Accounts & Cards</span>
-                </div>
-              </label>
+              {gatewaySettings.monnify_enabled !== false && (
+                <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${form.provider === 'monnify' ? 'bg-purple-500/10 border-purple-500' : 'bg-white/5 border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="monnify"
+                    checked={form.provider === 'monnify'}
+                    onChange={handleChange}
+                    className="text-purple-500"
+                  />
+                  <div>
+                    <span className="font-bold block text-sm">⚡ Moniepoint / Monnify</span>
+                    <span className="text-xs text-slate-400">Instant Bank Transfer, Dynamic Accounts & Cards</span>
+                  </div>
+                </label>
+              )}
 
-              <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${form.provider === 'paystack' ? 'bg-purple-500/10 border-purple-500' : 'bg-white/5 border-white/10'}`}>
-                <input
-                  type="radio"
-                  name="provider"
-                  value="paystack"
-                  checked={form.provider === 'paystack'}
-                  onChange={handleChange}
-                  className="text-purple-500"
-                />
-                <div>
-                  <span className="font-bold block text-sm">💳 Paystack</span>
-                  <span className="text-xs text-slate-400">Cards, USSD & Bank Transfer</span>
-                </div>
-              </label>
+              {gatewaySettings.paystack_enabled && (
+                <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${form.provider === 'paystack' ? 'bg-purple-500/10 border-purple-500' : 'bg-white/5 border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="paystack"
+                    checked={form.provider === 'paystack'}
+                    onChange={handleChange}
+                    className="text-purple-500"
+                  />
+                  <div>
+                    <span className="font-bold block text-sm">💳 Paystack</span>
+                    <span className="text-xs text-slate-400">Cards, USSD & Bank Transfer</span>
+                  </div>
+                </label>
+              )}
+
+              {bankAccounts.length > 0 && (
+                <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${form.provider === 'bank_transfer' ? 'bg-purple-500/10 border-purple-500' : 'bg-white/5 border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="provider"
+                    value="bank_transfer"
+                    checked={form.provider === 'bank_transfer'}
+                    onChange={handleChange}
+                    className="text-purple-500"
+                  />
+                  <div>
+                    <span className="font-bold block text-sm">🏦 Direct Bank Transfer</span>
+                    <span className="text-xs text-slate-400">Transfer directly to vendor account</span>
+                  </div>
+                </label>
+              )}
             </div>
           </div>
 
@@ -316,12 +464,12 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
             disabled={loading}
             className="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-base shadow-xl transition-all"
           >
-            {loading ? 'Processing Order...' : `Place Order (₦${total.toLocaleString()})`}
+            {loading ? 'Processing Order...' : `Place Order (₦${grandTotal.toLocaleString()})`}
           </button>
         </form>
 
         {/* Order Summary Sidebar */}
-        <div className="lg:col-span-5 p-6 rounded-3xl bg-[#0F1420] border border-white/10 space-y-4">
+        <div className="lg:col-span-5 p-6 rounded-3xl bg-[#0F1420] border border-white/10 space-y-4 sticky top-28">
           <h3 className="text-lg font-bold border-b border-white/10 pb-3">Order Summary ({cartList.length} items)</h3>
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {cartList.map((item, idx) => (
@@ -335,9 +483,33 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-white/10 flex justify-between items-center text-lg">
-            <span className="font-bold text-slate-300">Total</span>
-            <span className="font-black text-2xl text-white">₦{total.toLocaleString()}</span>
+          <div className="pt-4 border-t border-white/10 space-y-2 text-sm">
+            <div className="flex justify-between text-slate-400">
+              <span>Subtotal</span>
+              <span className="text-white font-medium">₦{subtotal.toLocaleString()}</span>
+            </div>
+
+            {discount > 0 && (
+              <div className="flex justify-between text-emerald-400 font-medium">
+                <span>Coupon Discount</span>
+                <span>-₦{discount.toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-slate-400">
+              <span>Delivery ({selectedState})</span>
+              <span className="text-white font-medium">₦{deliveryFee.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between text-slate-400">
+              <span>VAT (7.5%)</span>
+              <span className="text-white font-medium">₦{vat.toLocaleString()}</span>
+            </div>
+
+            <div className="pt-3 border-t border-white/10 flex justify-between items-center text-lg">
+              <span className="font-bold text-slate-200">Total Amount</span>
+              <span className="font-black text-2xl text-purple-400">₦{grandTotal.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>

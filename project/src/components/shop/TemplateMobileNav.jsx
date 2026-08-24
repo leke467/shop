@@ -244,6 +244,17 @@ export default function TemplateMobileNav({
                     <span>Customer Reviews</span>
                   </Link>
 
+                  <Link
+                    to={base ? `/shop/${base}/orders` : '/orders'}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
+                      isActive(base ? `/shop/${base}/orders` : '/orders') ? styles.activeLink : styles.inactiveLink
+                    }`}
+                  >
+                    <span>📦</span>
+                    <span>My Store Orders</span>
+                  </Link>
+
                   <button
                     onClick={() => {
                       setIsOpen(false)

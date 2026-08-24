@@ -15,25 +15,42 @@ from referrals.models import Referral, ReferralCode, ReferralEarning
 logger = logging.getLogger(__name__)
 
 
-def process_subscription_referral_reward(subscription) -> Decimal:
+def process_subscription_referral_reward(subscription, actual_amount_paid=None) -> Decimal:
     """
     Called when a shop subscription is activated or renewed.
     If the shop owner was referred by someone, rewards the referrer with ₦500
-    (or SUBSCRIPTION_REFERRAL_BONUS setting).
+    (or SUBSCRIPTION_REFERRAL_BONUS setting), but strictly capped by actual amount paid
+    so free or heavily discounted coupon subscriptions do not generate losses.
     """
     shop = getattr(subscription, "shop", None)
-    if not shop or not shop.owner:
+    owner = getattr(subscription, "user", None) or (shop.owner if shop else None)
+    if not owner:
         return Decimal("0.00")
 
-    owner = shop.owner
     try:
         referral = Referral.objects.select_related("referrer", "referral_code").get(referred_user=owner)
     except Referral.DoesNotExist:
         return Decimal("0.00")
 
     referrer = referral.referrer
-    bonus = getattr(settings, "SUBSCRIPTION_REFERRAL_BONUS", Decimal("500.00"))
-    gross = Decimal(str(getattr(subscription, "price", 3500)))
+
+    # Determine net amount paid (accounting for coupons/discounts)
+    if actual_amount_paid is not None:
+        net_paid = Decimal(str(actual_amount_paid))
+    else:
+        net_paid = Decimal(str(getattr(subscription, "amount_paid", getattr(getattr(subscription, "plan", None), "monthly_price", 0))))
+
+    if net_paid <= Decimal("0.00"):
+        logger.info("Subscription for %s was ₦0 / free coupon; no referral reward awarded.", owner.email)
+        return Decimal("0.00")
+
+    configured_bonus = getattr(settings, "SUBSCRIPTION_REFERRAL_BONUS", Decimal("500.00"))
+    # Reward is capped to 20% of actual paid amount or configured bonus
+    bonus = min(configured_bonus, (net_paid * Decimal("0.20")).quantize(Decimal("0.01")))
+    if bonus <= Decimal("0.00"):
+        return Decimal("0.00")
+
+    gross = net_paid
 
     ref_key = f"ref-sub-{subscription.pk}"
     if WalletTransaction.objects.filter(reference=ref_key).exists():
