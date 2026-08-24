@@ -29,7 +29,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen pt-16 flex">
+    <div className="min-h-screen pt-16 flex w-full max-w-full overflow-x-hidden">
       {/* Left — Decorative panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary-600 via-secondary-600 to-accent-600">
         <div className="absolute inset-0 bg-black/20" />

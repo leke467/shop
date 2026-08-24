@@ -48,7 +48,7 @@ export default function SignUpPage() {
   ]
 
   return (
-    <div className="min-h-screen pt-16 flex">
+    <div className="min-h-screen pt-16 flex w-full max-w-full overflow-x-hidden">
       {/* Left — Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
         <motion.div

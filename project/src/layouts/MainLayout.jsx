@@ -84,16 +84,16 @@ function MainLayout() {
   }, [location.pathname])
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 w-full max-w-full overflow-x-clip">
       {!hideMarketplaceNav && <Navbar />}
-      <main className="flex-grow">
+      <main className="flex-grow w-full max-w-full overflow-x-clip">
         <motion.div
           key={location.pathname}
           initial="initial"
           animate="animate"
           exit="exit"
           variants={pageVariants}
-          className="w-full"
+          className="w-full max-w-full"
         >
           <Outlet />
         </motion.div>
