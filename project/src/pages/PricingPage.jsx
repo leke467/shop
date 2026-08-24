@@ -5,10 +5,10 @@ import { subscriptionAPI, paymentSettingsAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 const FEATURE_ROWS = [
-  { key: 'premium_templates_enabled', label: 'Custom Shop Themes' },
-  { key: 'custom_domain_enabled', label: 'Custom Domain' },
+  { key: 'custom_shop_template_enabled', label: 'Custom Shop Templates (20+ Themes)' },
+  { key: 'custom_shop_theme_enabled', label: 'Custom Shop Theme & Colors' },
+  { key: 'custom_domain_enabled', label: 'Custom Shop Domain' },
   { key: 'analytics_enabled', label: 'Analytics' },
-  { key: 'staff_accounts_enabled', label: 'Staff Accounts' },
   { key: 'priority_support_enabled', label: 'Priority Support' },
 ]
 

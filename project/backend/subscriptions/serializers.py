@@ -24,8 +24,8 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "public_id", "code", "name", "description",
             "monthly_price", "currency",
             "max_shops", "max_products",
-            "custom_domain_enabled", "analytics_enabled",
-            "staff_accounts_enabled", "priority_support_enabled",
+            "custom_shop_template_enabled", "custom_shop_theme_enabled",
+            "custom_domain_enabled", "analytics_enabled", "priority_support_enabled",
             "is_enterprise", "is_active", "display_order",
             "features",
         )
@@ -44,8 +44,8 @@ class SubscriptionPlanAdminSerializer(serializers.ModelSerializer):
             "public_id", "code", "name", "description",
             "monthly_price", "currency",
             "max_shops", "max_products",
-            "custom_domain_enabled", "analytics_enabled",
-            "staff_accounts_enabled", "priority_support_enabled",
+            "custom_shop_template_enabled", "custom_shop_theme_enabled",
+            "custom_domain_enabled", "analytics_enabled", "priority_support_enabled",
             "is_enterprise", "is_active", "display_order",
             "created_at", "updated_at",
         )

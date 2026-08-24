@@ -5,10 +5,10 @@ import { subscriptionAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 const FEATURE_LABELS = {
-  premium_templates_enabled: 'Custom Shop Themes',
-  custom_domain_enabled: 'Custom Domain',
+  custom_shop_template_enabled: 'Custom Shop Templates (20+ Themes)',
+  custom_shop_theme_enabled: 'Custom Shop Theme & Colors',
+  custom_domain_enabled: 'Custom Shop Domain',
   analytics_enabled: 'Analytics',
-  staff_accounts_enabled: 'Staff Accounts',
   priority_support_enabled: 'Priority Support',
 }
 

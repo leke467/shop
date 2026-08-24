@@ -69,11 +69,34 @@ class SubscriptionPlan(BaseModel):
     )
 
     # Feature flags.
-    custom_domain_enabled = models.BooleanField(default=False)
-    analytics_enabled = models.BooleanField(default=False)
-    staff_accounts_enabled = models.BooleanField(default=False)
-    priority_support_enabled = models.BooleanField(default=False)
+    custom_shop_template_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Custom shop template enabled",
+        help_text="Unlock access to all 20 premium storefront templates.",
+    )
+    custom_shop_theme_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Custom shop theme enabled",
+        help_text="Unlock theme customizer, hero banner edits, color tokens, and layout styles.",
+    )
+    custom_domain_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Custom shop domain enabled",
+        help_text="Allow linking custom .com / .ng domains to shop.",
+    )
+    analytics_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Analytics enabled",
+        help_text="Enable sales, revenue, and customer traffic analytics.",
+    )
+    priority_support_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Priority support enabled",
+        help_text="Grant 24/7 priority support queue.",
+    )
+    # Legacy fields
     premium_templates_enabled = models.BooleanField(default=False)
+    staff_accounts_enabled = models.BooleanField(default=False)
 
     # Enterprise plans are "contact us / custom pricing" and are not
     # self-serve upgradable through the checkout flow.
@@ -98,6 +121,14 @@ class SubscriptionPlan(BaseModel):
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
 
+    def save(self, *args, **kwargs):
+        # Sync legacy premium_templates_enabled with custom_shop_template_enabled
+        if self.custom_shop_template_enabled:
+            self.premium_templates_enabled = True
+        elif self.premium_templates_enabled:
+            self.custom_shop_template_enabled = True
+        super().save(*args, **kwargs)
+
     # -- Limit helpers (None == unlimited) --------------------------------
 
     @property
@@ -115,9 +146,10 @@ class SubscriptionPlan(BaseModel):
     # Map of feature-flag name -> value, used by the service layer so callers
     # request features by key instead of branching on plan identity.
     FEATURE_FIELDS = (
+        "custom_shop_template_enabled",
+        "custom_shop_theme_enabled",
         "custom_domain_enabled",
         "analytics_enabled",
-        "staff_accounts_enabled",
         "priority_support_enabled",
         "premium_templates_enabled",
     )

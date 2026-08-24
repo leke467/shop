@@ -8,24 +8,33 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
     list_display = (
         "name", "code", "monthly_price", "currency",
         "max_shops", "max_products",
-        "is_active", "is_enterprise", "display_order",
+        "custom_shop_template_enabled", "custom_shop_theme_enabled",
+        "custom_domain_enabled", "analytics_enabled", "priority_support_enabled",
+        "is_active", "display_order",
     )
     list_filter = (
         "is_active", "is_enterprise",
-        "custom_domain_enabled", "analytics_enabled",
-        "staff_accounts_enabled", "priority_support_enabled",
+        "custom_shop_template_enabled", "custom_shop_theme_enabled",
+        "custom_domain_enabled", "analytics_enabled", "priority_support_enabled",
     )
     search_fields = ("name", "code")
     prepopulated_fields = {"code": ("name",)}
-    list_editable = ("is_active", "display_order")
+    list_editable = (
+        "is_active", "display_order",
+        "custom_shop_template_enabled", "custom_shop_theme_enabled",
+        "custom_domain_enabled", "analytics_enabled", "priority_support_enabled",
+    )
     fieldsets = (
         (None, {"fields": ("code", "name", "description", "display_order", "is_active")}),
         ("Pricing", {"fields": ("monthly_price", "currency", "is_enterprise")}),
         ("Limits (blank = unlimited)", {"fields": ("max_shops", "max_products")}),
         ("Features", {
             "fields": (
-                "custom_domain_enabled", "analytics_enabled",
-                "staff_accounts_enabled", "priority_support_enabled",
+                "custom_shop_template_enabled",
+                "custom_shop_theme_enabled",
+                "custom_domain_enabled",
+                "analytics_enabled",
+                "priority_support_enabled",
             )
         }),
     )
