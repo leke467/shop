@@ -71,85 +71,120 @@ const COLOR_PRESETS = [
   },
 ]
 
+function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId) {
+  const isMatchingTemplate = tokens.template_id === currentTemplateId
+
+  const HONEY_DEFAULTS = [
+    'Explore Our Menu',
+    'Our Signature Treats',
+    'Explore our most popular and delicious creations',
+    'Handcrafted to perfection with premium quality',
+    'What Our Happy Customers Say',
+    'Fresh Daily',
+    'All of our treats are made fresh every day',
+    'Order Now',
+    'View Menu',
+    'Handcrafted Quality'
+  ]
+
+  const pick = (key, schemaDefault, globalDefault = '') => {
+    const scopedVal = tokens[`${currentTemplateId}_${key}`]
+    if (scopedVal !== undefined && scopedVal !== null && scopedVal !== '') return scopedVal
+
+    if (isMatchingTemplate && tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '') {
+      return tokens[key]
+    }
+
+    if (currentTemplateId !== 'honeyspicy' && tokens[key] && HONEY_DEFAULTS.includes(tokens[key])) {
+      return schemaDefault !== undefined ? schemaDefault : globalDefault
+    }
+
+    if (tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '' && !HONEY_DEFAULTS.includes(tokens[key])) {
+      return tokens[key]
+    }
+
+    return schemaDefault !== undefined ? schemaDefault : globalDefault
+  }
+
+  return {
+    name: shop?.name || '',
+    tagline: shop?.tagline || '',
+    description: shop?.description || '',
+
+    // Hero Section
+    hero_welcome_prefix: pick('hero_welcome_prefix', schema.hero?.welcomePrefixDefault, 'Welcome to'),
+    hero_headline: pick('hero_headline', '', shop?.name || ''),
+    hero_subtitle: pick('hero_subtitle', '', shop?.tagline || shop?.description || ''),
+    hero_badge: pick('hero_badge', schema.hero?.badgeDefault, ''),
+    hero_cta_primary: pick('hero_cta_primary', schema.hero?.ctaPrimaryDefault, 'Explore'),
+    hero_cta_secondary: pick('hero_cta_secondary', schema.hero?.ctaSecondaryDefault, ''),
+
+    // Section Titles & Subtitles
+    featured_title: pick('featured_title', schema.sections?.featuredTitleDefault, ''),
+    featured_subtitle: pick('featured_subtitle', schema.sections?.featuredSubtitleDefault, ''),
+    categories_title: pick('categories_title', schema.sections?.catalogTitleDefault, 'Catalog Index'),
+    categories_subtitle: pick('categories_subtitle', schema.sections?.categoriesSubtitleDefault, schema.tagline || ''),
+    testimonials_title: pick('testimonials_title', schema.sections?.testimonialsTitleDefault, 'Client Reviews'),
+
+    // Typography
+    font_family: pick('font_family', schema.defaultFont, 'Inter'),
+    heading_font: pick('heading_font', schema.defaultFont, 'Inter'),
+    body_font: pick('body_font', 'Inter', 'Inter'),
+
+    // Colors
+    primary_color: pick('primary_color', schema.defaultColors?.primary, '#E5A43B'),
+    banner_color: pick('banner_color', schema.defaultColors?.banner, '#E5A43B'),
+    background_color: pick('background_color', schema.defaultColors?.bg, '#FFFFFF'),
+    text_color: pick('text_color', schema.defaultColors?.text, '#111827'),
+
+    // Images
+    hero_image_1: pick('hero_image_1', schema.hero?.imageSlots?.[0]?.default, ''),
+    hero_image_2: pick('hero_image_2', schema.hero?.imageSlots?.[1]?.default, ''),
+    hero_image_3: pick('hero_image_3', schema.hero?.imageSlots?.[2]?.default, ''),
+
+    // Features
+    feature1_title: pick('feature1_title', schema.features?.defaultCards?.[0]?.val1, 'Authenticity Guaranteed'),
+    feature1_desc: pick('feature1_desc', schema.features?.defaultCards?.[0]?.val2, '100% verified original quality'),
+    feature2_title: pick('feature2_title', schema.features?.defaultCards?.[1]?.val1, 'Premium Care'),
+    feature2_desc: pick('feature2_desc', schema.features?.defaultCards?.[1]?.val2, 'Carefully packaged and inspected'),
+    feature3_title: pick('feature3_title', schema.features?.defaultCards?.[2]?.val1, 'Fast Delivery'),
+    feature3_desc: pick('feature3_desc', schema.features?.defaultCards?.[2]?.val2, 'Swift insured delivery to your location'),
+    feature4_title: pick('feature4_title', schema.features?.defaultCards?.[3]?.val1, 'Secure Checkout'),
+    feature4_desc: pick('feature4_desc', schema.features?.defaultCards?.[3]?.val2, 'Buyer protection via MultiShop Escrow'),
+
+    // About & Story
+    about_hero_title: pick('about_hero_title', schema.about?.aboutHeroTitle, 'Our Story'),
+    about_hero_subtitle: pick('about_hero_subtitle', schema.about?.aboutHeroSubtitle, 'Learn about our journey and mission'),
+    about_mission_title: pick('about_mission_title', schema.about?.aboutMissionTitle, 'Our Mission'),
+    about_mission_highlight: pick('about_mission_highlight', schema.about?.aboutMissionHighlight, shop?.tagline || 'Excellence in every detail.'),
+    about_text: pick('about_text', schema.about?.aboutText, shop?.description || 'Dedicated to bringing you the highest quality products.'),
+
+    value1_title: pick('value1_title', 'Quality First'),
+    value1_desc: pick('value1_desc', 'We never compromise on the quality of our products.'),
+    value2_title: pick('value2_title', 'Customer Experience'),
+    value2_desc: pick('value2_desc', 'Every interaction is an opportunity to create value.'),
+    value3_title: pick('value3_title', 'Sustainability'),
+    value3_desc: pick('value3_desc', 'Committed to responsible and sustainable practices.'),
+    value4_title: pick('value4_title', 'Community'),
+    value4_desc: pick('value4_desc', 'We believe in empowering and supporting our community.'),
+
+    banner_url: shop?.banner || tokens.banner_url || '',
+    logo_url: shop?.logo || tokens.logo_url || '',
+    logo_position: tokens.logo_position || 'left',
+    footer_note: tokens.footer_note || '',
+  }
+}
+
 export default function TemplateCustomizerModal({ shop, templateId, isOpen, onClose, onSaveSuccess }) {
   const [activeTab, setActiveTab] = useState('hero')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const activeTemplateMeta = getTemplateById(templateId || shop?.template_id || 'honeyspicy') || {
-    id: templateId || 'honeyspicy',
-    name: 'Custom Template',
-    category: 'Storefront',
-  }
+  const currentTemplateId = templateId || shop?.template_id || 'honeyspicy'
+  const schema = getTemplateSchema(currentTemplateId)
 
-  const [form, setForm] = useState({
-    name: shop?.name || '',
-    tagline: shop?.tagline || '',
-    description: shop?.description || '',
-
-    // Hero Section & Welcome Prefix
-    hero_welcome_prefix: 'Welcome to',
-    hero_headline: '',
-    hero_subtitle: '',
-    hero_badge: 'Handcrafted Quality',
-    hero_cta_primary: 'Order Now',
-    hero_cta_secondary: 'View Menu',
-
-    // Featured & Section Titles
-    featured_title: 'Our Signature Treats',
-    featured_subtitle: 'Explore our most popular and delicious creations',
-    categories_title: 'Explore Our Menu',
-    categories_subtitle: 'Handcrafted to perfection with premium quality',
-    testimonials_title: 'What Our Happy Customers Say',
-
-    // Typography & Fonts
-    font_family: 'Poppins',
-    heading_font: 'Poppins',
-    body_font: 'Inter',
-
-    // 4 Grouped Template Colors
-    primary_color: '#E5A43B',
-    banner_color: '#E5A43B',
-    background_color: '#FFFDF9',
-    text_color: '#2B1F0C',
-
-    // Hero Showcase Images (3 Cards)
-    hero_image_1: '',
-    hero_image_2: '',
-    hero_image_3: '',
-
-    // Features Banner (4 Highlights)
-    feature1_title: 'Fresh Daily',
-    feature1_desc: 'All of our treats are made fresh every day',
-    feature2_title: 'Quality Ingredients',
-    feature2_desc: 'We use only the finest ingredients',
-    feature3_title: 'Fast Delivery',
-    feature3_desc: 'Doorstep delivery within 30 minutes',
-    feature4_title: 'Secure Checkout',
-    feature4_desc: '100% buyer protection via MultiShop Escrow',
-
-    // Full About Page
-    about_hero_title: 'Our Story',
-    about_hero_subtitle: 'Learn about our journey and passion',
-    about_mission_title: 'Our Mission',
-    about_mission_highlight: 'Creating exceptional experiences through quality and passion.',
-    about_text: 'We are dedicated to delivering the finest products, crafted with care and attention to detail.',
-
-    value1_title: 'Quality First',
-    value1_desc: 'We never compromise on the quality of our products.',
-    value2_title: 'Customer Love',
-    value2_desc: 'Every interaction is an opportunity to create a memorable experience.',
-    value3_title: 'Sustainability',
-    value3_desc: 'Committed to sustainable practices in everything we do.',
-    value4_title: 'Community',
-    value4_desc: 'We believe in giving back and supporting our local community.',
-
-    banner_url: shop?.banner || '',
-    logo_url: shop?.logo || '',
-    logo_position: 'left',
-    footer_note: '',
-  })
+  const [form, setForm] = useState(() => getInitialFormForTemplate(schema, shop, {}, currentTemplateId))
 
   // Dynamically load Google Font in Customizer preview
   useEffect(() => {
@@ -171,73 +206,16 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
   useEffect(() => {
     if (!shop?.slug) return
+    const activeSchema = getTemplateSchema(currentTemplateId)
     shopAPI.getTheme(shop.slug)
       .then(t => {
         const tokens = t?.extra_tokens || {}
-        setForm(prev => ({
-          ...prev,
-          name: shop?.name || '',
-          tagline: shop?.tagline || '',
-          description: shop?.description || '',
-
-          hero_welcome_prefix: tokens.hero_welcome_prefix !== undefined ? tokens.hero_welcome_prefix : 'Welcome to',
-          hero_headline: tokens.hero_headline ?? shop?.name ?? '',
-          hero_subtitle: tokens.hero_subtitle ?? shop?.tagline ?? shop?.description ?? '',
-          hero_badge: tokens.hero_badge || 'Handcrafted Quality',
-          hero_cta_primary: tokens.hero_cta_primary || 'Order Now',
-          hero_cta_secondary: tokens.hero_cta_secondary || 'View Menu',
-
-          featured_title: tokens.featured_title || 'Our Signature Treats',
-          featured_subtitle: tokens.featured_subtitle || 'Explore our most popular and delicious creations',
-          categories_title: tokens.categories_title || 'Explore Our Menu',
-          categories_subtitle: tokens.categories_subtitle || 'Handcrafted to perfection with premium quality',
-          testimonials_title: tokens.testimonials_title || 'What Our Happy Customers Say',
-
-          font_family: tokens.font_family || 'Poppins',
-          heading_font: tokens.heading_font || tokens.font_family || 'Poppins',
-          body_font: tokens.body_font || 'Inter',
-
-          hero_image_1: tokens.hero_image_1 || '',
-          hero_image_2: tokens.hero_image_2 || '',
-          hero_image_3: tokens.hero_image_3 || '',
-
-          primary_color: tokens.primary_color || t?.primary_color || '#E5A43B',
-          banner_color: tokens.banner_color || '#E5A43B',
-          background_color: tokens.background_color || t?.background_color || '#FFFDF9',
-          text_color: tokens.text_color || t?.text_color || '#2B1F0C',
-
-          feature1_title: tokens.feature1_title || 'Fresh Daily',
-          feature1_desc: tokens.feature1_desc || 'All of our treats are made fresh every day',
-          feature2_title: tokens.feature2_title || 'Quality Ingredients',
-          feature2_desc: tokens.feature2_desc || 'We use only the finest ingredients',
-          feature3_title: tokens.feature3_title || 'Fast Delivery',
-          feature3_desc: tokens.feature3_desc || 'Doorstep delivery within 30 minutes',
-          feature4_title: tokens.feature4_title || 'Secure Checkout',
-          feature4_desc: tokens.feature4_desc || '100% buyer protection via MultiShop Escrow',
-
-          about_hero_title: tokens.about_hero_title || tokens.about_title || 'Our Story',
-          about_hero_subtitle: tokens.about_hero_subtitle || 'Learn about our journey and passion',
-          about_mission_title: tokens.about_mission_title || 'Our Mission',
-          about_mission_highlight: tokens.about_mission_highlight || shop?.tagline || 'Creating exceptional experiences through quality and passion.',
-          about_text: tokens.about_text || shop?.description || 'We are dedicated to delivering the finest products, crafted with care and attention to detail.',
-
-          value1_title: tokens.value1_title || 'Quality First',
-          value1_desc: tokens.value1_desc || 'We never compromise on the quality of our products.',
-          value2_title: tokens.value2_title || 'Customer Love',
-          value2_desc: tokens.value2_desc || 'Every interaction is an opportunity to create a memorable experience.',
-          value3_title: tokens.value3_title || 'Sustainability',
-          value3_desc: tokens.value3_desc || 'Committed to sustainable practices in everything we do.',
-          value4_title: tokens.value4_title || 'Community',
-          value4_desc: tokens.value4_desc || 'We believe in giving back and supporting our local community.',
-
-          banner_url: shop?.banner || tokens.banner_url || '',
-          logo_url: shop?.logo || tokens.logo_url || '',
-          logo_position: tokens.logo_position || 'left',
-          footer_note: tokens.footer_note || '',
-        }))
+        setForm(getInitialFormForTemplate(activeSchema, shop, tokens, currentTemplateId))
       })
-      .catch(() => {})
-  }, [shop, isOpen, templateId])
+      .catch(() => {
+        setForm(getInitialFormForTemplate(activeSchema, shop, {}, currentTemplateId))
+      })
+  }, [shop, isOpen, templateId, currentTemplateId])
 
   const [bannerFile, setBannerFile] = useState(null)
   const [logoFile, setLogoFile] = useState(null)
@@ -307,6 +285,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
       const extra_tokens = {
         ...existingTokens,
+        template_id: targetTemplate,
         hero_welcome_prefix: form.hero_welcome_prefix,
         hero_headline: form.hero_headline,
         hero_subtitle: form.hero_subtitle,
@@ -362,6 +341,21 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         logo_url: finalLogoUrl,
         logo_position: form.logo_position || 'left',
         footer_note: form.footer_note,
+
+        // Scoped overrides per template
+        [`${targetTemplate}_categories_title`]: form.categories_title,
+        [`${targetTemplate}_categories_subtitle`]: form.categories_subtitle,
+        [`${targetTemplate}_hero_badge`]: form.hero_badge,
+        [`${targetTemplate}_hero_cta_primary`]: form.hero_cta_primary,
+        [`${targetTemplate}_hero_cta_secondary`]: form.hero_cta_secondary,
+        [`${targetTemplate}_featured_title`]: form.featured_title,
+        [`${targetTemplate}_featured_subtitle`]: form.featured_subtitle,
+        [`${targetTemplate}_testimonials_title`]: form.testimonials_title,
+        [`${targetTemplate}_font_family`]: form.font_family,
+        [`${targetTemplate}_primary_color`]: form.primary_color,
+        [`${targetTemplate}_banner_color`]: form.banner_color,
+        [`${targetTemplate}_background_color`]: form.background_color,
+        [`${targetTemplate}_text_color`]: form.text_color,
       }
 
       const updatedTheme = await shopAPI.updateTheme(shop.slug, {
@@ -394,9 +388,6 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
   }
 
   if (!isOpen) return null
-
-  const currentTemplateId = templateId || shop?.template_id || 'honeyspicy'
-  const schema = getTemplateSchema(currentTemplateId)
 
   const TABS = [
     { id: 'hero', label: '🎯 Hero & Headline' },

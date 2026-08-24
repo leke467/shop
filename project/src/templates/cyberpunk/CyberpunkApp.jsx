@@ -150,7 +150,7 @@ function CyberpunkCatalog({ shop, products = [], onQuickView }) {
   const [sort, setSort] = useState('default')
 
   const extra = shop?.theme?.extra_tokens || {}
-  const catalogTitle = extra.categories_title || extra.catalog_title || '/// HARDWARE_GRID'
+  const catalogTitle = extra.cyberpunk_categories_title || (extra.template_id === 'cyberpunk' ? extra.categories_title : null) || '/// HARDWARE_GRID'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'GEAR').toUpperCase()))

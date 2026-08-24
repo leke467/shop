@@ -146,7 +146,7 @@ function MinimalistCatalog({ shop, products = [], onQuickView }) {
   const [sort, setSort] = useState('default')
 
   const extra = shop?.theme?.extra_tokens || {}
-  const catalogTitle = extra.categories_title || extra.catalog_title || '/// CATALOGUE INDEX'
+  const catalogTitle = extra.minimalist_categories_title || (extra.template_id === 'minimalist' ? extra.categories_title : null) || '/// CATALOGUE INDEX'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'OBJECT').toUpperCase()))

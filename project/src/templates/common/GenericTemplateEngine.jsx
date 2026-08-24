@@ -353,8 +353,8 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
   const [sort, setSort] = useState('default')
   const primaryAccent = config.primaryColor || '#2563eb'
   const extra = shop?.theme?.extra_tokens || {}
-  const catalogTitle = extra.featured_title || 'Our Collection'
-  const catalogSubtitle = extra.featured_subtitle || ''
+  const catalogTitle = extra[`${config.id}_categories_title`] || extra.categories_title || extra.featured_title || config.catalogTitle || 'Our Collection'
+  const catalogSubtitle = extra[`${config.id}_categories_subtitle`] || extra.categories_subtitle || extra.featured_subtitle || config.catalogSubtitle || ''
 
   const categories = useMemo(() => {
     const set = new Set()
