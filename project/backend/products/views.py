@@ -57,7 +57,7 @@ class ProductListView(generics.ListAPIView):
         qs = Product.objects.filter(
             status=Product.Status.ACTIVE,
             shop__status=Shop.Status.ACTIVE,
-            shop__is_deleted=False,
+            shop__deleted_at__isnull=True,
         ).select_related(
             "shop", "category"
         ).prefetch_related("images")
@@ -99,7 +99,7 @@ class ShopProductListView(generics.ListCreateAPIView):
         return Product.objects.filter(
             shop__slug=slug,
             shop__status=Shop.Status.ACTIVE,
-            shop__is_deleted=False,
+            shop__deleted_at__isnull=True,
             status=Product.Status.ACTIVE,
         ).select_related("shop", "category").prefetch_related("images")
 
@@ -135,7 +135,7 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         if user.is_authenticated and not user.is_staff:
             return Product.objects.filter(
-                Q(shop__status=Shop.Status.ACTIVE, shop__is_deleted=False, status=Product.Status.ACTIVE)
+                Q(shop__status=Shop.Status.ACTIVE, shop__deleted_at__isnull=True, status=Product.Status.ACTIVE)
                 | Q(shop__owner=user)
             ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
         elif user.is_authenticated and user.is_staff:
@@ -144,7 +144,7 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Public visitors only see product if the shop is active
         return Product.objects.filter(
             shop__status=Shop.Status.ACTIVE,
-            shop__is_deleted=False,
+            shop__deleted_at__isnull=True,
             status=Product.Status.ACTIVE,
         ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
 

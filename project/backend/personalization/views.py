@@ -109,7 +109,7 @@ def build_recommendations(user, limit=24):
     qs = Product.objects.filter(
         status=Product.Status.ACTIVE,
         shop__status="active",
-        shop__is_deleted=False,
+        shop__deleted_at__isnull=True,
     )
 
     if affinity_cat_ids or affinity_shop_ids:
@@ -168,7 +168,7 @@ class PersonalizedFeedView(APIView):
                 pk__in=cache.product_ids,
                 status=Product.Status.ACTIVE,
                 shop__status="active",
-                shop__is_deleted=False,
+                shop__deleted_at__isnull=True,
             ).select_related("shop", "category").prefetch_related("images")
             # Re-order by the cached order.
             id_order = {pid: idx for idx, pid in enumerate(cache.product_ids)}
