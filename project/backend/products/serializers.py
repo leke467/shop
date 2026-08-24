@@ -132,12 +132,16 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_inventory_quantity(self, obj):
         try:
-            var = obj.variants.first()
+            var = obj.variants.filter(is_default=True).first() or obj.variants.first()
             if var and hasattr(var, 'inventory') and var.inventory:
                 return max(0, var.inventory.quantity - var.inventory.reserved)
+            if var:
+                inv = Inventory.objects.filter(variant=var).first()
+                if inv:
+                    return max(0, inv.quantity - inv.reserved)
         except Exception:
             pass
-        return 100
+        return 0
 
     def get_is_out_of_stock(self, obj):
         return self.get_inventory_quantity(obj) <= 0
@@ -172,23 +176,32 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_is_locked(self, obj):
-        return is_user_locked(obj.shop.owner)
+        try:
+            if obj.shop and obj.shop.owner:
+                return is_user_locked(obj.shop.owner)
+        except Exception:
+            pass
+        return False
 
     def get_inventory_quantity(self, obj):
         try:
-            var = obj.variants.first()
+            var = obj.variants.filter(is_default=True).first() or obj.variants.first()
             if var and hasattr(var, 'inventory') and var.inventory:
                 return max(0, var.inventory.quantity - var.inventory.reserved)
+            if var:
+                inv = Inventory.objects.filter(variant=var).first()
+                if inv:
+                    return max(0, inv.quantity - inv.reserved)
         except Exception:
             pass
-        return 100
+        return 0
 
     def get_is_out_of_stock(self, obj):
         return self.get_inventory_quantity(obj) <= 0
 
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    stock = serializers.IntegerField(write_only=True, required=False, default=100)
+    stock = serializers.IntegerField(required=False, default=100)
 
     class Meta:
         model = Product
@@ -198,6 +211,24 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             "status", "is_featured", "tags", "stock",
         )
         read_only_fields = ("public_id", "slug",)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        try:
+            variant = instance.variants.filter(is_default=True).first() or instance.variants.first()
+            qty = 100
+            if variant:
+                inv = getattr(variant, 'inventory', None) or Inventory.objects.filter(variant=variant).first()
+                if inv:
+                    qty = max(0, inv.quantity - inv.reserved)
+            data['stock'] = qty
+            data['inventory_quantity'] = qty
+            data['is_out_of_stock'] = qty <= 0
+        except Exception:
+            data['stock'] = 0
+            data['inventory_quantity'] = 0
+            data['is_out_of_stock'] = True
+        return data
 
     def create(self, validated_data):
         stock = validated_data.pop("stock", 100)
@@ -213,17 +244,27 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         return product
 
     def _sync_inventory(self, product, stock):
+        try:
+            stock_int = int(stock)
+        except (ValueError, TypeError):
+            stock_int = 100
+
         variant = product.variants.filter(is_default=True).first() or product.variants.first()
         if not variant:
+            import uuid
             variant = ProductVariant.objects.create(
                 product=product,
                 name="Default",
+                sku=f"SKU-{str(uuid.uuid4())[:8].upper()}",
                 price=product.base_price,
                 is_default=True,
                 is_active=True,
             )
-        inv, _ = Inventory.objects.get_or_create(variant=variant)
-        inv.quantity = stock
+        inv, _ = Inventory.objects.get_or_create(
+            variant=variant,
+            defaults={"quantity": stock_int, "reserved": 0}
+        )
+        inv.quantity = stock_int
         inv.save()
 
 

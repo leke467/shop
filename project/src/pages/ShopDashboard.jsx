@@ -414,9 +414,10 @@ export default function ShopDashboard() {
       }
 
       toast(editingProduct ? 'Product updated successfully!' : 'Product created successfully!')
-      setProductForm({ name: '', description: '', base_price: '', status: 'active', imageFiles: [] })
+      setProductForm({ name: '', description: '', base_price: '', stock: 100, status: 'active', imageFiles: [] })
       setEditingProduct(null)
       setTab('products')
+      if (shop?.slug) loadProducts(shop.slug)
     } catch (err) {
       const limit = extractLimitError(err)
       if (limit) {
@@ -433,11 +434,12 @@ export default function ShopDashboard() {
   const handleEditProduct = (product) => {
     setEditingProduct(product)
     setProductForm({
-      name: product.name,
-      description: product.description,
-      base_price: product.base_price,
-      stock: product.inventory_quantity ?? 100,
-      status: product.status
+      name: product.name || '',
+      description: product.description || '',
+      base_price: product.base_price || '',
+      stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
+      status: product.status || 'active',
+      imageFiles: []
     })
     setTab('add-product')
   }

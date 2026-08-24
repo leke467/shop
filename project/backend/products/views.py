@@ -51,7 +51,7 @@ class ProductListView(generics.ListAPIView):
                 return Product.objects.filter(
                     shop__slug=shop_slug,
                     status=Product.Status.ACTIVE,
-                ).select_related("shop", "category").prefetch_related("images")
+                ).select_related("shop", "category").prefetch_related("images", "variants__inventory")
 
         # Public listing across marketplace: ONLY active products from ACTIVE, non-deleted shops
         qs = Product.objects.filter(
@@ -60,7 +60,7 @@ class ProductListView(generics.ListAPIView):
             shop__deleted_at__isnull=True,
         ).select_related(
             "shop", "category"
-        ).prefetch_related("images")
+        ).prefetch_related("images", "variants__inventory")
         
         if shop_slug:
             qs = qs.filter(shop__slug=shop_slug)
@@ -93,7 +93,7 @@ class ShopProductListView(generics.ListCreateAPIView):
             return Product.objects.filter(
                 shop__slug=slug,
                 status=Product.Status.ACTIVE,
-            ).select_related("shop", "category").prefetch_related("images")
+            ).select_related("shop", "category").prefetch_related("images", "variants__inventory")
 
         # Public visitors only see products if the shop itself is active
         return Product.objects.filter(
@@ -101,7 +101,7 @@ class ShopProductListView(generics.ListCreateAPIView):
             shop__status=Shop.Status.ACTIVE,
             shop__deleted_at__isnull=True,
             status=Product.Status.ACTIVE,
-        ).select_related("shop", "category").prefetch_related("images")
+        ).select_related("shop", "category").prefetch_related("images", "variants__inventory")
 
     def perform_create(self, serializer):
         from shops.models import Shop
