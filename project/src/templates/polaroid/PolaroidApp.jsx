@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  POLAROID — Scattered Tilted Photo Cards on a Cork Board
     Products displayed as polaroid snapshots at random angles on a
@@ -34,6 +36,7 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
           <div className="flex items-center gap-4" style={{ fontFamily: 'sans-serif' }}>
             <Link to="/" className="text-xs text-[#8B6F55] hover:text-[#4A3728]">← MultiShop</Link>
             <Link to={`/shop/${base}/catalog`} className="text-xs text-[#8B6F55] hover:text-[#4A3728] font-bold">All Photos</Link>
+            <Link to={`/shop/${base}/about`} className="text-xs text-[#8B6F55] hover:text-[#4A3728] font-bold">About Story</Link>
             <Link to={`/shop/${base}/reviews`} className="text-xs text-[#8B6F55] hover:text-[#4A3728] font-bold">Reviews</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 bg-[#4A3728] hover:bg-[#3A2A1C] text-[#F5E6D3] rounded-lg text-xs font-bold transition-colors">
@@ -48,6 +51,7 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
           <Route index element={<PolaroidHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<PolaroidBoard products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<PolaroidBoard products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="boho" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="polaroid" />} />
           <Route path="checkout" element={<PolaroidCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<PolaroidHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -57,10 +61,7 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
       {quickView && <PolaroidModal product={quickView} onClose={() => setQuickView(null)} />}
       <PolaroidCart shop={shop} shopSlug={shopSlug} />
 
-      <footer className="py-8 text-center text-lg text-[#8B6F55]">
-        Made with 📸 & ❤️ · {shop?.name} · {new Date().getFullYear()}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="boho" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

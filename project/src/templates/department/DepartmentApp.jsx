@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  DEPARTMENT — Traditional E-Commerce with Sidebar Category Filters
@@ -44,6 +46,7 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">
             <Link to={`/shop/${base}`} className="hover:text-[#1B3A5C]">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#1B3A5C]">All Products</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#1B3A5C]">About Us</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#1B3A5C]">Reviews</Link>
           </nav>
 
@@ -59,6 +62,7 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
           <Route index element={<DeptHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<DeptCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<DeptCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="default" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<DeptCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<DeptHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -68,18 +72,7 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
       {quickView && <DeptModal product={quickView} onClose={() => setQuickView(null)} />}
       <DeptCart shop={shop} shopSlug={shopSlug} />
 
-      <footer className="bg-[#1B3A5C] text-white py-10 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-xs">
-          <div><h4 className="font-bold mb-3 uppercase tracking-wider">Customer Service</h4><p className="text-white/60 leading-relaxed">Mon-Fri 09:00-18:00<br/>support@store.com</p></div>
-          <div><h4 className="font-bold mb-3 uppercase tracking-wider">Information</h4><p className="text-white/60 leading-relaxed">About Us<br/>Delivery Info<br/>Returns</p></div>
-          <div><h4 className="font-bold mb-3 uppercase tracking-wider">Payment</h4><p className="text-white/60 leading-relaxed">Bank Transfer<br/>Pay on Delivery<br/>Card Payment</p></div>
-          <div><h4 className="font-bold mb-3 uppercase tracking-wider">Follow Us</h4><p className="text-white/60 leading-relaxed">Instagram<br/>Twitter<br/>Facebook</p></div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-white/20 text-center text-[10px] text-white/40">
-          © {new Date().getFullYear()} {shop?.name}. All rights reserved. Powered by MultiShop.
-          <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-        </div>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="default" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

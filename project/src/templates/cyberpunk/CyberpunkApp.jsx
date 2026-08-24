@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import './cyberpunk.css'
 
 export default function CyberpunkApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -37,10 +39,11 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-[#94A3B8]">
+          <nav className="hidden md:flex items-center gap-6 text-xs font-bold uppercase tracking-widest text-[#94A3B8]">
             <Link to={homeUrl} className="hover:text-[#00F0FF] transition-colors">[01] // HOME</Link>
             <Link to={catalogUrl} className="hover:text-[#00F0FF] transition-colors">[02] // GRID</Link>
-            <Link to={baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'} className="hover:text-[#00F0FF] transition-colors">[03] // REVIEWS</Link>
+            <Link to={baseSlug ? `/shop/${baseSlug}/about` : '/about'} className="hover:text-[#00F0FF] transition-colors">[03] // ABOUT</Link>
+            <Link to={baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'} className="hover:text-[#00F0FF] transition-colors">[04] // REVIEWS</Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -67,6 +70,7 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
           <Route index element={<CyberpunkHome shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<CyberpunkCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<CyberpunkCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="cyberpunk" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="cyberpunk" />} />
           <Route path="checkout" element={<CyberpunkCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<CyberpunkHome shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickView} />} />
@@ -76,11 +80,8 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
       {quickView && <CyberpunkQuickModal product={quickView} onClose={() => setQuickView(null)} />}
       <CyberpunkCartDrawer shop={shop} shopSlug={shopSlug} />
 
-      {/* Cyber Footer */}
-      <footer className="border-t border-[#00F0FF]/30 bg-[#06060C] py-12 px-6 text-center text-xs text-[#64748B]">
-        [CYBERPUNK NEON HUD INTERFACE] // © {new Date().getFullYear()} {shop?.name || 'CYBER_HUB'}.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      {/* Cyber HUD Footer */}
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="cyberpunk" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

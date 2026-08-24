@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  FUTURA — Glassmorphic Floating Panels + Holographic Gradients
     Think: Apple Vision Pro UI, frosted glass cards, iridescent gradients
@@ -36,6 +38,7 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
           <nav className="hidden md:flex items-center gap-6 text-xs text-white/50">
             <Link to={`/shop/${base}`} className="hover:text-white transition-colors">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-white transition-colors">Explore</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-white transition-colors">About</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-white transition-colors">Reviews</Link>
           </nav>
 
@@ -54,6 +57,7 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
           <Route index element={<FuturaHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<FuturaCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<FuturaCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="cyberpunk" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="futura" />} />
           <Route path="checkout" element={<FuturaCheckout shop={shop} shopSlug={shopSlug || base} />} />
           <Route path="*" element={<FuturaHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -63,10 +67,7 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
       {quickView && <FuturaModal product={quickView} onClose={() => setQuickView(null)} />}
       <FuturaCart shop={shop} shopSlug={shopSlug || base} />
 
-      <footer className="relative z-10 py-10 text-center text-[10px] text-white/20 tracking-widest uppercase">
-        FUTURA HOLOGRAPHIC INTERFACE · © {new Date().getFullYear()} · {shop?.name}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug || base} theme="cyberpunk" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

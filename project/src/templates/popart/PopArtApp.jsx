@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import './popart.css'
 
 export default function PopArtApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -16,6 +18,7 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
   const baseSlug = base
   const homeUrl = baseSlug ? `/shop/${baseSlug}` : '/'
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
+  const aboutUrl = baseSlug ? `/shop/${baseSlug}/about` : '/about'
   const reviewsUrl = baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'
 
   return (
@@ -38,6 +41,9 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
             </Link>
             <Link to={catalogUrl} className="px-4 py-2 bg-cyan-300 border-2 border-black font-bold uppercase shadow-[3px_3px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
               Catalog 💥
+            </Link>
+            <Link to={aboutUrl} className="px-4 py-2 bg-fuchsia-300 border-2 border-black font-bold uppercase shadow-[3px_3px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+              About 📖
             </Link>
             <Link to={reviewsUrl} className="px-4 py-2 bg-lime-300 border-2 border-black font-bold uppercase shadow-[3px_3px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
               Reviews ★
@@ -68,6 +74,7 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
           <Route index element={<PopArtHome shop={shop} products={products} shopSlug={baseSlug} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<PopArtCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<PopArtCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={baseSlug} theme="popart" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={baseSlug} theme="popart" />} />
           <Route path="checkout" element={<PopArtCheckout shop={shop} shopSlug={baseSlug} />} />
           <Route path="*" element={<PopArtHome shop={shop} products={products} shopSlug={baseSlug} onQuickView={setQuickView} />} />
@@ -77,14 +84,7 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
       {quickView && <PopArtQuickModal product={quickView} onClose={() => setQuickView(null)} />}
       <PopArtCartDrawer shop={shop} shopSlug={baseSlug} />
 
-      {/* Neobrutalist Footer */}
-      <footer className="border-t-4 border-black bg-white py-12 px-6 text-center">
-        <div className="inline-block bg-pink-500 text-white px-6 py-2 border-3 border-black font-black text-sm uppercase shadow-[4px_4px_0px_#000] mb-4">
-          💥 NEOBRUTALIST POP STOREFRONT 💥
-        </div>
-        <p className="text-xs uppercase font-bold text-black">© {new Date().getFullYear()} {shop?.name || 'POP STORE'}. POWERED BY MULTISHOP.</p>
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={baseSlug} theme="popart" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

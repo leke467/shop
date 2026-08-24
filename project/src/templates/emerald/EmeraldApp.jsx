@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  EMERALD — Split-Screen Vertical Layout
     Left panel = fixed brand/nav column, Right panel = scrollable content
@@ -29,6 +31,7 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
           <nav className="space-y-4 text-sm">
             <Link to={base ? `/shop/${base}` : '/'} className="block text-emerald-300 hover:text-white transition-colors">⌂ Home</Link>
             <Link to={base ? `/shop/${base}/catalog` : '/catalog'} className="block text-emerald-300 hover:text-white transition-colors">❋ Catalog</Link>
+            <Link to={base ? `/shop/${base}/about` : '/about'} className="block text-emerald-300 hover:text-white transition-colors">❋ About Story</Link>
             <Link to={base ? `/shop/${base}/reviews` : '/reviews'} className="block text-emerald-300 hover:text-white transition-colors">❋ Reviews</Link>
             <Link to="/" className="block text-emerald-500 hover:text-emerald-300 transition-colors text-xs mt-6 pt-4 border-t border-emerald-800">← MultiShop Marketplace</Link>
           </nav>
@@ -46,6 +49,7 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#022C22] text-white px-4 py-3 flex items-center justify-between">
         <Link to={base ? `/shop/${base}` : '/'} className="font-light text-lg">{shop?.name || 'VERDANT'}</Link>
         <div className="flex gap-3 items-center">
+          <Link to={base ? `/shop/${base}/about` : '/about'} className="text-emerald-300 hover:text-white text-xs">About</Link>
           <Link to={base ? `/shop/${base}/reviews` : '/reviews'} className="text-emerald-300 hover:text-white text-xs">Reviews</Link>
           <Link to="/" className="text-emerald-400 text-xs">← MultiShop</Link>
           <button onClick={() => setIsCartOpen(true)} className="bg-emerald-600 px-3 py-1 rounded text-xs font-bold">Bag ({cartCount})</button>
@@ -59,16 +63,15 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
             <Route index element={<EmeraldHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
             <Route path="catalog" element={<EmeraldCatalog products={products} onQuickView={setQuickView} />} />
             <Route path="menu" element={<EmeraldCatalog products={products} onQuickView={setQuickView} />} />
+            <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="emerald" products={products} />} />
             <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
             <Route path="checkout" element={<EmeraldCheckout shop={shop} shopSlug={shopSlug} />} />
             <Route path="*" element={<EmeraldHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           </Routes>
         </div>
 
-        <footer className="border-t border-emerald-200 py-8 text-center text-xs text-emerald-700">
-          🌿 {shop?.name || 'VERDANT'} · 100% ORGANIC · ECO CERTIFIED · © {new Date().getFullYear()}
-          <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-        </footer>
+        {/* Botanical Full Footer */}
+        <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="emerald" setIsCartOpen={setIsCartOpen} />
       </main>
 
       {quickView && <QV product={quickView} onClose={() => setQuickView(null)} />}

@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ZENITH — Dashboard / Analytics-Panel Layout with Stats Sidebar
@@ -34,6 +36,7 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
           <nav className="hidden md:flex items-center gap-6 text-[#94A3B8] text-xs font-medium">
             <Link to={`/shop/${base}`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">Overview</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">Products</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">About Story</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">Reviews</Link>
           </nav>
 
@@ -52,6 +55,7 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
           <Route index element={<ZenithHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<ZenithCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<ZenithCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="cyberpunk" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<ZenithCheckout shop={shop} shopSlug={shopSlug || base} />} />
           <Route path="*" element={<ZenithHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -61,10 +65,7 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
       {quickView && <ZenithModal product={quickView} onClose={() => setQuickView(null)} />}
       <ZenithCart shop={shop} shopSlug={shopSlug || base} />
 
-      <footer className="border-t border-[#334155] py-8 text-center text-xs text-[#94A3B8]">
-        © {new Date().getFullYear()} {shop?.name || 'Zenith'}. All rights reserved.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug || base} theme="cyberpunk" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

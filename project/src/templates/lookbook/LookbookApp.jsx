@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  LOOKBOOK — Full-Viewport Scroll-Snap Slides
     Each product is a full-screen slide. Scroll vertically to flip through.
@@ -26,6 +28,7 @@ export default function LookbookApp({ shop, products = [], reviews = [], shopSlu
         <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest">
           <Link to="/" className="hidden sm:block text-white/60 hover:text-white">MultiShop</Link>
           <Link to={`/shop/${base}/catalog`} className="text-white/60 hover:text-white">Index</Link>
+          <Link to={`/shop/${base}/about`} className="text-white/60 hover:text-white">About</Link>
           <Link to={`/shop/${base}/reviews`} className="text-white/60 hover:text-white">Reviews</Link>
           <button onClick={() => setIsCartOpen(true)} className="text-white">Bag ({cartCount})</button>
         </div>
@@ -36,6 +39,7 @@ export default function LookbookApp({ shop, products = [], reviews = [], shopSlu
           <Route index element={<LookbookSlides shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<LookbookIndex products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<LookbookIndex products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="minimalist" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<LookbookCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<LookbookSlides shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -45,10 +49,7 @@ export default function LookbookApp({ shop, products = [], reviews = [], shopSlu
       {quickView && <LookbookModal product={quickView} onClose={() => setQuickView(null)} />}
       <LookbookCart shop={shop} shopSlug={shopSlug} />
 
-      <footer className="border-t border-white/10 py-8 px-6 text-center text-xs uppercase tracking-widest text-white/40">
-        © {new Date().getFullYear()} {shop?.name || 'LOOKBOOK'}. All rights reserved.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="minimalist" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

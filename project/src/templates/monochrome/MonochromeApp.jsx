@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import './monochrome.css'
 
 export default function MonochromeApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -16,6 +18,7 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
   const base = baseSlug
   const homeUrl = baseSlug ? `/shop/${baseSlug}` : '/'
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
+  const aboutUrl = baseSlug ? `/shop/${baseSlug}/about` : '/about'
   const reviewsUrl = baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'
 
   return (
@@ -30,9 +33,10 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-10 font-sans text-[11px] uppercase tracking-[0.25em] text-zinc-400">
+          <nav className="hidden md:flex items-center gap-8 font-sans text-[11px] uppercase tracking-[0.25em] text-zinc-400">
             <Link to={homeUrl} className="hover:text-white transition-colors">Cover</Link>
             <Link to={catalogUrl} className="hover:text-white transition-colors">Editorial</Link>
+            <Link to={aboutUrl} className="hover:text-white transition-colors">Story</Link>
             <Link to={reviewsUrl} className="hover:text-white transition-colors">Reviews</Link>
           </nav>
 
@@ -60,6 +64,7 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
           <Route index element={<MonochromeHome shop={shop} products={products} shopSlug={shopSlug || base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<MonochromeCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<MonochromeCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="minimalist" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<MonochromeCheckout shop={shop} shopSlug={shopSlug || base} />} />
           <Route path="*" element={<MonochromeHome shop={shop} products={products} shopSlug={shopSlug || base} onQuickView={setQuickView} />} />
@@ -69,11 +74,7 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
       {quickView && <MonochromeQuickModal product={quickView} onClose={() => setQuickView(null)} />}
       <MonochromeCartDrawer shop={shop} shopSlug={shopSlug || base} />
 
-      {/* Editorial Footer */}
-      <footer className="border-t border-zinc-800 py-12 px-6 font-sans text-[10px] tracking-[0.3em] uppercase text-zinc-500 text-center">
-        © {new Date().getFullYear()} {shop?.name || 'NOIR'}. HAUTE COUTURE EDITORIAL STOREFRONT.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug || base} theme="minimalist" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

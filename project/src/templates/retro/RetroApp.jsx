@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import './retro.css'
 
 export default function RetroApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -16,6 +18,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
   const baseSlug = base
   const homeUrl = baseSlug ? `/shop/${baseSlug}` : '/'
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
+  const aboutUrl = baseSlug ? `/shop/${baseSlug}/about` : '/about'
   const reviewsUrl = baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'
 
   return (
@@ -35,6 +38,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
           <nav className="hidden md:flex items-center gap-8 font-sans font-bold text-sm uppercase tracking-wider text-[#92400E]">
             <Link to={homeUrl} className="hover:text-[#EA580C] transition-colors">Records & Home</Link>
             <Link to={catalogUrl} className="hover:text-[#EA580C] transition-colors">Analog Index</Link>
+            <Link to={aboutUrl} className="hover:text-[#EA580C] transition-colors">About Story</Link>
             <Link to={reviewsUrl} className="hover:text-[#EA580C] transition-colors">Reviews</Link>
           </nav>
 
@@ -62,6 +66,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
           <Route index element={<RetroHome shop={shop} products={products} shopSlug={baseSlug} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<RetroCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<RetroCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={baseSlug} theme="retro" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={baseSlug} theme="retro" />} />
           <Route path="checkout" element={<RetroCheckout shop={shop} shopSlug={baseSlug} />} />
           <Route path="*" element={<RetroHome shop={shop} products={products} shopSlug={baseSlug} onQuickView={setQuickView} />} />
@@ -71,11 +76,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
       {quickView && <RetroQuickModal product={quickView} onClose={() => setQuickView(null)} />}
       <RetroCartDrawer shop={shop} shopSlug={baseSlug} />
 
-      {/* Retro Footer */}
-      <footer className="border-t-2 border-[#D97706]/40 bg-[#FEF3C7] py-12 px-6 text-center font-sans text-xs text-[#92400E]">
-        📻 GROOVY 1970S RETRO VINYL STOREFRONT // © {new Date().getFullYear()} {shop?.name || 'RETRO 70S'}.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={baseSlug} theme="retro" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

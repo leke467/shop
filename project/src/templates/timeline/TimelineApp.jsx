@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  TIMELINE → GALLERY MUSEUM — One-at-a-time Art Exhibition
     Products shown as framed art on dark gallery walls.
@@ -30,6 +32,7 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
           <nav className="hidden md:flex items-center gap-8 text-[11px] tracking-[0.3em] uppercase text-[#6B6460]" style={{ fontFamily: 'sans-serif' }}>
             <Link to={`/shop/${base}`} className="hover:text-[#E8E4DE] transition-colors">Exhibition</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#E8E4DE] transition-colors">Collection</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#E8E4DE] transition-colors">About Story</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#E8E4DE] transition-colors">Reviews</Link>
           </nav>
 
@@ -48,6 +51,7 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
           <Route index element={<GalleryExhibition shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<GalleryCollection products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<GalleryCollection products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="royal" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<GalleryCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<GalleryExhibition shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -57,10 +61,7 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
       {quickView && <GalleryModal product={quickView} onClose={() => setQuickView(null)} />}
       <GalleryCart shop={shop} shopSlug={shopSlug} />
 
-      <footer className="border-t border-[#333] py-8 text-center text-[10px] tracking-[0.4em] uppercase text-[#4A4540]" style={{ fontFamily: 'sans-serif' }}>
-        {shop?.name || 'The Gallery'} · Curated Exhibition · © {new Date().getFullYear()}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="royal" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

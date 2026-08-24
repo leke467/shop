@@ -5,6 +5,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import './minimalist.css'
 
 export default function MinimalistApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -30,10 +32,11 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-10 font-mono text-xs uppercase tracking-widest text-gray-500">
+          <nav className="hidden md:flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-gray-500">
             <Link to={homeUrl} className="hover:text-black transition-colors">01. Home</Link>
             <Link to={catalogUrl} className="hover:text-black transition-colors">02. Index</Link>
-            <Link to={baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'} className="hover:text-black transition-colors">03. Reviews</Link>
+            <Link to={baseSlug ? `/shop/${baseSlug}/about` : '/about'} className="hover:text-black transition-colors">03. About</Link>
+            <Link to={baseSlug ? `/shop/${baseSlug}/reviews` : '/reviews'} className="hover:text-black transition-colors">04. Reviews</Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -60,6 +63,7 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
           <Route index element={<MinimalistHome shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<MinimalistCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<MinimalistCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="minimalist" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<MinimalistCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<MinimalistHome shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickView} />} />
@@ -69,11 +73,8 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
       {quickView && <MinimalistQuickModal product={quickView} onClose={() => setQuickView(null)} />}
       <MinimalistCartDrawer shop={shop} shopSlug={shopSlug} />
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 px-6 font-mono text-xs uppercase tracking-widest text-gray-400 text-center">
-        © {new Date().getFullYear()} {shop?.name || 'STUDIO'}. ARCHITECTURAL MINIMALIST STOREFRONT.
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      {/* Full Architectural Footer */}
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="minimalist" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

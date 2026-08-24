@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  BOHO — Masonry/Pinterest Staggered Grid + Arch-Top Cards
     Think: Etsy craft fair, handmade pottery shop, watercolor textures
@@ -29,6 +31,7 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
           <nav className="hidden md:flex items-center gap-8 text-sm text-[#8B6F5C]" style={{ fontFamily: 'sans-serif' }}>
             <Link to={`/shop/${base}`} className="hover:text-[#5C4033] transition-colors">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#5C4033] transition-colors">Shop All</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#5C4033] transition-colors">About Story</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#5C4033] transition-colors">Reviews</Link>
           </nav>
 
@@ -48,6 +51,7 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
           <Route index element={<BohoHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<BohoCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<BohoCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={base} theme="boho" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={base} theme="boho" />} />
           <Route path="checkout" element={<BohoCheckout shop={shop} shopSlug={base} />} />
           <Route path="*" element={<BohoHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -57,11 +61,7 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
       {quickView && <BohoModal product={quickView} onClose={() => setQuickView(null)} />}
       <BohoCart shop={shop} shopSlug={base} />
 
-      <footer className="py-12 text-center text-xs text-[#C4956A]" style={{ fontFamily: 'sans-serif' }}>
-        <div className="w-24 h-px bg-[#C4956A] mx-auto mb-4" />
-        Handcrafted with ♡ · {shop?.name} · © {new Date().getFullYear()}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={base} theme="boho" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

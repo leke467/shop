@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ARTISAN — Newspaper / Broadsheet Editorial Column Layout
@@ -39,6 +41,8 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
             <span>·</span>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#2D2D2D] transition-colors">Classifieds</Link>
             <span>·</span>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#2D2D2D] transition-colors">About Story</Link>
+            <span>·</span>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#2D2D2D] transition-colors">Reviews</Link>
             <span>·</span>
             <button onClick={() => setIsCartOpen(true)} className="hover:text-[#2D2D2D] transition-colors">Basket ({cartCount})</button>
@@ -51,6 +55,7 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
           <Route index element={<ArtisanHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<ArtisanCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<ArtisanCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="boho" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<ArtisanCheckout shop={shop} shopSlug={shopSlug || base} />} />
           <Route path="*" element={<ArtisanHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -60,10 +65,7 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
       {quickView && <ArtisanModal product={quickView} onClose={() => setQuickView(null)} />}
       <ArtisanCart shop={shop} shopSlug={shopSlug || base} />
 
-      <footer className="border-t-2 border-[#2D2D2D] py-8 text-center text-xs text-[#8B7355]" style={{ fontFamily: 'sans-serif' }}>
-        THE ARTISAN GAZETTE · Est. {new Date().getFullYear()} · {shop?.name} · All Rights Reserved
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug || base} theme="boho" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

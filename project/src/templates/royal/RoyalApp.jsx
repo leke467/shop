@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  ROYAL — Cinematic Full-Width Hero + Horizontal-Scroll Catalog
     Think: Netflix-style horizontal carousels, gold accent borders, velvet background
@@ -32,6 +34,7 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
           <nav className="hidden md:flex items-center gap-8 text-xs tracking-[0.3em] uppercase text-[#C9A84C]/60">
             <Link to={`/shop/${base}`} className="hover:text-[#C9A84C] transition-colors">Throne</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#C9A84C] transition-colors">Gallery</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#C9A84C]">About</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#C9A84C]">Reviews</Link>
           </nav>
 
@@ -49,6 +52,7 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
           <Route index element={<RoyalHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<RoyalGallery products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<RoyalGallery products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={base} theme="royal" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={base} theme="royal" />} />
           <Route path="checkout" element={<RoyalCheckout shop={shop} shopSlug={base} />} />
           <Route path="*" element={<RoyalHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -58,10 +62,7 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
       {quickView && <RoyalModal product={quickView} onClose={() => setQuickView(null)} />}
       <RoyalCart shop={shop} shopSlug={base} />
 
-      <footer className="border-t border-[#C9A84C]/20 py-8 text-center text-[10px] tracking-[0.4em] uppercase text-[#C9A84C]/40">
-        ♛ ROYAL MAISON © {new Date().getFullYear()} · {shop?.name}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={base} theme="royal" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

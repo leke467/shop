@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  INDUSTRIAL — Blueprint / Technical Schematic Layout
     Think: Construction supply catalog, engineering blueprint, exposed steel
@@ -35,6 +37,7 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
           <nav className="hidden md:flex items-center gap-8 text-[#6B6B6B]">
             <Link to={`/shop/${base}`} className="hover:text-[#F59E0B] transition-colors">[MAIN]</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#F59E0B] transition-colors">[INVENTORY]</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#F59E0B] transition-colors">[ABOUT]</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#F59E0B] transition-colors">[REVIEWS]</Link>
           </nav>
 
@@ -53,6 +56,7 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
           <Route index element={<IndustrialHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<IndustrialCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<IndustrialCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="industrial" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="industrial" />} />
           <Route path="checkout" element={<IndustrialCheckout shop={shop} shopSlug={shopSlug || base} />} />
           <Route path="*" element={<IndustrialHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -62,11 +66,7 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
       {quickView && <IndustrialModal product={quickView} onClose={() => setQuickView(null)} />}
       <IndustrialCart shop={shop} shopSlug={shopSlug || base} />
 
-      <div className="h-2" style={{ background: 'repeating-linear-gradient(45deg, #F59E0B, #F59E0B 10px, #1C1C1C 10px, #1C1C1C 20px)' }} />
-      <footer className="py-8 text-center text-[10px] text-[#6B6B6B] tracking-widest uppercase">
-        ⚙ FORGE WORKS INDUSTRIAL CATALOG · REV. {new Date().getFullYear()} · {shop?.name}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug || base} theme="industrial" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

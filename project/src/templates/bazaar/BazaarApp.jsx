@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  BAZAAR — Marketplace with Category Pill Filters + Review Badges
@@ -53,6 +55,7 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <Link to={`/shop/${base}/catalog`} className="text-xs text-gray-500 hover:text-[#FF6B35] font-medium">Catalog</Link>
+            <Link to={`/shop/${base}/about`} className="text-xs text-gray-500 hover:text-[#FF6B35] font-medium">About</Link>
             <Link to={`/shop/${base}/reviews`} className="text-xs text-gray-500 hover:text-[#FF6B35]">Reviews</Link>
             <Link to="/" className="hidden md:block text-xs text-gray-500 hover:text-[#FF6B35]">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
@@ -69,6 +72,7 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
           <Route index element={<BazaarHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<BazaarCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<BazaarCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="default" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<BazaarCheckout shop={shop} shopSlug={shopSlug} />} />
           <Route path="*" element={<BazaarHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -78,10 +82,7 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
       {quickView && <BazaarModal product={quickView} onClose={() => setQuickView(null)} />}
       <BazaarCart shop={shop} shopSlug={shopSlug} />
 
-      <footer className="bg-[#333] text-white py-10 px-6 text-center text-xs">
-        <p className="font-bold mb-1">{shop?.name || 'Bazaar'} Marketplace</p>
-        <p className="text-white/50">Powered by <a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">ApexLabs</a> · © {new Date().getFullYear()}</p>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="default" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }

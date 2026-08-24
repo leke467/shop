@@ -737,9 +737,44 @@ function EngineCartDrawer({ config, shop, shopSlug }) {
 }
 
 function EngineFooter({ config, shop, shopSlug }) {
+  const extra = shop?.theme?.extra_tokens || {}
+  const base = shopSlug || shop?.slug || ''
+  const shopName = shop?.name || 'Storefront'
+  const shopTagline = extra.hero_subtitle || shop?.tagline || 'Verified Merchant on MultiShop'
+
   return (
-    <footer className="border-t py-12 text-center text-xs" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg, color: config.subtextColor }}>
-      <p>© {new Date().getFullYear()} {shop?.name || 'Storefront'}. Powered by MultiShop Platform.</p>
+    <footer className="border-t py-12 px-6" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg || '#111827', color: config.textColor || '#ffffff' }}>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="space-y-3">
+          <h3 className="text-lg font-bold" style={{ color: config.primaryColor || '#2563eb' }}>{shopName}</h3>
+          <p className="text-xs opacity-75">{shopTagline}</p>
+        </div>
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Quick Navigation</h4>
+          <div className="space-y-1 text-xs opacity-75">
+            <Link to={base ? `/shop/${base}` : '/'} className="block hover:opacity-100">Home</Link>
+            <Link to={base ? `/shop/${base}/catalog` : '/catalog'} className="block hover:opacity-100">Catalog</Link>
+            <Link to={base ? `/shop/${base}/about` : '/about'} className="block hover:opacity-100">About Story</Link>
+            <Link to={base ? `/shop/${base}/reviews` : '/reviews'} className="block hover:opacity-100">Reviews</Link>
+          </div>
+        </div>
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Buyer Escrow Protection</h4>
+          <p className="text-xs opacity-75 leading-relaxed">Every transaction is secured with MultiShop Escrow. Payments released only after delivery confirmation.</p>
+        </div>
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Official Store</h4>
+          <p className="text-xs opacity-75">Verified storefront on MultiShop Nigeria. Accepting cards, bank transfers, and USSD.</p>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto border-t mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs opacity-60" style={{ borderColor: config.borderColor }}>
+        <div>© {new Date().getFullYear()} {shopName}. All rights reserved.</div>
+        <div className="mt-2 sm:mt-0">
+          <a href="https://apexlab.it.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline" style={{ color: config.primaryColor || '#2563eb' }}>
+            Powered by ApexLabs
+          </a>
+        </div>
+      </div>
     </footer>
   )
 }

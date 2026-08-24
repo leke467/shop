@@ -4,6 +4,8 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 /*  PASTEL — Bento Grid Dashboard Layout
     Think: iOS widget dashboard, rounded blob shapes, soft gradients
@@ -29,6 +31,7 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-purple-400">
             <Link to={`/shop/${base}`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">Shop ✦</Link>
+            <Link to={`/shop/${base}/about`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">About Story</Link>
             <Link to={`/shop/${base}/reviews`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">Reviews</Link>
           </nav>
 
@@ -47,6 +50,7 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
           <Route index element={<PastelHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
           <Route path="catalog" element={<PastelCatalog products={products} onQuickView={setQuickView} />} />
           <Route path="menu" element={<PastelCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={base} theme="pastel" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={base} theme="pastel" />} />
           <Route path="checkout" element={<PastelCheckout shop={shop} shopSlug={base} />} />
           <Route path="*" element={<PastelHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
@@ -56,10 +60,7 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
       {quickView && <PastelModal product={quickView} onClose={() => setQuickView(null)} />}
       <PastelCart shop={shop} shopSlug={base} />
 
-      <footer className="py-10 text-center text-xs text-purple-300 font-bold">
-        ✦ Pastel Dream Storefront · © {new Date().getFullYear()} {shop?.name}
-        <br/><a href="https://apexlabs.it.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Powered by ApexLabs</a>
-      </footer>
+      <TemplateFooterView shop={shop} shopSlug={base} theme="pastel" setIsCartOpen={setIsCartOpen} />
     </div>
   )
 }
