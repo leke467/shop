@@ -68,23 +68,31 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
 
 function BohoHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.boho_hero_badge || extra.hero_badge || 'HAND-THROWN IN SMALL BATCHES'
+  const headline = extra.boho_hero_headline || extra.hero_headline || extra.hero_subtitle || shop?.tagline || 'Artisan Made, Soul Inspired'
+  const subtitle = extra.hero_subtitle || shop?.description || 'Handmade ceramics, woven textiles, organic skincare & boho jewelry.'
+  const cta = extra.boho_hero_cta_primary || extra.hero_cta_primary || 'Browse Collection ✿'
+  const heroImage = extra.boho_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=80'
+
   return (
     <div>
       {/* Arched Hero Section */}
       <section className="relative max-w-5xl mx-auto mt-8 px-6">
         <div className="relative overflow-hidden" style={{ borderRadius: '200px 200px 0 0' }}>
-          <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=80" alt=""
+          <img src={getImageUrl(heroImage)} alt=""
             className="w-full h-[500px] object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#5C4033]/80 to-transparent flex flex-col items-center justify-end pb-16 text-center">
+            <span className="text-xs uppercase tracking-widest text-[#FAF5EF]/90 font-bold mb-2">{badge}</span>
             <h1 className="text-4xl sm:text-6xl text-white mb-4 leading-tight max-w-lg">
-              {shop?.tagline || 'Artisan Made, Soul Inspired'}
+              {headline}
             </h1>
             <p className="text-sm text-white/70 max-w-sm mb-6" style={{ fontFamily: 'sans-serif' }}>
-              {shop?.description || 'Handmade ceramics, woven textiles, organic skincare & boho jewelry.'}
+              {subtitle}
             </p>
             <button onClick={() => navigate(`/shop/${base}/catalog`)}
               className="px-8 py-3 bg-[#FAF5EF] text-[#5C4033] rounded-full text-sm font-bold hover:bg-white transition-all" style={{ fontFamily: 'sans-serif' }}>
-              Browse Collection ✿
+              {cta}
             </button>
           </div>
         </div>
@@ -100,16 +108,18 @@ function BohoHome({ shop, products, base, onQuickView }) {
         ))}
       </section>
 
-      <BohoCatalog products={products} onQuickView={onQuickView} />
+      <BohoCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function BohoCatalog({ products = [], onQuickView }) {
+function BohoCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.boho_categories_title || (extra.template_id === 'boho' ? extra.categories_title : null) || '✿ Handpicked Treasures'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Handmade'))
@@ -133,7 +143,7 @@ function BohoCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-2xl">✿ Handpicked Treasures</h2>
+        <h2 className="text-2xl">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search treasures..."
             className="border-b border-[#C4956A] bg-transparent py-1 text-sm outline-none w-40 sm:w-48 text-[#5C4033]" style={{ fontFamily: 'sans-serif' }} />

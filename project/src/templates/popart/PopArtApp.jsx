@@ -94,21 +94,28 @@ function PopArtHome({ shop, products, shopSlug, onQuickView }) {
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.popart_hero_badge || extra.hero_badge || '💥 100% LOUD & UNAPOLOGETIC!'
+  const headline = extra.popart_hero_headline || extra.hero_headline || shop?.name || 'POP CULTURE!'
+  const subtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Bold streetwear, pop art toys, graphic apparel, and statement goods.'
+  const cta = extra.popart_hero_cta_primary || extra.hero_cta_primary || 'EXPLORE DROPS 💥'
+  const heroImage = extra.popart_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner || 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80'
+
   return (
     <div>
       {/* Neobrutalist Sticker Hero */}
       <section className="py-16 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div className="lg:col-span-7 space-y-6">
           <div className="inline-block bg-cyan-300 border-3 border-black px-4 py-1.5 text-xs font-black uppercase shadow-[4px_4px_0px_#000] rotate-1">
-            💥 100% LOUD & UNAPOLOGETIC!
+            {badge}
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-black uppercase tracking-tight leading-none text-black drop-shadow-[4px_4px_0px_#EC4899]">
-            {shop?.name || 'POP CULTURE!'}
+            {headline}
           </h1>
 
           <p className="text-lg font-extrabold bg-white border-3 border-black p-4 shadow-[5px_5px_0px_#000] max-w-xl">
-            {shop?.description || shop?.tagline || 'Bold streetwear, pop art toys, graphic apparel, and statement goods.'}
+            {subtitle}
           </p>
 
           <div>
@@ -116,7 +123,7 @@ function PopArtHome({ shop, products, shopSlug, onQuickView }) {
               onClick={() => navigate(catalogUrl)}
               className="px-8 py-4 bg-pink-500 hover:bg-pink-600 text-white font-black text-lg uppercase border-3 border-black shadow-[6px_6px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all"
             >
-              EXPLORE DROPS 💥
+              {cta}
             </button>
           </div>
         </div>
@@ -124,7 +131,7 @@ function PopArtHome({ shop, products, shopSlug, onQuickView }) {
         <div className="lg:col-span-5 relative">
           <div className="bg-white border-4 border-black p-4 shadow-[8px_8px_0px_#000] rotate-2">
             <img
-              src="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80"
+              src={getImageUrl(heroImage)}
               alt=""
               className="w-full h-80 object-cover border-2 border-black"
             />
@@ -140,11 +147,13 @@ function PopArtHome({ shop, products, shopSlug, onQuickView }) {
   )
 }
 
-function PopArtCatalog({ products = [], onQuickView }) {
+function PopArtCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.popart_categories_title || (extra.template_id === 'popart' ? extra.categories_title : null) || '/// POP CULTURE VAULT'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'DROPS').toUpperCase()))

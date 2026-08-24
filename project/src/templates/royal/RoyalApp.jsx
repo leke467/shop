@@ -68,38 +68,48 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
 
 function RoyalHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.royal_hero_badge || extra.hero_badge || 'HAUTE HORLOGERIE & JOAILLERIE'
+  const headline = extra.royal_hero_headline || extra.hero_headline || extra.hero_subtitle || shop?.tagline || 'Where Elegance Meets Eternity'
+  const subtitle = extra.hero_subtitle || shop?.description || 'Hand-crafted luxury goods, rare collectibles, and bespoke pieces for the discerning connoisseur.'
+  const cta = extra.royal_hero_cta_primary || extra.hero_cta_primary || 'Explore the Gallery ♛'
+  const heroImage = extra.royal_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner || 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1600&q=80'
+
   return (
     <div>
       {/* Cinematic Wide Hero */}
       <section className="relative h-[80vh] overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1600&q=80" alt=""
+        <img src={getImageUrl(heroImage)} alt=""
           className="w-full h-full object-cover brightness-50" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1A1019] via-transparent to-[#1A1019]/50" />
         <div className="absolute inset-0 flex flex-col justify-center px-12 sm:px-24 max-w-[800px]">
+          <span className="text-[10px] tracking-[0.4em] uppercase text-[#C9A84C] block mb-3">{badge}</span>
           <div className="w-20 h-px bg-[#C9A84C] mb-6" />
           <h1 className="text-5xl sm:text-7xl font-light leading-tight mb-6 text-white">
-            {shop?.tagline || 'Where Elegance Meets Eternity'}
+            {headline}
           </h1>
           <p className="text-sm text-[#F5E6D3]/70 max-w-md leading-relaxed mb-8">
-            {shop?.description || 'Hand-crafted luxury goods, rare collectibles, and bespoke pieces for the discerning connoisseur.'}
+            {subtitle}
           </p>
           <button onClick={() => navigate(`/shop/${base}/catalog`)}
             className="self-start px-10 py-4 border-2 border-[#C9A84C] text-[#C9A84C] text-xs tracking-[0.3em] uppercase hover:bg-[#C9A84C] hover:text-[#1A1019] transition-all duration-500">
-            Explore the Gallery ♛
+            {cta}
           </button>
         </div>
       </section>
 
-      <RoyalGallery products={products} onQuickView={onQuickView} />
+      <RoyalGallery shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function RoyalGallery({ products = [], onQuickView }) {
+function RoyalGallery({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.royal_categories_title || (extra.template_id === 'royal' ? extra.categories_title : null) || 'The Royal Gallery'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'ROYAL').toUpperCase()))
@@ -132,7 +142,7 @@ function RoyalGallery({ products = [], onQuickView }) {
       <div className="max-w-[1600px] mx-auto px-8 sm:px-12 flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b border-[#C9A84C]/20 pb-6">
         <div>
           <span className="text-[10px] tracking-[0.4em] uppercase text-[#C9A84C]/60 block mb-1">Maison Collection</span>
-          <h2 className="text-2xl font-light text-[#F5E6D3] tracking-widest uppercase">The Royal Gallery</h2>
+          <h2 className="text-2xl font-light text-[#F5E6D3] tracking-widest uppercase">{catalogTitle}</h2>
         </div>
         <div className="flex items-center gap-4">
           <input

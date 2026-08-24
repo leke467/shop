@@ -85,21 +85,28 @@ function RetroHome({ shop, products, shopSlug, onQuickView }) {
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.retro_hero_badge || extra.hero_badge || '📻 180g Audiophile Pressings & Vintage Gear'
+  const headline = extra.retro_hero_headline || extra.hero_headline || shop?.name || 'GROOVY VINTAGE'
+  const subtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Vintage turntables, rare 70s vinyl LPs, retro cameras, and timeless mid-century audio equipment.'
+  const cta = extra.retro_hero_cta_primary || extra.hero_cta_primary || 'SPIN RECORDS 📻 →'
+  const heroImage = extra.retro_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner || 'https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=600&q=80'
+
   return (
     <div>
       {/* Groovy Curved Hero */}
       <section className="py-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7 space-y-6">
           <span className="inline-block px-4 py-1.5 rounded-full bg-[#FDE68A] border border-[#D97706] font-sans font-bold text-xs uppercase tracking-wider text-[#92400E]">
-            📻 180g Audiophile Pressings & Vintage Gear
+            {badge}
           </span>
 
           <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight leading-tight text-[#78350F]">
-            {shop?.name || 'GROOVY VINTAGE'}
+            {headline}
           </h1>
 
           <p className="text-lg text-[#92400E] font-sans max-w-xl leading-relaxed">
-            {shop?.description || shop?.tagline || 'Vintage turntables, rare 70s vinyl LPs, retro cameras, and timeless mid-century audio equipment.'}
+            {subtitle}
           </p>
 
           <div>
@@ -107,7 +114,7 @@ function RetroHome({ shop, products, shopSlug, onQuickView }) {
               onClick={() => navigate(catalogUrl)}
               className="px-8 py-4 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white font-sans font-extrabold text-sm uppercase tracking-wider shadow-lg transition-all"
             >
-              SPIN RECORDS 📻 →
+              {cta}
             </button>
           </div>
         </div>
@@ -115,7 +122,7 @@ function RetroHome({ shop, products, shopSlug, onQuickView }) {
         <div className="lg:col-span-5 relative flex justify-center">
           <div className="w-80 h-80 rounded-full border-8 border-[#78350F] bg-[#1E293B] flex items-center justify-center shadow-2xl relative overflow-hidden group">
             <img
-              src="https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=600&q=80"
+              src={getImageUrl(heroImage)}
               alt=""
               className="w-full h-full object-cover rounded-full group-hover:rotate-45 transition-transform duration-1000 opacity-90"
             />
@@ -131,11 +138,13 @@ function RetroHome({ shop, products, shopSlug, onQuickView }) {
   )
 }
 
-function RetroCatalog({ products = [], onQuickView }) {
+function RetroCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.retro_categories_title || (extra.template_id === 'retro' ? extra.categories_title : null) || '/// VINYL CRATE & RETRO GEAR'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'VINYL').toUpperCase()))

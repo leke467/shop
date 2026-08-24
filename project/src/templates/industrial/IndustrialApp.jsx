@@ -73,40 +73,55 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
 
 function IndustrialHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.industrial_hero_badge || extra.hero_badge || '// HEAVY DUTY INDUSTRIAL SPECS'
+  const headline = extra.industrial_hero_headline || extra.hero_headline || shop?.name || 'FORGE WORKS'
+  const subtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Industrial-grade tools, heavy machinery parts, raw materials, and fabrication supplies. Built to last.'
+  const cta = extra.industrial_hero_cta_primary || extra.hero_cta_primary || 'ACCESS INVENTORY ⚙'
+  const heroImage = extra.industrial_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner
+
   return (
     <div>
       {/* Blueprint Hero with grid background */}
-      <section className="relative py-24 px-8 border-b border-dashed border-[#3D3D3D]"
+      <section className="relative py-24 px-8 border-b border-dashed border-[#3D3D3D] overflow-hidden"
         style={{ backgroundImage: 'radial-gradient(circle, #3D3D3D 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-        <div className="max-w-5xl mx-auto relative">
-          <div className="absolute top-0 left-0 text-[10px] text-[#6B6B6B]">DWG NO. 001-A</div>
-          <div className="absolute top-0 right-0 text-[10px] text-[#6B6B6B]">SCALE: 1:1</div>
+        {heroImage && (
+          <img src={getImageUrl(heroImage)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15 pointer-events-none" />
+        )}
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="flex justify-between items-center text-[10px] text-[#6B6B6B] mb-2">
+            <span>DWG NO. 001-A</span>
+            <span className="text-[#F59E0B] font-bold">{badge}</span>
+            <span>SCALE: 1:1</span>
+          </div>
 
           <div className="mt-8 space-y-6">
             <h1 className="text-4xl sm:text-6xl font-bold text-[#F59E0B] tracking-tight leading-tight">
-              {shop?.name || 'FORGE WORKS'}
+              {headline}
             </h1>
             <p className="text-sm text-[#8B8B7A] max-w-xl leading-relaxed border-l-2 border-dashed border-[#F59E0B] pl-4">
-              {shop?.description || shop?.tagline || 'Industrial-grade tools, heavy machinery parts, raw materials, and fabrication supplies. Built to last.'}
+              {subtitle}
             </p>
             <button onClick={() => navigate(`/shop/${base}/catalog`)}
               className="px-8 py-3 bg-[#F59E0B] text-black font-bold tracking-widest uppercase hover:bg-[#D97706] transition-all">
-              ACCESS INVENTORY ⚙
+              {cta}
             </button>
           </div>
         </div>
       </section>
 
-      <IndustrialCatalog products={products} onQuickView={onQuickView} />
+      <IndustrialCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function IndustrialCatalog({ products = [], onQuickView }) {
+function IndustrialCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.industrial_categories_title || (extra.template_id === 'industrial' ? extra.categories_title : null) || '[INVENTORY MANIFEST]'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'INDUSTRIAL').toUpperCase()))
@@ -130,7 +145,7 @@ function IndustrialCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dashed border-[#3D3D3D] pb-4 mb-6 gap-4">
-        <h2 className="text-sm tracking-[0.3em] text-[#F59E0B] uppercase">[INVENTORY MANIFEST]</h2>
+        <h2 className="text-sm tracking-[0.3em] text-[#F59E0B] uppercase">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="SEARCH..."
             className="border border-dashed border-[#3D3D3D] bg-transparent py-1.5 px-3 text-xs text-[#E0D8C8] outline-none w-40 sm:w-48" />

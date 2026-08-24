@@ -66,6 +66,13 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
 
 function PastelHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.pastel_hero_badge || extra.hero_badge || '✦ Welcome to'
+  const headline = extra.pastel_hero_headline || extra.hero_headline || shop?.name || 'Pastel Dream'
+  const subtitle = extra.hero_subtitle || shop?.tagline || 'Cute stationery, kawaii accessories & dreamy lifestyle goods.'
+  const cta = extra.pastel_hero_cta_primary || extra.hero_cta_primary || 'Browse All Items ✦'
+  const heroImage = extra.pastel_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner
+
   return (
     <div>
       {/* Bento Hero Grid */}
@@ -73,10 +80,13 @@ function PastelHome({ shop, products, base, onQuickView }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[160px]">
           {/* Large featured tile */}
           <div className="col-span-2 row-span-2 bg-gradient-to-br from-pink-300 to-purple-400 rounded-3xl p-8 flex flex-col justify-end text-white relative overflow-hidden shadow-lg">
+            {heroImage && (
+              <img src={getImageUrl(heroImage)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none" />
+            )}
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-10 translate-x-10" />
-            <span className="text-xs font-bold uppercase tracking-wider opacity-80 mb-2">✦ Welcome to</span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">{shop?.name || 'Pastel Dream'}</h1>
-            <p className="text-sm opacity-80 mt-2 max-w-sm">{shop?.tagline || 'Cute stationery, kawaii accessories & dreamy lifestyle goods.'}</p>
+            <span className="text-xs font-bold uppercase tracking-wider opacity-80 mb-2 relative z-10">{badge}</span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight relative z-10">{headline}</h1>
+            <p className="text-sm opacity-80 mt-2 max-w-sm relative z-10">{subtitle}</p>
           </div>
 
           {/* Small stat tiles */}
@@ -93,22 +103,24 @@ function PastelHome({ shop, products, base, onQuickView }) {
           {/* CTA tile */}
           <div className="col-span-2 bg-gradient-to-r from-blue-200 to-purple-200 rounded-3xl p-6 flex items-center justify-between border border-purple-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate(`/shop/${base}/catalog`)}>
-            <div><h3 className="font-extrabold text-[#4A3560]">Browse All Items ✦</h3><p className="text-xs text-purple-500">{shop?.description || 'Explore our entire collection'}</p></div>
+            <div><h3 className="font-extrabold text-[#4A3560]">{cta}</h3><p className="text-xs text-purple-500">{shop?.description || 'Explore our entire collection'}</p></div>
             <span className="text-3xl">→</span>
           </div>
         </div>
       </section>
 
-      <PastelCatalog products={products} onQuickView={onQuickView} />
+      <PastelCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function PastelCatalog({ products = [], onQuickView }) {
+function PastelCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.pastel_categories_title || (extra.template_id === 'pastel' ? extra.categories_title : null) || '✦ All Items'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Kawaii'))
@@ -132,7 +144,7 @@ function PastelCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-xl font-extrabold text-[#4A3560]">✦ All Items</h2>
+        <h2 className="text-xl font-extrabold text-[#4A3560]">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
             className="px-4 py-2 rounded-full bg-white/70 border border-purple-100 text-sm outline-none w-40 sm:w-48 shadow-sm" />

@@ -79,18 +79,33 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
 
 function EmeraldHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.emerald_hero_badge || extra.hero_badge || 'Ethically Sourced · Cruelty Free'
+  const headline = extra.emerald_hero_headline || extra.hero_headline || extra.hero_subtitle || shop?.tagline || 'Nourish Your Soul With Pure Organics'
+  const cta = extra.emerald_hero_cta_primary || extra.hero_cta_primary || 'Shop Botanicals 🌿'
+  const heroImage = extra.emerald_hero_image_1 || extra.hero_image_1 || extra.banner_url || shop?.banner || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80'
+
+  const feature1Title = extra.feature1_title || 'Farm Fresh'
+  const feature1Desc = extra.feature1_desc || 'Direct from growers'
+  const feature2Title = extra.feature2_title || 'Cruelty Free'
+  const feature2Desc = extra.feature2_desc || 'Zero animal testing'
+  const feature3Title = extra.feature3_title || 'Zero Waste'
+  const feature3Desc = extra.feature3_desc || 'Eco-friendly packaging'
+  const feature4Title = extra.feature4_title || 'Wellness'
+  const feature4Desc = extra.feature4_desc || 'Money-back guarantee'
+
   return (
     <div>
       {/* Full-bleed botanical hero with overlapping text block */}
       <section className="relative h-[70vh] bg-emerald-950 overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80" alt="" className="w-full h-full object-cover opacity-60" />
+        <img src={getImageUrl(heroImage)} alt="" className="w-full h-full object-cover opacity-60" />
         <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-16 bg-gradient-to-t from-[#022C22] via-[#022C22]/80 to-transparent">
-          <span className="text-emerald-400 text-xs tracking-[0.5em] uppercase block mb-3">Ethically Sourced · Cruelty Free</span>
+          <span className="text-emerald-400 text-xs tracking-[0.5em] uppercase block mb-3">{badge}</span>
           <h1 className="text-4xl sm:text-6xl font-light text-white leading-tight max-w-2xl">
-            {shop?.tagline || 'Nourish Your Soul With Pure Organics'}
+            {headline}
           </h1>
           <button onClick={() => navigate(`/shop/${base}/catalog`)} className="mt-8 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm uppercase tracking-wider rounded-full shadow-lg transition-all">
-            Shop Botanicals 🌿
+            {cta}
           </button>
         </div>
       </section>
@@ -99,10 +114,10 @@ function EmeraldHome({ shop, products, base, onQuickView }) {
       <section className="bg-white border-y border-emerald-200 py-6 px-8 overflow-x-auto">
         <div className="flex gap-12 min-w-max">
           {[
-            { icon: '🌱', t: 'Farm Fresh', d: 'Direct from growers' },
-            { icon: '🐰', t: 'Cruelty Free', d: 'Zero animal testing' },
-            { icon: '♻️', t: 'Zero Waste', d: 'Eco-friendly packaging' },
-            { icon: '💚', t: 'Wellness', d: 'Money-back guarantee' },
+            { icon: '🌱', t: feature1Title, d: feature1Desc },
+            { icon: '🐰', t: feature2Title, d: feature2Desc },
+            { icon: '♻️', t: feature3Title, d: feature3Desc },
+            { icon: '💚', t: feature4Title, d: feature4Desc },
           ].map((f, i) => (
             <div key={i} className="flex items-center gap-3 text-sm whitespace-nowrap">
               <span className="text-2xl">{f.icon}</span>
@@ -112,16 +127,18 @@ function EmeraldHome({ shop, products, base, onQuickView }) {
         </div>
       </section>
 
-      <EmeraldCatalog products={products} onQuickView={onQuickView} />
+      <EmeraldCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function EmeraldCatalog({ products = [], onQuickView }) {
+function EmeraldCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.emerald_categories_title || (extra.template_id === 'emerald' ? extra.categories_title : null) || 'Botanical Collection'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Botanical'))
@@ -145,7 +162,7 @@ function EmeraldCatalog({ products = [], onQuickView }) {
   return (
     <section className="p-8 sm:p-12">
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-6 border-b border-emerald-200 pb-4 gap-4">
-        <h2 className="text-2xl font-light text-[#064E3B]">Botanical Collection</h2>
+        <h2 className="text-2xl font-light text-[#064E3B]">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
             className="border-b border-emerald-400 bg-transparent py-1 text-sm outline-none w-40 sm:w-48 text-[#064E3B]" />
