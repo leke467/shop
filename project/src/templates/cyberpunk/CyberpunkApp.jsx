@@ -90,21 +90,28 @@ function CyberpunkHome({ shop, products, shopSlug, onQuickView }) {
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.hero_badge || '/// PROTOCOL_v2.04 // HIGH TECH GEAR'
+  const headline = extra.hero_headline || shop?.name || 'NEON MATRIX'
+  const subtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Engineered for the neon underground. High-tech armor, mechanical keyboards, and cyberpunk aesthetics.'
+  const ctaText = extra.hero_cta_primary || 'ACCESS GRID MATRIX ➔'
+  const heroImg = extra.hero_image_1 || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80'
+
   return (
     <div>
       {/* Cyber Hero HUD */}
       <section className="py-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center border-b border-[#00F0FF]/20">
         <div className="lg:col-span-8 space-y-6">
           <div className="inline-block px-3 py-1 bg-[#FF007F]/20 border border-[#FF007F] text-[#FF007F] text-xs font-bold uppercase tracking-widest shadow-[0_0_10px_#FF007F]">
-            /// PROTOCOL_v2.04 // HIGH TECH GEAR
+            {badge}
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-black uppercase text-white tracking-wider leading-tight shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-            {shop?.name || 'NEON MATRIX'}
+            {headline}
           </h1>
 
           <p className="text-sm text-[#94A3B8] max-w-xl leading-relaxed border-l-2 border-[#00F0FF] pl-4">
-            {shop?.description || shop?.tagline || 'Engineered for the neon underground. High-tech armor, mechanical keyboards, and cyberpunk aesthetics.'}
+            {subtitle}
           </p>
 
           <div>
@@ -112,7 +119,7 @@ function CyberpunkHome({ shop, products, shopSlug, onQuickView }) {
               onClick={() => navigate(catalogUrl)}
               className="px-8 py-4 bg-[#FF007F] hover:bg-[#D9006C] text-white font-bold text-sm uppercase tracking-widest border border-white shadow-[0_0_25px_#FF007F] transition-all"
             >
-              ACCESS GRID MATRIX ➔
+              {ctaText}
             </button>
           </div>
         </div>
@@ -120,7 +127,7 @@ function CyberpunkHome({ shop, products, shopSlug, onQuickView }) {
         <div className="lg:col-span-4 border border-[#00F0FF]/40 p-2 bg-[#0C0C18] relative shadow-[0_0_30px_rgba(0,240,255,0.2)]">
           <div className="h-80 bg-slate-900 border border-[#FF007F]/40 overflow-hidden relative">
             <img
-              src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80"
+              src={getImageUrl(heroImg)}
               alt=""
               className="w-full h-full object-cover opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-700"
             />
@@ -136,20 +143,23 @@ function CyberpunkHome({ shop, products, shopSlug, onQuickView }) {
   )
 }
 
-function CyberpunkCatalog({ products = [], onQuickView }) {
+function CyberpunkCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.categories_title || extra.catalog_title || '/// HARDWARE_GRID'
+
   const categories = useMemo(() => {
-    const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'HARDWARE').toUpperCase()))
+    const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'GEAR').toUpperCase()))
     return ['ALL', ...Array.from(cats)]
   }, [products])
 
   const filtered = useMemo(() => {
     let list = products.filter(p => {
-      const cat = (p.category?.name || p.category_name || p.category || 'HARDWARE').toUpperCase()
+      const cat = (p.category?.name || p.category_name || p.category || 'GEAR').toUpperCase()
       const matchCat = selectedCategory === 'ALL' || cat === selectedCategory
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.description || '').toLowerCase().includes(search.toLowerCase())
@@ -163,8 +173,8 @@ function CyberpunkCatalog({ products = [], onQuickView }) {
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-16">
-      <div className="flex flex-col sm:flex-row justify-between items-center pb-6 border-b border-[#00F0FF]/30 mb-6 gap-4">
-        <h2 className="text-xl font-bold uppercase text-white tracking-widest">/// HARDWARE_GRID</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-baseline pb-8 border-b border-[#00F0FF]/20 mb-8 gap-4">
+        <h2 className="font-mono text-xs uppercase tracking-widest text-[#00F0FF]">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input
             type="text"

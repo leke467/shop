@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, getImageUrl } from '../../services/api'
 import { getTemplateById } from '../../templates/registry'
+import { getTemplateSchema } from '../../templates/templateConfigs'
 import BrandLogoRenderer from '../shop/BrandLogoRenderer'
 
 const FONT_OPTIONS = [
@@ -394,12 +395,15 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
   if (!isOpen) return null
 
+  const currentTemplateId = templateId || shop?.template_id || 'honeyspicy'
+  const schema = getTemplateSchema(currentTemplateId)
+
   const TABS = [
     { id: 'hero', label: '🎯 Hero & Headline' },
     { id: 'sections', label: '🛍️ Section Titles' },
     { id: 'fonts', label: '🔤 Fonts & Typography' },
     { id: 'colors', label: '🎨 4 Colors' },
-    { id: 'features', label: '⭐ Features Banner' },
+    ...(schema.features?.hasFeaturesBanner ? [{ id: 'features', label: '⭐ Features Banner' }] : []),
     { id: 'about', label: '📖 About & Story' },
     { id: 'branding', label: '🏷️ Logo & Banner' },
   ]
@@ -424,11 +428,11 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                   <span>⚙️</span> Manage Template
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500 text-white shadow-xs">
-                  {activeTemplateMeta.name}
+                  {schema.name}
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
-                Customize every word, prefix, headline, signature section, and Google font.
+                {schema.tagline}
               </p>
             </div>
             <button
@@ -477,85 +481,125 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
             {activeTab === 'hero' && (
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">✨ Main Headline Customization</h3>
-                  
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Welcome Prefix (e.g. "Welcome to", "Introducing", or leave blank)
-                    </label>
-                    <input
-                      type="text"
-                      name="hero_welcome_prefix"
-                      value={form.hero_welcome_prefix}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-semibold"
-                      placeholder='e.g. Welcome to'
-                    />
-                    <p className="text-[11px] text-gray-500 mt-1">This text appears right before your main store headline in script/accent font.</p>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                      ✨ {schema.name} — Hero Customization
+                    </h3>
                   </div>
+                  
+                  {/* Welcome Prefix - only if template supports it (e.g. Honey Gourmet) */}
+                  {schema.hero.hasWelcomePrefix && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        {schema.hero.welcomePrefixLabel || 'Welcome Prefix (e.g. "Welcome to", "Introducing", or leave blank)'}
+                      </label>
+                      <input
+                        type="text"
+                        name="hero_welcome_prefix"
+                        value={form.hero_welcome_prefix}
+                        onChange={handleChange}
+                        className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-semibold"
+                        placeholder={schema.hero.welcomePrefixDefault || 'e.g. Welcome to'}
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">This text appears right before your main store headline in script/accent font.</p>
+                    </div>
+                  )}
+
+                  {/* Header Tag / Badge - for Minimalist, Cyberpunk, Royal, etc. */}
+                  {schema.hero.hasBadge && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        {schema.hero.badgeLabel || 'Hero Header Tag / Badge Code'}
+                      </label>
+                      <input
+                        type="text"
+                        name="hero_badge"
+                        value={form.hero_badge}
+                        onChange={handleChange}
+                        className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-semibold"
+                        placeholder={schema.hero.badgeDefault || 'e.g. Architectural Collection // 2026'}
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">Badge tag rendered at the top of the hero section.</p>
+                    </div>
+                  )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Main Store Headline Title</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      {schema.hero.headlineLabel || 'Main Store Headline Title'}
+                    </label>
                     <input
                       type="text"
                       name="hero_headline"
                       value={form.hero_headline}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-black"
-                      placeholder="e.g. Honeyspicy / Apex Store"
+                      placeholder={shop?.name || 'Store Name'}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Hero Subtitle / Catchphrase</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      {schema.hero.subtitleLabel || 'Hero Subtitle / Catchphrase'}
+                    </label>
                     <input
                       type="text"
                       name="hero_subtitle"
                       value={form.hero_subtitle}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="e.g. Discover our amazing products crafted with love and passion!"
+                      placeholder="e.g. Discover our amazing collection crafted with passion!"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {/* CTA Buttons */}
+                <div className={`grid grid-cols-1 ${schema.hero.hasCtaSecondary ? 'sm:grid-cols-2' : ''} gap-3 sm:gap-4`}>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Primary Button Text (CTA 1)</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      {schema.hero.ctaPrimaryLabel || 'Primary Button Text (CTA 1)'}
+                    </label>
                     <input
                       type="text"
                       name="hero_cta_primary"
                       value={form.hero_cta_primary}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
-                      placeholder="e.g. Order Now"
+                      placeholder={schema.hero.ctaPrimaryDefault || 'Order Now'}
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Secondary Button Text (CTA 2)</label>
-                    <input
-                      type="text"
-                      name="hero_cta_secondary"
-                      value={form.hero_cta_secondary}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
-                      placeholder="e.g. View Menu / Catalog"
-                    />
-                  </div>
+                  {schema.hero.hasCtaSecondary && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        {schema.hero.ctaSecondaryLabel || 'Secondary Button Text (CTA 2)'}
+                      </label>
+                      <input
+                        type="text"
+                        name="hero_cta_secondary"
+                        value={form.hero_cta_secondary}
+                        onChange={handleChange}
+                        className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                        placeholder={schema.hero.ctaSecondaryDefault || 'View Menu / Catalog'}
+                      />
+                    </div>
+                  )}
                 </div>
 
+                {/* Hero Showcase Images - Render EXACTLY the number of slots for this template */}
                 <div className="pt-3 border-t border-gray-200">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">🖼️ Hero Showcase Floating Images (3 Cards)</h4>
-                  <p className="text-[11px] text-gray-500 mb-3">Upload your product images or paste direct URLs for the 3 showcase cards.</p>
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
+                    🖼️ Hero Showcase Image{schema.hero.imageSlots?.length > 1 ? `s (${schema.hero.imageSlots.length} Cards)` : ''}
+                  </h4>
+                  <p className="text-[11px] text-gray-500 mb-3">
+                    Upload custom image or paste direct URL for this template's hero section.
+                  </p>
 
                   <div className="space-y-3">
-                    {[
-                      { key: 'hero_image_1', label: 'Showcase Image 1 (Top Float)' },
-                      { key: 'hero_image_2', label: 'Showcase Image 2 (Center Main)' },
-                      { key: 'hero_image_3', label: 'Showcase Image 3 (Bottom Float)' },
-                    ].map(({ key, label }) => (
+                    {(schema.hero.imageSlots || []).map(({ key, label, desc }) => (
                       <div key={key} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                        <label className="block text-xs font-bold text-gray-900">{label}</label>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-900">{label}</label>
+                          {desc && <p className="text-[11px] text-gray-500">{desc}</p>}
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                           <input
                             type="text"
@@ -590,60 +634,70 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
             {/* 2. STORE SECTIONS & TITLES TAB */}
             {activeTab === 'sections' && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">🍰 Featured / Signature Treats Section</h3>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Featured Section Title (e.g. "Our Signature Treats")
-                    </label>
-                    <input
-                      type="text"
-                      name="featured_title"
-                      value={form.featured_title}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
-                      placeholder="e.g. Our Signature Treats"
-                    />
-                  </div>
+                {schema.sections.hasFeaturedTitle && (
+                  <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                      🍰 {schema.sections.featuredTitleLabel || 'Featured / Signature Collection Section'}
+                    </h3>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Featured Section Title
+                      </label>
+                      <input
+                        type="text"
+                        name="featured_title"
+                        value={form.featured_title}
+                        onChange={handleChange}
+                        className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                        placeholder={schema.sections.featuredTitleDefault || 'Our Signature Treats'}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Featured Section Subtitle (e.g. "Explore our most popular and delicious creations")
-                    </label>
-                    <input
-                      type="text"
-                      name="featured_subtitle"
-                      value={form.featured_subtitle}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="e.g. Explore our most popular and delicious creations"
-                    />
+                    {schema.sections.hasFeaturedSubtitle && (
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">
+                          {schema.sections.featuredSubtitleLabel || 'Featured Section Subtitle'}
+                        </label>
+                        <input
+                          type="text"
+                          name="featured_subtitle"
+                          value={form.featured_subtitle}
+                          onChange={handleChange}
+                          className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
+                          placeholder={schema.sections.featuredSubtitleDefault || 'Explore our most popular creations'}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">📂 Catalog / Menu Page Headers</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                    📂 {schema.sections.catalogTitleLabel || 'Catalog & Menu Page Headers'}
+                  </h3>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Menu Page Headline</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      {schema.sections.catalogTitleLabel || 'Catalog Heading'}
+                    </label>
                     <input
                       type="text"
                       name="categories_title"
                       value={form.categories_title}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
-                      placeholder="e.g. Explore Our Menu"
+                      placeholder={schema.sections.catalogTitleDefault || 'Explore Catalog'}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Menu Page Subtitle</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Catalog Subtitle / Description</label>
                     <input
                       type="text"
                       name="categories_subtitle"
                       value={form.categories_subtitle}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="e.g. Handcrafted to perfection with premium quality"
+                      placeholder="Handcrafted to perfection with premium quality"
                     />
                   </div>
                 </div>
@@ -656,7 +710,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                     value={form.testimonials_title}
                     onChange={handleChange}
                     className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
-                    placeholder="e.g. What Our Happy Customers Say"
+                    placeholder={schema.sections.testimonialsTitleDefault || 'What Our Happy Customers Say'}
                   />
                 </div>
               </div>

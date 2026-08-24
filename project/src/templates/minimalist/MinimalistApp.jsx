@@ -83,6 +83,13 @@ function MinimalistHome({ shop, products, shopSlug, onQuickView }) {
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const badge = extra.hero_badge || 'Architectural Collection // 2026'
+  const headline = extra.hero_headline || shop?.name || 'ESSENTIAL FORMS'
+  const subtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Pristine Scandinavian craftsmanship. Redefining everyday objects through reduction and functional perfection.'
+  const ctaText = extra.hero_cta_primary || 'Explore Index [01] →'
+  const heroImg = extra.hero_image_1 || 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&q=80'
+
   return (
     <div>
       {/* Asymmetrical Studio Hero */}
@@ -90,15 +97,15 @@ function MinimalistHome({ shop, products, shopSlug, onQuickView }) {
         <div className="lg:col-span-8 space-y-8">
           <div className="font-mono text-xs uppercase tracking-widest text-gray-400 flex items-center gap-2">
             <span className="w-2 h-2 bg-black inline-block" />
-            Architectural Collection // 2026
+            {badge}
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-light tracking-tighter uppercase leading-none text-black">
-            {shop?.name || 'ESSENTIAL FORMS'}
+            {headline}
           </h1>
 
           <p className="text-gray-500 font-mono text-sm max-w-xl leading-relaxed">
-            {shop?.description || shop?.tagline || 'Pristine Scandinavian craftsmanship. Redefining everyday objects through reduction and functional perfection.'}
+            {subtitle}
           </p>
 
           <div>
@@ -106,7 +113,7 @@ function MinimalistHome({ shop, products, shopSlug, onQuickView }) {
               onClick={() => navigate(catalogUrl)}
               className="px-8 py-4 bg-black text-white font-mono text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-none"
             >
-              Explore Index [01] →
+              {ctaText}
             </button>
           </div>
         </div>
@@ -114,14 +121,14 @@ function MinimalistHome({ shop, products, shopSlug, onQuickView }) {
         <div className="lg:col-span-4 border-l border-gray-200 pl-8 space-y-6">
           <div className="aspect-3/4 bg-gray-100 border border-gray-200 overflow-hidden">
             <img
-              src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&q=80"
+              src={getImageUrl(heroImg)}
               alt=""
               className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
             />
           </div>
           <div className="font-mono text-xs text-gray-400 uppercase tracking-widest flex justify-between">
             <span>Fig. 01 / Objects</span>
-            <span>Est. 2026</span>
+            <span>Est. {new Date().getFullYear()}</span>
           </div>
         </div>
       </section>
@@ -132,11 +139,14 @@ function MinimalistHome({ shop, products, shopSlug, onQuickView }) {
   )
 }
 
-function MinimalistCatalog({ products = [], onQuickView }) {
+function MinimalistCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.categories_title || extra.catalog_title || '/// CATALOGUE INDEX'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'OBJECT').toUpperCase()))
@@ -160,7 +170,7 @@ function MinimalistCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-7xl mx-auto px-6 py-16">
       <div className="flex flex-col sm:flex-row justify-between items-baseline pb-8 border-b border-gray-200 mb-8 gap-4">
-        <h2 className="font-mono text-xs uppercase tracking-widest text-gray-400">/// CATALOGUE INDEX</h2>
+        <h2 className="font-mono text-xs uppercase tracking-widest text-gray-400">{catalogTitle}</h2>
         <div className="flex items-center gap-4">
           <input
             type="text"
