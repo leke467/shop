@@ -143,7 +143,7 @@ class SubscriptionCouponSerializer(serializers.ModelSerializer):
         fields = (
             "id", "public_id", "code", "plan", "plan_code", "plan_name",
             "target_plan_code", "discount_type", "discount_value",
-            "duration_months", "max_uses", "times_used", "expires_at",
+            "duration_months", "max_uses", "max_uses_per_user", "times_used", "expires_at",
             "is_active", "created_at", "updated_at",
         )
         read_only_fields = ("id", "public_id", "times_used", "created_at", "updated_at")

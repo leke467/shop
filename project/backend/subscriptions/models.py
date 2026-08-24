@@ -272,6 +272,10 @@ class SubscriptionCoupon(BaseModel):
         blank=True,
         help_text="Maximum total redemptions allowed. Leave blank for unlimited."
     )
+    max_uses_per_user = models.PositiveIntegerField(
+        default=1,
+        help_text="Maximum times a single user can redeem this coupon. 1 = one-time per user, 0 = unlimited."
+    )
     times_used = models.PositiveIntegerField(
         default=0,
         help_text="Total number of times this coupon has been successfully redeemed."
@@ -311,15 +315,21 @@ class SubscriptionCoupon(BaseModel):
             self.code = self.code.strip().upper()
         super().save(*args, **kwargs)
 
-    def is_valid_for_plan(self, plan: SubscriptionPlan) -> tuple[bool, str]:
+    def is_valid_for_plan(self, plan: SubscriptionPlan, user=None) -> tuple[bool, str]:
         if not self.is_active:
             return False, "This coupon is no longer active."
         if self.expires_at and self.expires_at < timezone.now():
             return False, "This coupon has expired."
         if self.max_uses is not None and self.times_used >= self.max_uses:
-            return False, "This coupon has reached its maximum usage limit."
+            return False, "This coupon has reached its maximum total usage limit."
         if self.plan and plan and (self.plan.code.lower() != plan.code.lower()):
             return False, f"This coupon is only valid for the '{self.plan.name}' subscription tier."
+        if user and getattr(user, "is_authenticated", False):
+            from .models import SubscriptionCouponRedemption
+            user_uses = SubscriptionCouponRedemption.objects.filter(coupon=self, user=user).count()
+            limit = self.max_uses_per_user if self.max_uses_per_user is not None else 1
+            if limit > 0 and user_uses >= limit:
+                return False, f"You have already redeemed coupon '{self.code}' ({user_uses}/{limit} uses)."
         return True, ""
 
     def calculate_discount(self, plan_price: Decimal) -> Decimal:

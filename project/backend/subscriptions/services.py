@@ -411,13 +411,9 @@ def validate_subscription_coupon(code: str, plan: SubscriptionPlan, user=None) -
     if not coupon:
         raise SubscriptionError(f"Coupon code '{clean_code}' is invalid.")
 
-    is_valid, err_msg = coupon.is_valid_for_plan(plan)
+    is_valid, err_msg = coupon.is_valid_for_plan(plan, user=user)
     if not is_valid:
         raise SubscriptionError(err_msg)
-
-    if user and getattr(user, "is_authenticated", False):
-        if SubscriptionCouponRedemption.objects.filter(coupon=coupon, user=user).exists():
-            raise SubscriptionError(f"You have already redeemed coupon '{coupon.code}'.")
 
     discount = coupon.calculate_discount(plan.monthly_price)
     final_price = max(Decimal("0.00"), plan.monthly_price - discount)
@@ -707,6 +703,29 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     payment.status = Payment.Status.CAPTURED
     payment.captured_at = timezone.now()
     payment.save(update_fields=["status", "captured_at"])
+
+    # Record coupon redemption and increment usage if coupon was applied
+    coupon_code = payment.metadata.get("coupon_code", "") if isinstance(payment.metadata, dict) else ""
+    if coupon_code:
+        try:
+            from .models import SubscriptionCoupon, SubscriptionCouponRedemption
+            from django.db.models import F
+            coupon = SubscriptionCoupon.objects.filter(code__iexact=str(coupon_code).strip()).first()
+            if coupon:
+                discount_val = Decimal(str(payment.metadata.get("discount_applied") or "0.00"))
+                redemption_created = SubscriptionCouponRedemption.objects.get_or_create(
+                    coupon=coupon,
+                    user=user,
+                    defaults={
+                        "plan": plan,
+                        "discount_applied": discount_val,
+                        "duration_months_granted": duration_months,
+                    }
+                )[1]
+                if redemption_created:
+                    SubscriptionCoupon.objects.filter(pk=coupon.pk).update(times_used=F("times_used") + 1)
+        except Exception as c_err:
+            logger.warning("Failed to record coupon redemption audit for %s: %s", coupon_code, c_err)
 
     activate_plan(user, plan, months=duration_months)
 

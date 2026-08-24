@@ -36,6 +36,7 @@ export default function AdminPanel() {
     discount_value: '100',
     duration_months: 1,
     max_uses: '',
+    max_uses_per_user: 1,
     expires_at: '',
   })
 
@@ -202,6 +203,7 @@ export default function AdminPanel() {
         discount_value: parseFloat(couponForm.discount_value) || 100,
         duration_months: parseInt(couponForm.duration_months, 10) || 1,
         max_uses: couponForm.max_uses ? parseInt(couponForm.max_uses, 10) : null,
+        max_uses_per_user: couponForm.max_uses_per_user !== '' && couponForm.max_uses_per_user !== null ? parseInt(couponForm.max_uses_per_user, 10) : 1,
         expires_at: couponForm.expires_at ? new Date(couponForm.expires_at).toISOString() : null,
       }
       const newCoupon = await subscriptionAPI.admin.createCoupon(payload)
@@ -213,6 +215,7 @@ export default function AdminPanel() {
         discount_value: '100',
         duration_months: 1,
         max_uses: '',
+        max_uses_per_user: 1,
         expires_at: '',
       })
       fetchTabData('coupons')
@@ -900,10 +903,10 @@ export default function AdminPanel() {
                       </select>
                     </div>
 
-                    {/* Max Uses & Expiry */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Max Uses, Limit Per User & Expiry */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-300">Max Uses</label>
+                        <label className="text-xs font-semibold text-gray-300">Total Uses (Global)</label>
                         <input
                           type="number"
                           placeholder="∞ Unlimited"
@@ -912,6 +915,20 @@ export default function AdminPanel() {
                           onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value })}
                           className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-300">Limit Per User</label>
+                        <select
+                          value={couponForm.max_uses_per_user}
+                          onChange={(e) => setCouponForm({ ...couponForm, max_uses_per_user: parseInt(e.target.value, 10) })}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        >
+                          <option value="1">1 Time Per User (Default)</option>
+                          <option value="2">2 Times Per User</option>
+                          <option value="3">3 Times Per User</option>
+                          <option value="5">5 Times Per User</option>
+                          <option value="0">Unlimited Per User</option>
+                        </select>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-gray-300">Expiration</label>
@@ -988,7 +1005,13 @@ export default function AdminPanel() {
                                   {c.duration_months === 0 ? 'Lifetime' : `${c.duration_months} mo`}
                                 </td>
                                 <td className="px-6 py-4 font-mono text-gray-300">
-                                  <span className="font-bold text-white">{c.times_used}</span> / {c.max_uses ?? '∞'}
+                                  <div>
+                                    <span className="font-bold text-white text-sm">{c.times_used}</span>
+                                    <span className="text-gray-400"> / {c.max_uses ?? '∞'}</span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-400 font-sans mt-0.5">
+                                    {c.max_uses_per_user === 0 ? 'Unlimited/user' : `${c.max_uses_per_user || 1} max/user`}
+                                  </p>
                                 </td>
                                 <td className="px-6 py-4 text-xs text-gray-400">
                                   {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'No Expiry'}
