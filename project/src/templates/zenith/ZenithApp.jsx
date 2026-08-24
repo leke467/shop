@@ -90,15 +90,28 @@ function ZenithHome({ shop, products, base, onQuickView }) {
       </div>
 
       {/* Hero Banner Card */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-2xl p-8 sm:p-12 mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{shop?.name || 'Welcome to Zenith'}</h1>
-        <p className="text-sm text-indigo-200 max-w-lg mb-6">{shop?.description || shop?.tagline || 'Premium tech accessories, gadgets, and electronics — data-driven shopping experience.'}</p>
-        <button onClick={() => navigate(`/shop/${base}/catalog`)}
-          className="px-6 py-3 bg-white text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-50 transition-all">
-          Browse Products →
-        </button>
-      </div>
+      {(() => {
+        const extra = shop?.theme?.extra_tokens || {}
+        const bannerImg = extra.banner_url || shop?.banner
+        return (
+          <div 
+            className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-2xl p-8 sm:p-12 mb-8 relative overflow-hidden"
+            style={bannerImg ? {
+              backgroundImage: `linear-gradient(rgba(49, 46, 129, 0.85), rgba(29, 78, 216, 0.90)), url(${getImageUrl(bannerImg)})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            } : {}}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{extra.hero_headline || shop?.name || 'Welcome to Zenith'}</h1>
+            <p className="text-sm text-indigo-200 max-w-lg mb-6">{extra.hero_subtitle || shop?.description || shop?.tagline || 'Premium tech accessories, gadgets, and electronics — data-driven shopping experience.'}</p>
+            <button onClick={() => navigate(`/shop/${base}/catalog`)}
+              className="px-6 py-3 bg-white text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-50 transition-all">
+              {extra.hero_cta_primary || 'Browse Products →'}
+            </button>
+          </div>
+        )
+      })()}
 
       <ZenithCatalog products={products} onQuickView={onQuickView} />
     </div>

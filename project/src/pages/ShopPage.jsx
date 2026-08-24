@@ -192,7 +192,9 @@ export default function ShopPage() {
       <div className={shop.is_locked ? 'pointer-events-none opacity-50 select-none' : ''}>
         {/* Banner */}
       <div className="relative h-64 md:h-80 overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${theme.secondary_color || '#7c3aed'})` }}>
-        {shop.banner && <img src={getImageUrl(shop.banner)} alt="" className="w-full h-full object-cover" />}
+        {(shop.banner || shop.theme?.extra_tokens?.banner_url) && (
+          <img src={getImageUrl(shop.banner || shop.theme?.extra_tokens?.banner_url)} alt="" className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
       </div>
 
@@ -201,8 +203,8 @@ export default function ShopPage() {
         <div className="relative -mt-16 flex flex-col md:flex-row md:items-start gap-5 mb-8">
           {/* Logo */}
           <div className="w-28 h-28 rounded-3xl bg-white shadow-xl border-4 border-white overflow-hidden flex-shrink-0 flex items-center justify-center">
-            {shop.logo ? (
-              <img src={getImageUrl(shop.logo)} alt={shop.name} className="w-full h-full object-cover" />
+            {(shop.logo || shop.theme?.extra_tokens?.logo_url) ? (
+              <img src={getImageUrl(shop.logo || shop.theme?.extra_tokens?.logo_url)} alt={shop.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-4xl font-bold" style={{ color: primaryColor }}>{shop.name?.[0]}</span>
             )}

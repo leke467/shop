@@ -83,18 +83,31 @@ function DeptHome({ shop, products, base, onQuickView }) {
   return (
     <div>
       {/* Slim promotional banner */}
-      <section className="bg-[#F0F4F8] border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1B3A5C] mb-2">{shop?.tagline || `Welcome to ${shop?.name || 'Our Store'}`}</h1>
-            <p className="text-sm text-gray-600 max-w-lg">{shop?.description || 'Browse our curated selection of premium products across all departments.'}</p>
-          </div>
-          <button onClick={() => navigate(`/shop/${base}/catalog`)}
-            className="px-6 py-3 bg-[#1B3A5C] text-white rounded text-sm font-bold flex-shrink-0 hover:bg-[#15304D]">
-            Shop All Products →
-          </button>
-        </div>
-      </section>
+      {(() => {
+        const extra = shop?.theme?.extra_tokens || {}
+        const bannerImg = extra.banner_url || shop?.banner
+        return (
+          <section 
+            className="bg-[#F0F4F8] border-b border-gray-200"
+            style={bannerImg ? {
+              backgroundImage: `linear-gradient(rgba(240, 244, 248, 0.88), rgba(240, 244, 248, 0.92)), url(${getImageUrl(bannerImg)})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            } : {}}
+          >
+            <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <h1 className="text-3xl font-bold text-[#1B3A5C] mb-2">{extra.hero_headline || shop?.tagline || `Welcome to ${shop?.name || 'Our Store'}`}</h1>
+                <p className="text-sm text-gray-600 max-w-lg">{extra.hero_subtitle || shop?.description || 'Browse our curated selection of premium products across all departments.'}</p>
+              </div>
+              <button onClick={() => navigate(`/shop/${base}/catalog`)}
+                className="px-6 py-3 bg-[#1B3A5C] text-white rounded text-sm font-bold flex-shrink-0 hover:bg-[#15304D]">
+                {extra.hero_cta_primary || 'Shop All Products →'}
+              </button>
+            </div>
+          </section>
+        )
+      })()}
 
       <DeptCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>

@@ -29,7 +29,13 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
       <header className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link to={`/shop/${base}`} className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm">B</div>
+            {(shop?.logo || shop?.theme?.extra_tokens?.logo_url) ? (
+              <img src={getImageUrl(shop?.logo || shop?.theme?.extra_tokens?.logo_url)} alt="" className="w-8 h-8 rounded-lg object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm">
+                {shop?.name?.[0] || 'B'}
+              </div>
+            )}
             <span className="font-bold text-lg hidden sm:block">{shop?.name || 'Bazaar'}</span>
           </Link>
 
@@ -83,8 +89,25 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
 
 function BazaarHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+  const bannerImg = extra.banner_url || shop?.banner
+
   return (
     <div>
+      {/* Banner image if available */}
+      {bannerImg && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <div className="h-44 sm:h-60 rounded-2xl overflow-hidden shadow-sm relative">
+            <img src={getImageUrl(bannerImg)} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md">
+                {extra.hero_headline || shop?.name}
+              </h1>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Deals Banner Strip */}
       <div className="bg-[#FF6B35] text-white py-2 text-center text-xs font-bold tracking-wider overflow-hidden">
         <div className="animate-marquee whitespace-nowrap inline-block">

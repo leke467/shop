@@ -235,6 +235,9 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
       .catch(() => {})
   }, [shop, isOpen, templateId])
 
+  const [bannerFile, setBannerFile] = useState(null)
+  const [logoFile, setLogoFile] = useState(null)
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
@@ -242,6 +245,8 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
   const handleImageFileChange = (fieldKey, file) => {
     if (!file) return
+    if (fieldKey === 'banner_url') setBannerFile(file)
+    if (fieldKey === 'logo_url') setLogoFile(file)
     const reader = new FileReader()
     reader.onload = (event) => {
       setForm(prev => ({ ...prev, [fieldKey]: event.target.result }))
@@ -266,6 +271,22 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
     setSuccess('')
 
     try {
+      let finalBannerUrl = form.banner_url
+      let finalLogoUrl = form.logo_url
+
+      if (bannerFile || logoFile) {
+        const brandingFormData = new FormData()
+        if (bannerFile) brandingFormData.append('banner', bannerFile)
+        if (logoFile) brandingFormData.append('logo', logoFile)
+        try {
+          const brandingRes = await shopAPI.uploadBranding(shop.slug, brandingFormData)
+          if (brandingRes?.banner) finalBannerUrl = brandingRes.banner
+          if (brandingRes?.logo) finalLogoUrl = brandingRes.logo
+        } catch (bErr) {
+          console.warn('Branding upload note:', bErr)
+        }
+      }
+
       const currentTheme = await shopAPI.getTheme(shop.slug).catch(() => ({ extra_tokens: {} }))
       const existingTokens = currentTheme?.extra_tokens || {}
 
@@ -333,8 +354,8 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         value4_title: form.value4_title,
         value4_desc: form.value4_desc,
 
-        banner_url: form.banner_url,
-        logo_url: form.logo_url,
+        banner_url: finalBannerUrl,
+        logo_url: finalLogoUrl,
         footer_note: form.footer_note,
       }
 
@@ -347,6 +368,8 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
       const fullShop = {
         ...updatedShop,
+        banner: finalBannerUrl || updatedShop?.banner,
+        logo: finalLogoUrl || updatedShop?.logo,
         template_id: targetTemplate,
         theme: updatedTheme,
       }

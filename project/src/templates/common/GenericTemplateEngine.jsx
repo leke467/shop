@@ -128,6 +128,8 @@ function EngineNavbar({ config, shop, shopSlug }) {
   const location = useLocation()
   const { cart, setIsCartOpen } = useCart()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const extra = shop?.theme?.extra_tokens || {}
+  const logoSrc = extra.logo_url || shop?.logo
 
   const cartCount = (cart?.items || []).reduce((sum, item) => sum + (item.quantity || 1), 0)
   const baseSlug = shopSlug || shop?.slug || ''
@@ -151,10 +153,10 @@ function EngineNavbar({ config, shop, shopSlug }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand */}
         <Link to={homeUrl} className="flex items-center gap-3">
-          {shop?.logo ? (
+          {logoSrc ? (
             <img
-              src={getImageUrl(shop.logo)}
-              alt={shop.name}
+              src={getImageUrl(logoSrc)}
+              alt={shop?.name || 'Shop'}
               className="w-10 h-10 rounded-xl object-cover"
             />
           ) : (
@@ -259,6 +261,7 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
 
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
+  const bannerImage = extra.banner_url || shop?.banner
 
   const welcomePrefix = extra.hero_welcome_prefix !== undefined ? extra.hero_welcome_prefix : (config.badgeText || 'Exclusive Selection')
   const cta1 = extra.hero_cta_primary || config.ctaPrimary || 'Explore Catalog ➔'
@@ -268,7 +271,20 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
     <div>
       {/* Hero Section */}
       <section className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Banner Backdrop Layer */}
+        {bannerImage && (
+          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            <img src={getImageUrl(bannerImage)} alt="" className="w-full h-full object-cover" />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to right, ${config.bgColor || '#ffffff'}f0 0%, ${config.bgColor || '#ffffff'}d9 60%, ${config.bgColor || '#ffffff'}f2 100%)`
+              }}
+            />
+          </div>
+        )}
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             {welcomePrefix ? (
               <span
