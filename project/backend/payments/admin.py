@@ -177,8 +177,23 @@ class RefundRequestAdmin(admin.ModelAdmin):
 
 @admin.register(PaymentGatewaySetting)
 class PaymentGatewaySettingAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "paystack_enabled", "monnify_enabled", "default_provider", "updated_at")
+    list_display = ("gateway_status_summary", "paystack_enabled", "monnify_enabled", "default_provider", "updated_at")
     list_editable = ("paystack_enabled", "monnify_enabled", "default_provider")
+    fieldsets = (
+        ("Payment Processors Availability", {
+            "fields": ("paystack_enabled", "monnify_enabled", "default_provider"),
+            "description": "Activate or deactivate payment gateways across the platform. Deactivated gateways will be hidden from checkout and subscription upgrades.",
+        }),
+    )
+
+    @admin.display(description="Gateway Status Summary")
+    def gateway_status_summary(self, obj):
+        return str(obj)
+
+    def changelist_view(self, request, extra_context=None):
+        # Auto-ensure singleton default row exists so Django Admin displays it immediately
+        PaymentGatewaySetting.get_settings()
+        return super().changelist_view(request, extra_context=extra_context)
 
     def has_add_permission(self, request):
         return not PaymentGatewaySetting.objects.exists()

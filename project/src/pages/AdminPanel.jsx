@@ -630,43 +630,51 @@ export default function AdminPanel() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Monnify Payments Log */}
+                  {/* Payments Log */}
                   <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6 shadow-md">
                     <h3 className="font-bold text-white mb-4">Customer Payments Log</h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {payments.payments?.map((p) => (
-                        <div key={p.id} className="p-3 bg-gray-900 rounded-xl flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-white uppercase">{p.provider}</p>
-                            <p className="text-gray-400 font-mono">{p.provider_payment_id || 'Ref'}</p>
+                      {payments?.payments?.length > 0 ? (
+                        payments.payments.map((p) => (
+                          <div key={p.id} className="p-3 bg-gray-900 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-white uppercase">{p.provider}</p>
+                              <p className="text-gray-400 font-mono">{p.provider_payment_id || 'Ref'}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono text-emerald-400 font-bold">₦{Number(p.amount).toLocaleString()}</p>
+                              <span className="text-gray-400 capitalize">{p.status}</span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-mono text-emerald-400 font-bold">₦{Number(p.amount).toLocaleString()}</p>
-                            <span className="text-gray-400 capitalize">{p.status}</span>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-500 italic py-4 text-center">No payment transactions recorded yet.</p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Monnify Payout Requests */}
+                  {/* Payout Requests */}
                   <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6 shadow-md">
                     <h3 className="font-bold text-white mb-4">Vendor & Referral Payouts</h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {payments.payouts?.map((po) => (
-                        <div key={po.id} className="p-3 bg-gray-900 rounded-xl flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-white">{po.shop_name}</p>
-                            <p className="text-gray-400">{po.bank_name} - {po.account_number}</p>
+                      {payments?.payouts?.length > 0 ? (
+                        payments.payouts.map((po) => (
+                          <div key={po.id} className="p-3 bg-gray-900 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-white">{po.shop_name}</p>
+                              <p className="text-gray-400">{po.bank_name} - {po.account_number}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono text-emerald-400 font-bold">₦{Number(po.amount).toLocaleString()}</p>
+                              <span className={`px-2 py-0.5 rounded font-bold ${po.status === 'completed' ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}`}>
+                                {po.status}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-mono text-emerald-400 font-bold">₦{Number(po.amount).toLocaleString()}</p>
-                            <span className={`px-2 py-0.5 rounded font-bold ${po.status === 'completed' ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}`}>
-                              {po.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-500 italic py-4 text-center">No payout requests recorded yet.</p>
+                      )}
                     </div>
                   </div>
                 </div>
