@@ -72,8 +72,6 @@ const COLOR_PRESETS = [
 ]
 
 function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId) {
-  const isMatchingTemplate = tokens.template_id === currentTemplateId
-
   const HONEY_DEFAULTS = [
     'Explore Our Menu',
     'Our Signature Treats',
@@ -84,23 +82,25 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
     'All of our treats are made fresh every day',
     'Order Now',
     'View Menu',
-    'Handcrafted Quality'
+    'Handcrafted Quality',
+    'Explore Catalog',
+    'Catalog description',
+    'Client Reviews',
+    'What Our Clients Say',
   ]
 
   const pick = (key, schemaDefault, globalDefault = '') => {
     const scopedVal = tokens[`${currentTemplateId}_${key}`]
-    if (scopedVal !== undefined && scopedVal !== null && scopedVal !== '') return scopedVal
-
-    if (isMatchingTemplate && tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '') {
-      return tokens[key]
+    if (scopedVal !== undefined && scopedVal !== null && scopedVal !== '') {
+      if (currentTemplateId === 'honeyspicy' || !HONEY_DEFAULTS.includes(scopedVal)) {
+        return scopedVal
+      }
     }
 
-    if (currentTemplateId !== 'honeyspicy' && tokens[key] && HONEY_DEFAULTS.includes(tokens[key])) {
-      return schemaDefault !== undefined ? schemaDefault : globalDefault
-    }
-
-    if (tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '' && !HONEY_DEFAULTS.includes(tokens[key])) {
-      return tokens[key]
+    if (tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '') {
+      if (currentTemplateId === 'honeyspicy' || !HONEY_DEFAULTS.includes(tokens[key])) {
+        return tokens[key]
+      }
     }
 
     return schemaDefault !== undefined ? schemaDefault : globalDefault
@@ -688,7 +688,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                       value={form.categories_subtitle}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="Handcrafted to perfection with premium quality"
+                      placeholder={schema.sections.categoriesSubtitleDefault || schema.tagline || 'Catalog description'}
                     />
                   </div>
                 </div>
@@ -728,11 +728,11 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-gray-900" style={{ fontFamily: font.id }}>
-                              {font.name}
+                              {font.label}
                             </span>
-                            <span className="text-[10px] font-semibold text-gray-500 uppercase">{font.category}</span>
+                            <span className="text-[10px] text-gray-400 font-mono">{font.category}</span>
                           </div>
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-1" style={{ fontFamily: font.id }}>
+                          <p className="text-xs text-gray-500 mt-1 truncate" style={{ fontFamily: font.id }}>
                             {font.preview}
                           </p>
                         </button>
@@ -783,9 +783,14 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
             {activeTab === 'colors' && (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1-Click Palette Presets</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[11px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      1-Click Palette Presets for {schema.name}
+                    </label>
+                    <span className="text-[10px] text-gray-500 font-medium">Curated for this style</span>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {COLOR_PRESETS.map(preset => (
+                    {(schema.palettePresets || COLOR_PRESETS).map(preset => (
                       <button
                         key={preset.name}
                         type="button"
