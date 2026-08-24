@@ -18,9 +18,11 @@ logger = logging.getLogger(__name__)
 def process_subscription_referral_reward(subscription, actual_amount_paid=None) -> Decimal:
     """
     Called when a shop subscription is activated or renewed.
-    If the shop owner was referred by someone, rewards the referrer with ₦500
-    (or SUBSCRIPTION_REFERRAL_BONUS setting), but strictly capped by actual amount paid
-    so free or heavily discounted coupon subscriptions do not generate losses.
+    If the shop owner was referred by someone:
+    - Calculates the referral reward as exactly 20% of the actual net amount paid.
+    - If a coupon reduced the price (e.g. to ₦300), the bonus is 20% of ₦300 = ₦60.
+    - If a coupon made the subscription free (₦0), the bonus is ₦0.00.
+    This guarantees the platform retains 80% and never incurs a loss on discounted subscriptions.
     """
     shop = getattr(subscription, "shop", None)
     owner = getattr(subscription, "user", None) or (shop.owner if shop else None)
@@ -44,9 +46,8 @@ def process_subscription_referral_reward(subscription, actual_amount_paid=None) 
         logger.info("Subscription for %s was ₦0 / free coupon; no referral reward awarded.", owner.email)
         return Decimal("0.00")
 
-    configured_bonus = getattr(settings, "SUBSCRIPTION_REFERRAL_BONUS", Decimal("500.00"))
-    # Reward is capped to 20% of actual paid amount or configured bonus
-    bonus = min(configured_bonus, (net_paid * Decimal("0.20")).quantize(Decimal("0.01")))
+    # Referral bonus is strictly 20% of the net amount collected
+    bonus = (net_paid * Decimal("0.20")).quantize(Decimal("0.01"))
     if bonus <= Decimal("0.00"):
         return Decimal("0.00")
 

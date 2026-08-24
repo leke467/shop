@@ -365,7 +365,8 @@ def assert_has_feature(user, feature: str) -> None:
 def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
                   provider_subscription_code: str = "",
                   provider_customer_code: str = "",
-                  months: int = 1, auto_renew: bool = True
+                  months: int = 1, auto_renew: bool = True,
+                  actual_amount_paid = None
                   ) -> UserSubscription:
     """Switch the user onto ``plan``, superseding any active subscription.
 
@@ -396,7 +397,7 @@ def activate_plan(user, plan: SubscriptionPlan, *, payment_reference: str = "",
     if not plan.is_free:
         try:
             from referrals.services import process_subscription_referral_reward
-            process_subscription_referral_reward(sub)
+            process_subscription_referral_reward(sub, actual_amount_paid=actual_amount_paid)
         except Exception as ref_err:
             logger.warning("Subscription referral reward failed for user %s: %s", user.email, ref_err)
 
@@ -476,7 +477,7 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
 
         if coupon_info["is_100_percent_free"] or final_price <= Decimal("0.00"):
             # 100% Free Coupon! Activate immediately without gateway
-            sub = activate_plan(user, plan, months=duration_months, auto_renew=False)
+            sub = activate_plan(user, plan, months=duration_months, auto_renew=False, actual_amount_paid=Decimal("0.00"))
             SubscriptionCouponRedemption.objects.create(
                 coupon=coupon,
                 user=user,
@@ -612,7 +613,7 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     duration_months = int(payment.metadata.get("duration_months") or 1) if isinstance(payment.metadata, dict) else 1
 
     if payment.status == Payment.Status.CAPTURED:
-        activate_plan(user, plan, months=duration_months)
+        activate_plan(user, plan, months=duration_months, actual_amount_paid=payment.amount)
         return {
             "status": "already_active",
             "detail": f"Plan {plan.name} is active.",
@@ -733,7 +734,7 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
         except Exception as c_err:
             logger.warning("Failed to record coupon redemption audit for %s: %s", coupon_code, c_err)
 
-    activate_plan(user, plan, months=duration_months)
+    activate_plan(user, plan, months=duration_months, actual_amount_paid=payment.amount)
 
     return {
         "status": "activated",
