@@ -93,37 +93,85 @@ class SoftDeleteModel(models.Model):
 # ---------------------------------------------------------------------------
 THEME_PRESETS = {
     "teal_slate": {
-        "label": "Teal & Slate (Default)",
+        "label": "Teal Lagoon & Slate",
         "primary": "#0d9488",
-        "secondary": "#475569",
-        "accent": "#d97706",
+        "secondary": "#334155",
+        "accent": "#f59e0b",
     },
-    "warm_coral": {
-        "label": "Warm Coral & Amber",
-        "primary": "#e74c3c",
-        "secondary": "#d35400",
-        "accent": "#f39c12",
+    "midnight_gold": {
+        "label": "Midnight Onyx & Gold (Black Theme)",
+        "primary": "#090d16",
+        "secondary": "#1e293b",
+        "accent": "#f59e0b",
+    },
+    "cyber_black": {
+        "label": "Cyber Black & Neon Cyan (Dark Theme)",
+        "primary": "#0a0a0f",
+        "secondary": "#1e1e2f",
+        "accent": "#00f0ff",
+    },
+    "obsidian_rose": {
+        "label": "Obsidian Noir & Rose Neon (Dark Theme)",
+        "primary": "#121214",
+        "secondary": "#27272a",
+        "accent": "#f43f5e",
     },
     "emerald_gold": {
-        "label": "Emerald & Gold",
-        "primary": "#059669",
-        "secondary": "#065f46",
+        "label": "Deep Forest Emerald & Gold",
+        "primary": "#047857",
+        "secondary": "#064e3b",
         "accent": "#d97706",
     },
-    "ocean_blue": {
-        "label": "Ocean Blue & Sand",
-        "primary": "#0284c7",
-        "secondary": "#0c4a6e",
+    "ocean_sapphire": {
+        "label": "Ocean Sapphire & Coral",
+        "primary": "#1d4ed8",
+        "secondary": "#1e3a8a",
         "accent": "#ea580c",
     },
+    "royal_amethyst": {
+        "label": "Royal Amethyst & Champagne Gold",
+        "primary": "#7c3aed",
+        "secondary": "#4c1d95",
+        "accent": "#fbbf24",
+    },
+    "crimson_sunset": {
+        "label": "Sunset Crimson & Golden Amber",
+        "primary": "#dc2626",
+        "secondary": "#881337",
+        "accent": "#f59e0b",
+    },
+    "warm_coral": {
+        "label": "Warm Coral & Terracotta",
+        "primary": "#e74c3c",
+        "secondary": "#c2410c",
+        "accent": "#f39c12",
+    },
+    "coffee_caramel": {
+        "label": "Espresso Coffee & Warm Caramel",
+        "primary": "#78350f",
+        "secondary": "#451a03",
+        "accent": "#d97706",
+    },
+    "nordic_frost": {
+        "label": "Nordic Ice Blue & Slate",
+        "primary": "#0284c7",
+        "secondary": "#334155",
+        "accent": "#38bdf8",
+    },
+    "blossom_lavender": {
+        "label": "Sakura Blossom & Lavender",
+        "primary": "#ec4899",
+        "secondary": "#831843",
+        "accent": "#a855f7",
+    },
     "rose_charcoal": {
-        "label": "Rose & Charcoal",
+        "label": "Rose Velvet & Charcoal",
         "primary": "#e11d48",
         "secondary": "#374151",
         "accent": "#7c3aed",
     },
     "indigo_amber": {
-        "label": "Indigo & Amber",
+        "label": "Indigo Dusk & Amber",
         "primary": "#4f46e5",
         "secondary": "#1e1b4b",
         "accent": "#f59e0b",
@@ -148,7 +196,7 @@ class SiteTheme(TimeStampedModel):
     """
 
     preset = models.CharField(
-        max_length=30,
+        max_length=50,
         choices=PRESET_CHOICES,
         default="teal_slate",
         help_text="Pick a preset palette, or choose 'Custom' to set your own hex values.",
