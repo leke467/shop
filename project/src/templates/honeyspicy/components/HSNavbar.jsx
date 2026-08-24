@@ -58,7 +58,9 @@ export default function HSNavbar({ shop, shopSlug }) {
                 <Link to="/" className="hs-multishop-badge" onClick={closeMenu}><Logo size="sm" /></Link>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <button className="hs-btn hs-btn-primary hs-order-btn" onClick={() => { closeMenu(); setIsCartOpen(true) }}>Order Now</button>
+                <button className="hs-btn hs-btn-primary hs-order-btn" onClick={() => { closeMenu(); setIsCartOpen(true) }}>
+                  {shop?.theme?.extra_tokens?.hero_cta_primary || 'Order Now'}
+                </button>
               </motion.div>
             </motion.div>
           )}
@@ -72,7 +74,7 @@ export default function HSNavbar({ shop, shopSlug }) {
           <li><NavLink to={`${basePath}/reviews`} className={({isActive}) => isActive ? 'active' : ''}>Reviews</NavLink></li>
           <li><Link to="/" className="hs-multishop-badge" title="Return to MultiShop Marketplace"><Logo size="sm" /></Link></li>
           <li><HSCartButton /></li>
-          <li><button className="hs-btn hs-btn-primary" onClick={() => setIsCartOpen(true)}>Order Now</button></li>
+          <li><button className="hs-btn hs-btn-primary" onClick={() => setIsCartOpen(true)}>{shop?.theme?.extra_tokens?.hero_cta_primary || 'Order Now'}</button></li>
         </ul>
       </div>
     </nav>

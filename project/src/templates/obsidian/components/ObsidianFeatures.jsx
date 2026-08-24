@@ -21,8 +21,8 @@ export default function ObsidianFeatures({ shop }) {
     },
     {
       icon: '🎧',
-      title: '24/7 Dedicated Support',
-      desc: 'Instant assistance whenever you need help with your order',
+      title: extra.feature4_title || '24/7 Dedicated Support',
+      desc: extra.feature4_desc || 'Instant assistance whenever you need help with your order',
     },
   ]
 

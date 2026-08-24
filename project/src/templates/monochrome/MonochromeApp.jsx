@@ -135,11 +135,14 @@ function MonochromeHome({ shop, products, shopSlug, onQuickView }) {
   )
 }
 
-function MonochromeCatalog({ products = [], onQuickView }) {
+function MonochromeCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.monochrome_categories_title || (extra.template_id === 'monochrome' ? extra.categories_title : null) || '/// COUTURE INDEX'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'COUTURE').toUpperCase()))
@@ -163,7 +166,7 @@ function MonochromeCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-7xl mx-auto px-6 py-20">
       <div className="flex flex-col sm:flex-row justify-between items-baseline pb-6 border-b border-zinc-800 mb-8 gap-4">
-        <h2 className="font-sans text-[11px] tracking-[0.3em] uppercase text-zinc-400">/// COUTURE INDEX</h2>
+        <h2 className="font-sans text-[11px] tracking-[0.3em] uppercase text-zinc-400">{catalogTitle}</h2>
         <div className="flex items-center gap-4">
           <input
             type="text"

@@ -21,9 +21,9 @@ export default function HSAboutSection({ shop, products }) {
               <p className="hs-highlight-text">{shop?.tagline || 'Crafting moments of joy'}</p>
               <p>{aboutText}</p>
               <ul className="hs-about-features">
-                <li><span className="hs-icon">🍯</span><span>Premium Quality</span></li>
-                <li><span className="hs-icon">❤️</span><span>Made with Love</span></li>
-                <li><span className="hs-icon">🚀</span><span>Fast Delivery</span></li>
+                <li><span className="hs-icon">🍯</span><span>{extra.feature1_title || 'Premium Quality'}</span></li>
+                <li><span className="hs-icon">❤️</span><span>{extra.feature2_title || 'Made with Love'}</span></li>
+                <li><span className="hs-icon">🚀</span><span>{extra.feature3_title || 'Fast Delivery'}</span></li>
               </ul>
             </HSAnimatedSection>
           </div>

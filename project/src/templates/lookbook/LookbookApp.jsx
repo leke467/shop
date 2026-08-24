@@ -41,8 +41,8 @@ export default function LookbookApp({ shop, products = [], reviews = [], shopSlu
       <main>
         <Routes>
           <Route index element={<LookbookSlides shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<LookbookIndex products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<LookbookIndex products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<LookbookIndex shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<LookbookIndex shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="minimalist" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<LookbookCheckout shop={shop} shopSlug={shopSlug} />} />
@@ -62,17 +62,23 @@ function LookbookSlides({ shop, products, base, onQuickView }) {
   const { addToCart } = useCart()
   const navigate = useNavigate()
   const containerRef = useRef(null)
+  const extra = shop?.theme?.extra_tokens || {}
+
+  const heroBadge = extra.hero_badge || 'Scroll to Explore'
+  const heroHeadline = extra.hero_headline || shop?.name || 'LOOKBOOK'
+  const heroSubtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'A visual journey through our collection. Scroll down.'
+  const heroImg = extra.hero_image_1 ? getImageUrl(extra.hero_image_1) : 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1600&q=80'
 
   return (
     <div ref={containerRef} className="h-screen overflow-y-auto" style={{ scrollSnapType: 'y mandatory' }}>
       {/* Hero Slide */}
       <section className="h-screen relative flex items-center justify-center" style={{ scrollSnapAlign: 'start' }}>
-        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1600&q=80" alt=""
+        <img src={heroImg} alt=""
           className="absolute inset-0 w-full h-full object-cover brightness-[0.3]" />
         <div className="relative z-10 text-center max-w-2xl px-6">
-          <span className="text-[11px] tracking-[0.5em] uppercase text-white/50 block mb-4">Scroll to Explore</span>
-          <h1 className="text-6xl sm:text-8xl font-bold tracking-tight mb-4">{shop?.name || 'LOOKBOOK'}</h1>
-          <p className="text-sm text-white/60 mb-8">{shop?.description || shop?.tagline || 'A visual journey through our collection. Scroll down.'}</p>
+          <span className="text-[11px] tracking-[0.5em] uppercase text-white/50 block mb-4">{heroBadge}</span>
+          <h1 className="text-6xl sm:text-8xl font-bold tracking-tight mb-4">{heroHeadline}</h1>
+          <p className="text-sm text-white/60 mb-8">{heroSubtitle}</p>
           <div className="animate-bounce text-white/40 text-2xl">↓</div>
         </div>
       </section>
@@ -135,11 +141,14 @@ function LookbookSlides({ shop, products, base, onQuickView }) {
   )
 }
 
-function LookbookIndex({ products = [], onQuickView }) {
+function LookbookIndex({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.lookbook_categories_title || (extra.template_id === 'lookbook' ? extra.categories_title : null) || 'Full Editorial Index'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Editorial'))
@@ -163,7 +172,7 @@ function LookbookIndex({ products = [], onQuickView }) {
   return (
     <div className="pt-24 pb-16 px-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-8 border-b border-white/10 pb-4 gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Full Index</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{catalogTitle}</h1>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search index..."
             className="bg-transparent border-b border-white/30 py-1 text-sm outline-none w-40 sm:w-48 text-white" />

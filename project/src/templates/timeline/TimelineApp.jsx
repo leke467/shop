@@ -53,8 +53,8 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
       <main className="pt-16">
         <Routes>
           <Route index element={<GalleryExhibition shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<GalleryCollection products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<GalleryCollection products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<GalleryCollection shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<GalleryCollection shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="royal" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<GalleryCheckout shop={shop} shopSlug={shopSlug} />} />
@@ -74,6 +74,12 @@ function GalleryExhibition({ shop, products, base, onQuickView }) {
   const { addToCart } = useCart()
   const navigate = useNavigate()
   const [current, setCurrent] = useState(-1) // -1 = intro screen
+  const extra = shop?.theme?.extra_tokens || {}
+
+  const heroBadge = extra.hero_badge || `Now Showing · ${products.length} Pieces`
+  const heroHeadline = extra.hero_headline || shop?.tagline || `${shop?.name || 'The Gallery'} Exhibition`
+  const heroSubtitle = extra.hero_subtitle || shop?.description || 'A chronological journey through timeless artworks and masterworks. Curated with precision.'
+  const heroCta = extra.hero_cta_primary || 'Enter Exhibition →'
 
   const prev = useCallback(() => setCurrent(c => Math.max(-1, c - 1)), [])
   const next = useCallback(() => setCurrent(c => Math.min(products.length - 1, c + 1)), [products.length])
@@ -83,24 +89,18 @@ function GalleryExhibition({ shop, products, base, onQuickView }) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-8 py-12 text-center">
         <span className="text-[10px] tracking-[0.6em] uppercase text-[#6B6460] block mb-6" style={{ fontFamily: 'sans-serif' }}>
-          Now Showing · {products.length} Pieces
+          {heroBadge}
         </span>
         <h1 className="text-5xl sm:text-7xl font-light tracking-wide mb-6 max-w-3xl leading-tight">
-          {shop?.tagline || `${shop?.name || 'The Gallery'} Exhibition`}
+          {heroHeadline}
         </h1>
-        <p className="text-sm text-[#8A7E72] max-w-lg mb-10" style={{ fontFamily: 'sans-serif' }}>
-          {shop?.description || 'Walk through our curated exhibition. Each piece is presented individually for your contemplation.'}
+        <p className="text-sm text-[#8A7E72] max-w-lg mb-10 leading-relaxed" style={{ fontFamily: 'sans-serif' }}>
+          {heroSubtitle}
         </p>
-        <div className="flex gap-4" style={{ fontFamily: 'sans-serif' }}>
-          <button onClick={() => setCurrent(0)}
-            className="px-8 py-4 bg-[#E8E4DE] text-[#1A1A1A] text-xs font-bold uppercase tracking-widest hover:bg-white transition-all">
-            Enter Exhibition →
-          </button>
-          <button onClick={() => navigate(`/shop/${base}/catalog`)}
-            className="px-8 py-4 border border-[#444] text-xs uppercase tracking-widest hover:bg-[#333] transition-all">
-            View All
-          </button>
-        </div>
+        <button onClick={() => setCurrent(0)}
+          className="px-8 py-4 bg-[#E8E4DE] text-[#1A1A1A] text-xs uppercase tracking-[0.3em] font-bold hover:bg-white transition-all">
+          {heroCta}
+        </button>
       </div>
     )
   }
@@ -190,11 +190,15 @@ function GalleryExhibition({ shop, products, base, onQuickView }) {
   )
 }
 
-function GalleryCollection({ products = [], onQuickView }) {
+function GalleryCollection({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.timeline_categories_title || (extra.template_id === 'timeline' ? extra.categories_title : null) || 'Full Collection'
+  const catalogSubtitle = extra.timeline_categories_subtitle || (extra.template_id === 'timeline' ? extra.categories_subtitle : null) || 'Curated Index'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'EXHIBITION').toUpperCase()))
@@ -219,8 +223,8 @@ function GalleryCollection({ products = [], onQuickView }) {
     <div className="max-w-6xl mx-auto px-8 py-16">
       <div className="flex flex-col sm:flex-row justify-between items-baseline mb-8 border-b border-[#333] pb-6 gap-4">
         <div>
-          <span className="text-[10px] tracking-[0.4em] uppercase text-[#6B6460] block mb-1" style={{ fontFamily: 'sans-serif' }}>Curated Index</span>
-          <h1 className="text-3xl font-light tracking-wider">Full Collection</h1>
+          <span className="text-[10px] tracking-[0.4em] uppercase text-[#6B6460] block mb-1" style={{ fontFamily: 'sans-serif' }}>{catalogSubtitle}</span>
+          <h1 className="text-3xl font-light tracking-wider">{catalogTitle}</h1>
         </div>
         <div className="flex items-center gap-4" style={{ fontFamily: 'sans-serif' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search collection..."

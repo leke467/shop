@@ -59,8 +59,8 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
       <main className="relative z-10">
         <Routes>
           <Route index element={<FuturaHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<FuturaCatalog products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<FuturaCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<FuturaCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<FuturaCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="cyberpunk" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="futura" />} />
           <Route path="checkout" element={<FuturaCheckout shop={shop} shopSlug={shopSlug || base} />} />
@@ -78,41 +78,51 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
 
 function FuturaHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+
+  const heroBadge = extra.hero_badge || '✦ Next-Gen Shopping Experience'
+  const heroHeadline = extra.hero_headline || shop?.name || 'Welcome to Futura'
+  const heroSubtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'Discover tomorrow\u0027s technology today. Premium gadgets, wearables, and smart devices curated for the future.'
+  const heroCta = extra.hero_cta_primary || 'Explore Collection ✦'
+
   return (
     <div>
       {/* Holographic Hero */}
       <section className="pt-20 pb-16 px-8 max-w-5xl mx-auto text-center">
         <div className="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-          ✦ Next-Gen Shopping Experience
+          {heroBadge}
         </div>
 
         <h1 className="text-5xl sm:text-7xl font-bold leading-tight mb-6"
           style={{ background: 'linear-gradient(135deg, #fff 0%, #c084fc 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          {shop?.name || 'Welcome to Futura'}
+          {heroHeadline}
         </h1>
 
         <p className="text-sm text-white/50 max-w-lg mx-auto leading-relaxed mb-10">
-          {shop?.description || shop?.tagline || 'Discover tomorrow\u0027s technology today. Premium gadgets, wearables, and smart devices curated for the future.'}
+          {heroSubtitle}
         </p>
 
         <button onClick={() => navigate(`/shop/${base}/catalog`)}
           className="px-8 py-4 rounded-2xl font-bold text-sm text-white hover:scale-105 transition-transform"
           style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}>
-          Explore Collection ✦
+          {heroCta}
         </button>
       </section>
 
-      <FuturaCatalog products={products} onQuickView={onQuickView} />
+      <FuturaCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function FuturaCatalog({ products = [], onQuickView }) {
+function FuturaCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.futura_categories_title || (extra.template_id === 'futura' ? extra.categories_title : null) || '✦ Cybernetic Device Matrix'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Holographic'))
@@ -136,7 +146,7 @@ function FuturaCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-6xl mx-auto px-6 py-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-lg font-semibold text-white/80">✦ Collection</h2>
+        <h2 className="text-lg font-semibold text-white/80">{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
             className="px-4 py-2 rounded-xl text-xs text-white outline-none w-40 sm:w-48"

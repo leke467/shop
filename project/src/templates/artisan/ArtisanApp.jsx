@@ -57,8 +57,8 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
       <main>
         <Routes>
           <Route index element={<ArtisanHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<ArtisanCatalog products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<ArtisanCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<ArtisanCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<ArtisanCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="boho" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<ArtisanCheckout shop={shop} shopSlug={shopSlug || base} />} />
@@ -77,6 +77,14 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
 function ArtisanHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
   const featured = products.slice(0, 2)
+  const extra = shop?.theme?.extra_tokens || {}
+
+  const heroBadge = extra.hero_badge || 'LEAD STORY'
+  const heroHeadline = extra.hero_headline || shop?.tagline || 'Discover Handcrafted Perfection in Every Detail'
+  const heroSubtitle = extra.hero_subtitle || shop?.description || 'Each piece in our collection is hand-crafted by master artisans using traditional techniques passed down through generations. We believe in slow craft, sustainable materials, and timeless design.'
+  const heroCta = extra.hero_cta_primary || 'Browse Classifieds →'
+  const heroImg = extra.hero_image_1 ? getImageUrl(extra.hero_image_1) : 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=1000&q=80'
+  const featuredTitle = extra.featured_title || 'FEATURED ITEMS'
 
   return (
     <div>
@@ -84,29 +92,29 @@ function ArtisanHome({ shop, products, base, onQuickView }) {
       <section className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-0 border-b border-[#D4C5A9]">
         {/* Lead story — large left column */}
         <div className="md:col-span-2 md:border-r border-[#D4C5A9] md:pr-8 pb-8">
-          <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B7355] block mb-4" style={{ fontFamily: 'sans-serif' }}>LEAD STORY</span>
+          <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B7355] block mb-4" style={{ fontFamily: 'sans-serif' }}>{heroBadge}</span>
           <h2 className="text-3xl sm:text-5xl font-bold leading-tight mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-            {shop?.tagline || 'Discover Handcrafted Perfection in Every Detail'}
+            {heroHeadline}
           </h2>
           <div className="h-64 sm:h-80 bg-[#E8E0D0] overflow-hidden mb-4">
-            <img src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=1000&q=80" alt=""
+            <img src={heroImg} alt=""
               className="w-full h-full object-cover" />
           </div>
           <p className="text-sm leading-relaxed text-[#555] max-w-xl" style={{ fontFamily: 'sans-serif', textAlign: 'justify' }}>
             <span className="text-4xl font-bold float-left mr-2 leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {(shop?.description || 'Each')[0]}
+              {heroSubtitle[0] || 'E'}
             </span>
-            {(shop?.description || 'Each piece in our collection is hand-crafted by master artisans using traditional techniques passed down through generations. We believe in slow craft, sustainable materials, and timeless design.').slice(1)}
+            {heroSubtitle.slice(1)}
           </p>
           <button onClick={() => navigate(`/shop/${base}/catalog`)}
             className="mt-6 px-6 py-3 bg-[#2D2D2D] text-[#FBF8F0] text-xs tracking-[0.2em] uppercase hover:bg-[#1A1A1A] transition-all" style={{ fontFamily: 'sans-serif' }}>
-            Browse Classifieds →
+            {heroCta}
           </button>
         </div>
 
         {/* Right sidebar — quick featured items */}
         <div className="md:pl-8 space-y-6 pt-6 md:pt-0">
-          <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B7355] block" style={{ fontFamily: 'sans-serif' }}>FEATURED ITEMS</span>
+          <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B7355] block" style={{ fontFamily: 'sans-serif' }}>{featuredTitle}</span>
           {featured.map((p, idx) => {
             const price = Number(p.base_price || p.price || 0)
             return (
@@ -120,16 +128,19 @@ function ArtisanHome({ shop, products, base, onQuickView }) {
         </div>
       </section>
 
-      <ArtisanCatalog products={products} onQuickView={onQuickView} />
+      <ArtisanCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function ArtisanCatalog({ products = [], onQuickView }) {
+function ArtisanCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.artisan_categories_title || (extra.template_id === 'artisan' ? extra.categories_title : null) || 'Classifieds & Curated Goods'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Classifieds'))
@@ -153,7 +164,7 @@ function ArtisanCatalog({ products = [], onQuickView }) {
   return (
     <section className="max-w-6xl mx-auto px-6 py-12">
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-6 border-b border-[#D4C5A9] pb-3 gap-4">
-        <h2 className="text-xl font-bold uppercase tracking-wider" style={{ fontFamily: "'Playfair Display', serif" }}>Classifieds & Listings</h2>
+        <h2 className="text-xl font-bold uppercase tracking-wider" style={{ fontFamily: "'Playfair Display', serif" }}>{catalogTitle}</h2>
         <div className="flex items-center gap-3">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search classifieds..."
             className="border-b border-[#D4C5A9] bg-transparent py-1 text-xs outline-none w-40 sm:w-48 text-[#2D2D2D]" style={{ fontFamily: 'sans-serif' }} />

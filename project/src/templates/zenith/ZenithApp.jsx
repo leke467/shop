@@ -57,8 +57,8 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
       <main>
         <Routes>
           <Route index element={<ZenithHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<ZenithCatalog products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<ZenithCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<ZenithCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<ZenithCatalog shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug || base} theme="cyberpunk" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="dark" />} />
           <Route path="checkout" element={<ZenithCheckout shop={shop} shopSlug={shopSlug || base} />} />
@@ -80,60 +80,48 @@ function ZenithHome({ shop, products, base, onQuickView }) {
   const avgPrice = totalProducts > 0 ? Math.round(products.reduce((s, p) => s + Number(p.base_price || p.price || 0), 0) / totalProducts) : 0
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-8">
-      {/* Dashboard Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Products', value: totalProducts, color: 'from-indigo-500 to-blue-600', icon: '📦' },
-          { label: 'Avg. Price', value: `₦${avgPrice.toLocaleString()}`, color: 'from-emerald-500 to-teal-600', icon: '💰' },
-          { label: 'Categories', value: new Set(products.map(p => p.category?.name || 'General')).size, color: 'from-amber-500 to-orange-600', icon: '🏷️' },
-          { label: 'Store Rating', value: '4.8★', color: 'from-pink-500 to-rose-600', icon: '⭐' },
-        ].map((m, i) => (
-          <div key={i} className="bg-[#1E293B] border border-[#334155] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-[#94A3B8] font-medium">{m.label}</span>
-              <span className="text-lg">{m.icon}</span>
-            </div>
-            <span className={`text-2xl font-bold bg-gradient-to-r ${m.color} bg-clip-text text-transparent`}>{m.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Hero Banner Card */}
+    <div className="max-w-[1400px] mx-auto px-6 py-8 space-y-8">
+      {/* Telemetry Hero / Metric Banner */}
       {(() => {
         const extra = shop?.theme?.extra_tokens || {}
-        const bannerImg = extra.banner_url || shop?.banner
         return (
-          <div 
-            className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-2xl p-8 sm:p-12 mb-8 relative overflow-hidden"
-            style={bannerImg ? {
-              backgroundImage: `linear-gradient(rgba(49, 46, 129, 0.85), rgba(29, 78, 216, 0.90)), url(${getImageUrl(bannerImg)})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            } : {}}
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{extra.hero_headline || shop?.name || 'Welcome to Zenith'}</h1>
-            <p className="text-sm text-indigo-200 max-w-lg mb-6">{extra.hero_subtitle || shop?.description || shop?.tagline || 'Premium tech accessories, gadgets, and electronics — data-driven shopping experience.'}</p>
-            <button onClick={() => navigate(`/shop/${base}/catalog`)}
-              className="px-6 py-3 bg-white text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-50 transition-all">
+          <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] tracking-widest uppercase text-emerald-400 font-bold">{extra.hero_badge || 'SYSTEM OPERATIONAL'}</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                {extra.hero_headline || shop?.name || 'Store Operations Center'}
+              </h1>
+              <p className="text-sm text-[#94A3B8] max-w-xl">
+                {extra.hero_subtitle || shop?.description || shop?.tagline || 'Direct access to inventory, telemetry, and high-performance products.'}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/shop/${base}/catalog`)}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-600/30 whitespace-nowrap"
+            >
               {extra.hero_cta_primary || 'Browse Products →'}
             </button>
           </div>
         )
       })()}
 
-      <ZenithCatalog products={products} onQuickView={onQuickView} />
+      <ZenithCatalog shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function ZenithCatalog({ products = [], onQuickView }) {
+function ZenithCatalog({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [sort, setSort] = useState('default')
   const [view, setView] = useState('grid') // 'grid' or 'table'
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.zenith_categories_title || (extra.template_id === 'zenith' ? extra.categories_title : null) || 'Product Inventory & Solutions'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => (p.category?.name || p.category_name || p.category || 'GENERAL').toUpperCase()))
@@ -159,7 +147,7 @@ function ZenithCatalog({ products = [], onQuickView }) {
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 bg-[#1E293B] border border-[#334155] rounded-xl p-4 gap-4">
         <div className="flex items-center gap-4">
-          <h2 className="text-sm font-semibold text-white">Products ({filtered.length})</h2>
+          <h2 className="text-sm font-semibold text-white">{catalogTitle} ({filtered.length})</h2>
           <div className="hidden sm:flex border border-[#334155] rounded-lg overflow-hidden">
             <button onClick={() => setView('grid')} className={`px-3 py-1.5 text-xs ${view === 'grid' ? 'bg-indigo-600 text-white' : 'text-[#94A3B8]'}`}>Grid</button>
             <button onClick={() => setView('table')} className={`px-3 py-1.5 text-xs ${view === 'table' ? 'bg-indigo-600 text-white' : 'text-[#94A3B8]'}`}>Table</button>

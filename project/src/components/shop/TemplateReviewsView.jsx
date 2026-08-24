@@ -154,6 +154,9 @@ export default function TemplateReviewsView({ reviews = [], shop, shopSlug, them
   }
 
   const styles = getThemeStyles()
+  const extra = shop?.theme?.extra_tokens || {}
+  const reviewsTitle = extra.testimonials_title || (extra[`${theme}_testimonials_title`]) || 'Reviews & Ratings'
+  const reviewsSubtitle = extra.testimonials_subtitle || `Real feedback from verified buyers of ${shop?.name || 'our store'}.`
 
   return (
     <div className={`min-h-[70vh] pt-28 sm:pt-36 pb-16 px-6 ${styles.container}`}>
@@ -163,8 +166,8 @@ export default function TemplateReviewsView({ reviews = [], shop, shopSlug, them
         <div className={`flex flex-col sm:flex-row items-center justify-between gap-6 border-b pb-8 ${styles.border}`}>
           <div>
             <span className="text-xs uppercase tracking-widest opacity-60 font-bold block mb-1">Customer Feedback</span>
-            <h1 className="text-3xl sm:text-4xl font-bold">Reviews & Ratings</h1>
-            <p className="text-sm opacity-75 mt-1">Real feedback from verified buyers of {shop?.name || 'our store'}.</p>
+            <h1 className="text-3xl sm:text-4xl font-bold">{reviewsTitle}</h1>
+            <p className="text-sm opacity-75 mt-1">{reviewsSubtitle}</p>
           </div>
 
           <div className={`flex items-center gap-4 p-4 rounded-2xl ${styles.card}`}>

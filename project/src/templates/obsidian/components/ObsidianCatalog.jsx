@@ -11,6 +11,8 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
 
   const extra = shop?.theme?.extra_tokens || {}
   const primaryAccent = extra.primary_color || '#8B5CF6'
+  const catalogTitle = extra.categories_title || extra.obsidian_categories_title || 'Curated Catalog'
+  const catalogSubtitle = extra.categories_subtitle || extra.obsidian_categories_subtitle || 'Our Products'
 
   // Extract categories
   const categories = useMemo(() => {
@@ -48,10 +50,10 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-purple-400">
-              Our Products
+              {catalogSubtitle}
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
-              Curated Catalog
+              {catalogTitle}
             </h2>
           </div>
 

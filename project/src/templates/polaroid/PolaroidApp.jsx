@@ -53,8 +53,8 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
       <main>
         <Routes>
           <Route index element={<PolaroidHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<PolaroidBoard products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<PolaroidBoard products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<PolaroidBoard shop={shop} products={products} onQuickView={setQuickView} />} />
+          <Route path="menu" element={<PolaroidBoard shop={shop} products={products} onQuickView={setQuickView} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="boho" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="polaroid" />} />
           <Route path="checkout" element={<PolaroidCheckout shop={shop} shopSlug={shopSlug} />} />
@@ -72,6 +72,12 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
 
 function PolaroidHome({ shop, products, base, onQuickView }) {
   const navigate = useNavigate()
+  const extra = shop?.theme?.extra_tokens || {}
+
+  const heroHeadline = extra.hero_headline || shop?.name || 'My Snapshot Store'
+  const heroSubtitle = extra.hero_subtitle || shop?.description || shop?.tagline || 'A scrapbook of beautiful things. Each item is a memory waiting to happen.'
+  const heroCta = extra.hero_cta_primary || 'Browse the Board 📌'
+
   return (
     <div>
       {/* Scrapbook Hero — handwritten title with polaroid preview */}
@@ -83,29 +89,32 @@ function PolaroidHome({ shop, products, base, onQuickView }) {
 
           <div className="text-center space-y-4">
             <h1 className="text-5xl sm:text-7xl text-[#4A3728] leading-tight">
-              {shop?.name || 'My Snapshot Store'}
+              {heroHeadline}
             </h1>
             <p className="text-xl text-[#8B6F55] max-w-lg mx-auto">
-              {shop?.description || shop?.tagline || 'A scrapbook of beautiful things. Each item is a memory waiting to happen.'}
+              {heroSubtitle}
             </p>
             <button onClick={() => navigate(`/shop/${base}/catalog`)}
               className="inline-block px-8 py-3 bg-[#4A3728] text-[#F5E6D3] rounded-lg text-sm font-bold mt-4 hover:bg-[#3A2A1C] transition-all" style={{ fontFamily: 'sans-serif' }}>
-              Browse the Board 📌
+              {heroCta}
             </button>
           </div>
         </div>
       </section>
 
-      <PolaroidBoard products={products} onQuickView={onQuickView} />
+      <PolaroidBoard shop={shop} products={products} onQuickView={onQuickView} />
     </div>
   )
 }
 
-function PolaroidBoard({ products = [], onQuickView }) {
+function PolaroidBoard({ shop, products = [], onQuickView }) {
   const { addToCart } = useCart()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
+
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.polaroid_categories_title || (extra.template_id === 'polaroid' ? extra.categories_title : null) || '📌 The Board'
 
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Snapshots'))
@@ -129,7 +138,7 @@ function PolaroidBoard({ products = [], onQuickView }) {
   return (
     <section className="max-w-6xl mx-auto px-6 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-3xl text-[#4A3728]">📌 The Board</h2>
+        <h2 className="text-3xl text-[#4A3728]">{catalogTitle}</h2>
         <div className="flex items-center gap-3" style={{ fontFamily: 'sans-serif' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search snapshots..."
             className="px-4 py-2 bg-[#F5E6D3] border-2 border-[#D4B896] rounded-lg text-sm outline-none w-40 sm:w-48 text-[#4A3728]" />
