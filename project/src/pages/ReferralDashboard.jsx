@@ -91,7 +91,7 @@ export default function ReferralDashboard() {
               Refer & Earn Program 🎁
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Invite store owners and buyers. Earn ₦500 for every vendor subscription + 20% share of sales commission!
+              Invite store owners and buyers. Earn 20% cash (up to ₦500) for every vendor subscription + 20% share of sales commission!
             </p>
           </div>
 
@@ -191,7 +191,7 @@ export default function ReferralDashboard() {
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-emerald-800 dark:text-emerald-400">
             <li className="flex items-start gap-2">
               <span>✅</span>
-              <span><strong>₦500 per Subscription:</strong> Earn ₦500 each time a referred vendor subscribes or renews their monthly/yearly plan.</span>
+              <span><strong>20% per Subscription (Up to ₦500):</strong> Earn 20% of net amount paid (capped at ₦500) whenever your referred merchant activates or renews a paid plan. (Discounted coupons calculate on net paid; free trials yield ₦0).</span>
             </li>
             <li className="flex items-start gap-2">
               <span>✅</span>

@@ -109,7 +109,22 @@ export default function TermsPage() {
 
             {/* Section 8 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">8. Limitation of Liability</h3>
+              <h3 className="text-lg font-bold text-gray-900">8. Referral & Partner Program Terms</h3>
+              <p>
+                MultiShopNG operates a free-to-join Partner & Affiliate Referral Program. By participating or sharing your referral links/codes, you agree to the following terms:
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li><strong>Subscription Referral Reward:</strong> Referrers earn <strong>20% of the actual net amount paid</strong> when a referred user activates or renews a paid subscription tier, capped at a maximum of <strong>₦500.00</strong> per plan payment.</li>
+                <li><strong>Coupons & Discounts:</strong> If the referred user applies a promotional coupon or discount, the 20% referral reward is calculated strictly against the <em>net amount actually paid</em> after discounts. For example, if a coupon reduces the subscription price to ₦300.00, the referrer receives 20% of ₦300.00 (₦60.00). Subscriptions activated under a 100% free coupon or trial tier yield ₦0.00 referral reward.</li>
+                <li><strong>Sales Commission Share:</strong> Referrers earn a <strong>20% recurring share</strong> of MultiShopNG's platform commission on orders successfully fulfilled and released from escrow by shops they referred.</li>
+                <li><strong>Payouts & Wallet Balances:</strong> Referral earnings are credited to the user's available wallet balance and can be withdrawn directly to verified Nigerian bank accounts via Monnify.</li>
+                <li><strong>Anti-Abuse & Prohibited Conduct:</strong> Self-referrals (referring one's own secondary accounts or creating fictitious shops) and fraudulent redemptions are strictly prohibited. MultiShopNG reserves the right to void illegitimate referral earnings and suspend violating accounts.</li>
+              </ul>
+            </section>
+
+            {/* Section 9 */}
+            <section className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900">9. Limitation of Liability</h3>
               <p>
                 MultiShopNG and its operators shall not be liable for indirect, punitive, or consequential damages arising from shop owner breach of contract, off-platform cash transactions, delivery courier delays, or unauthorized user conduct.
               </p>

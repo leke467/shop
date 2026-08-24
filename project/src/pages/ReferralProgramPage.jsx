@@ -27,7 +27,11 @@ export default function ReferralProgramPage() {
     },
     {
       q: 'When do I get paid for vendor subscriptions?',
-      a: 'Referral rewards are credited to your available wallet balance immediately after a referred vendor activates or renews any subscription plan.',
+      a: 'Referral rewards are credited to your available wallet balance immediately after a referred vendor activates or renews any subscription plan. You receive 20% of the actual net amount paid (up to a maximum cap of ₦500 per subscription payment).',
+    },
+    {
+      q: 'What happens if a referred vendor uses a discount coupon or free code?',
+      a: 'Your referral bonus is calculated against the net cash actually paid after discounts. For instance, if a coupon reduces the subscription to ₦300, you receive 20% of ₦300 (₦60). Subscriptions activated under a 100% free promo coupon award ₦0.00.',
     },
     {
       q: 'How does the 20% sales commission share work?',
@@ -75,7 +79,7 @@ export default function ReferralProgramPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg sm:text-xl text-emerald-100/80 max-w-3xl mx-auto leading-relaxed"
           >
-            Invite vendors, store owners, and shoppers. Earn <strong>₦500 cash</strong> for every subscription + <strong>20% share</strong> of platform sales commission forever.
+            Invite vendors, store owners, and shoppers. Earn <strong>20% cash (up to ₦500)</strong> for every subscription + <strong>20% share</strong> of platform sales commission forever.
           </motion.p>
 
           <motion.div
@@ -122,10 +126,10 @@ export default function ReferralProgramPage() {
               💵
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Reward #1: ₦500 per Vendor Subscription
+              Reward #1: 20% per Subscription (Up to ₦500)
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-              Every time a merchant signs up using your link and subscribes or renews any monthly or annual store plan, you get <strong>₦500 credited directly</strong> to your wallet.
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
+              Every time a merchant signs up using your link and subscribes or renews a paid store tier, you receive <strong>20% of the net amount paid</strong> (capped at <strong>₦500</strong> per payment) directly in your wallet. If a coupon reduces the price (e.g. to ₦300), you receive 20% of ₦300 (₦60).
             </p>
             <div className="inline-block px-3 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-lg">
               Instant Credit on Plan Activation
@@ -142,7 +146,7 @@ export default function ReferralProgramPage() {
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
               Reward #2: 20% Sales Commission Share
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
               Earn passive income on every product sold by your referred vendors. You receive <strong>20% of MultiShopNG’s platform commission</strong> on every order released from escrow.
             </p>
             <div className="inline-block px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg">
