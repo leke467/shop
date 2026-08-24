@@ -46,8 +46,9 @@ def process_subscription_referral_reward(subscription, actual_amount_paid=None) 
         logger.info("Subscription for %s was ₦0 / free coupon; no referral reward awarded.", owner.email)
         return Decimal("0.00")
 
-    # Referral bonus is strictly 20% of the net amount collected
-    bonus = (net_paid * Decimal("0.20")).quantize(Decimal("0.01"))
+    # Referral bonus is 20% of actual net amount paid, capped at a maximum of ₦500
+    max_cap = getattr(settings, "SUBSCRIPTION_REFERRAL_BONUS", Decimal("500.00"))
+    bonus = min(max_cap, (net_paid * Decimal("0.20")).quantize(Decimal("0.01")))
     if bonus <= Decimal("0.00"):
         return Decimal("0.00")
 
