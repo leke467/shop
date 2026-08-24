@@ -1066,7 +1066,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Shop Logo (Supports SVG, PNG, WebP, JPG)</label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       name="logo_url"
@@ -1084,11 +1084,28 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                         onChange={(e) => handleImageFileChange('logo_url', e.target.files[0])}
                       />
                     </label>
+                    {form.logo_url && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({ ...prev, logo_url: '' }))
+                          setLogoFile(null)
+                        }}
+                        className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+                        title="Remove Logo"
+                      >
+                        ✕ Remove
+                      </button>
+                    )}
                   </div>
                   {form.logo_url && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center">
+                    <div className="flex items-center gap-3 mt-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-300 bg-white flex items-center justify-center p-1">
                         <img src={getImageUrl(form.logo_url)} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{form.logo_url}</p>
+                        <p className="text-[10px] text-gray-500">Active logo preview</p>
                       </div>
                       <button
                         type="button"
@@ -1096,7 +1113,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                           setForm(prev => ({ ...prev, logo_url: '' }))
                           setLogoFile(null)
                         }}
-                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                        className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-bold transition-colors shrink-0"
                       >
                         ✕ Remove Logo
                       </button>
@@ -1163,7 +1180,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Shop Banner Image</label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       name="banner_url"
@@ -1181,11 +1198,28 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                         onChange={(e) => handleImageFileChange('banner_url', e.target.files[0])}
                       />
                     </label>
+                    {form.banner_url && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({ ...prev, banner_url: '' }))
+                          setBannerFile(null)
+                        }}
+                        className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+                        title="Remove Banner"
+                      >
+                        ✕ Remove
+                      </button>
+                    )}
                   </div>
                   {form.banner_url && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="w-24 h-14 rounded-xl overflow-hidden border border-gray-300 bg-gray-100">
+                    <div className="flex items-center gap-3 mt-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="w-24 h-14 rounded-lg overflow-hidden border border-gray-300 bg-gray-100 shrink-0">
                         <img src={getImageUrl(form.banner_url)} alt="Banner" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{form.banner_url}</p>
+                        <p className="text-[10px] text-gray-500">Active store banner</p>
                       </div>
                       <button
                         type="button"
@@ -1193,7 +1227,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                           setForm(prev => ({ ...prev, banner_url: '' }))
                           setBannerFile(null)
                         }}
-                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                        className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-bold transition-colors shrink-0"
                       >
                         ✕ Remove Banner
                       </button>
