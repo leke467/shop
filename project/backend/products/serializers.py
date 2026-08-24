@@ -61,10 +61,10 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight for catalog listing."""
-    shop_name = serializers.CharField(source="shop.name", read_only=True)
-    shop_slug = serializers.CharField(source="shop.slug", read_only=True)
-    shop_status = serializers.CharField(source="shop.status", read_only=True, default="active")
-    category_name = serializers.CharField(source="category.name", read_only=True, default=None)
+    shop_name = serializers.SerializerMethodField()
+    shop_slug = serializers.SerializerMethodField()
+    shop_status = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
     inventory_quantity = serializers.SerializerMethodField()
@@ -81,18 +81,54 @@ class ProductListSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    def get_shop_name(self, obj):
+        try:
+            return obj.shop.name if obj.shop else ""
+        except Exception:
+            return ""
+
+    def get_shop_slug(self, obj):
+        try:
+            return obj.shop.slug if obj.shop else ""
+        except Exception:
+            return ""
+
+    def get_shop_status(self, obj):
+        try:
+            return obj.shop.status if obj.shop else "active"
+        except Exception:
+            return "active"
+
+    def get_category_name(self, obj):
+        try:
+            return obj.category.name if obj.category else None
+        except Exception:
+            return None
+
     def get_primary_image(self, obj):
-        img = obj.images.first()
-        if img:
-            request = self.context.get("request")
-            if request and img.thumbnail:
-                return request.build_absolute_uri(img.thumbnail.url)
-            elif request and img.image:
-                return request.build_absolute_uri(img.image.url)
+        try:
+            img = obj.images.first()
+            if img:
+                request = self.context.get("request")
+                if request and img.thumbnail:
+                    return request.build_absolute_uri(img.thumbnail.url)
+                elif request and img.image:
+                    return request.build_absolute_uri(img.image.url)
+                elif img.thumbnail:
+                    return img.thumbnail.url
+                elif img.image:
+                    return img.image.url
+        except Exception:
+            pass
         return None
 
     def get_is_locked(self, obj):
-        return is_user_locked(obj.shop.owner)
+        try:
+            if obj.shop and obj.shop.owner:
+                return is_user_locked(obj.shop.owner)
+        except Exception:
+            pass
+        return False
 
     def get_inventory_quantity(self, obj):
         try:
