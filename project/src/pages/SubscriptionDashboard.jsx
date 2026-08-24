@@ -104,7 +104,7 @@ export default function SubscriptionDashboard() {
     if (!isAuthenticated) { navigate('/login'); return }
 
     const searchParams = new URLSearchParams(window.location.search)
-    const paymentRef = searchParams.get('paymentReference') || searchParams.get('reference') || searchParams.get('trxref')
+    const paymentRef = searchParams.get('paymentReference') || searchParams.get('transactionReference') || searchParams.get('reference') || searchParams.get('trxref')
 
     setLoading(true)
     const promises = [

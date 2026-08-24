@@ -411,10 +411,17 @@ class PaystackWebhookView(APIView):
                         payment.public_id, expected_amount_kobo, paid_amount_kobo,
                     )
                     return
-                try:
-                    confirm_pending_payment(payment, verified_by="paystack_webhook")
-                except CheckoutError:
-                    logger.warning("Paystack webhook: payment %s already processed", reference)
+                if payment.metadata and payment.metadata.get("purpose") == "subscription":
+                    try:
+                        from subscriptions.services import verify_and_activate_subscription
+                        verify_and_activate_subscription(payment.provider_payment_id, provider="paystack")
+                    except Exception as sub_err:
+                        logger.error("Paystack webhook subscription activation failed: %s", sub_err)
+                else:
+                    try:
+                        confirm_pending_payment(payment, verified_by="paystack_webhook")
+                    except CheckoutError:
+                        logger.warning("Paystack webhook: payment %s already processed", reference)
 
         elif event_type == "charge.failed":
             reference = data.get("reference", "")
@@ -567,9 +574,12 @@ class MonnifyWebhookView(APIView):
 
         if event_type == "SUCCESSFUL_TRANSACTION":
             payment_ref = data.get("paymentReference", "")
-            payment = Payment.objects.filter(
-                provider="monnify", provider_payment_id=payment_ref
-            ).select_related("order").first()
+            txn_ref = data.get("transactionReference", "")
+            payment = (
+                Payment.objects.filter(provider="monnify", provider_payment_id=payment_ref).select_related("order").first()
+                or (Payment.objects.filter(provider="monnify", provider_payment_id=txn_ref).select_related("order").first() if txn_ref else None)
+                or Payment.objects.filter(provider="monnify", provider_payment_id__icontains=payment_ref).select_related("order").first()
+            )
             if payment:
                 from decimal import Decimal
                 try:
@@ -583,10 +593,17 @@ class MonnifyWebhookView(APIView):
                         payment.public_id, payment.amount, paid_amount,
                     )
                     return
-                try:
-                    confirm_pending_payment(payment, verified_by="monnify_webhook")
-                except CheckoutError:
-                    logger.warning("Monnify webhook: payment %s already processed", payment_ref)
+                if payment.metadata and payment.metadata.get("purpose") == "subscription":
+                    try:
+                        from subscriptions.services import verify_and_activate_subscription
+                        verify_and_activate_subscription(payment.provider_payment_id, provider="monnify")
+                    except Exception as sub_err:
+                        logger.error("Monnify webhook subscription activation failed: %s", sub_err)
+                else:
+                    try:
+                        confirm_pending_payment(payment, verified_by="monnify_webhook")
+                    except CheckoutError:
+                        logger.warning("Monnify webhook: payment %s already processed", payment_ref)
 
         elif event_type == "FAILED_TRANSACTION":
             payment_ref = data.get("paymentReference", "")

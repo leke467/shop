@@ -141,7 +141,7 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-FRONTEND_URL = env("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = env("FRONTEND_URL", "https://multishopng.com")
 
 
 # ---------------------------------------------------------------------------

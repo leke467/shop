@@ -519,10 +519,13 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         amount=final_price,
         currency=plan.currency,
         idempotency_key=idempotency_key,
+        redirect_url=callback_url,
+        callback_url=callback_url,
         metadata={
             "purpose": "subscription",
             "plan_code": plan.code,
             "user_id": str(user.pk),
+            "callback_url": callback_url,
             "coupon_code": coupon.code if coupon else "",
             "duration_months": duration_months,
             "discount_applied": str(discount),
@@ -563,7 +566,7 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         "authorization_url": auth_url,
         "checkout_url": auth_url,
         "access_code": result.provider_txn_id,
-        "reference": result.provider_payment_id,
+        "reference": result.provider_payment_id or idempotency_key,
         "payment_id": str(payment.pk),
         "plan": plan.code,
         "discount_applied": str(discount),
@@ -576,12 +579,24 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     from payments.models import Payment
     from payments.gateways import get_gateway
     from django.conf import settings as django_settings
+    from django.db.models import Q
     import requests as http_requests
 
-    payment = Payment.objects.filter(provider_payment_id=payment_ref).first()
+    payment = (
+        Payment.objects.filter(provider_payment_id=payment_ref).first()
+        or Payment.objects.filter(provider_payment_id__iexact=payment_ref).first()
+        or Payment.objects.filter(provider_payment_id__icontains=payment_ref).first()
+    )
 
     if not payment and payment_ref.isdigit():
         payment = Payment.objects.filter(pk=int(payment_ref)).first()
+
+    if not payment:
+        # Check if user has an active pending subscription payment
+        payment = Payment.objects.filter(
+            status=Payment.Status.PENDING,
+            metadata__purpose="subscription"
+        ).order_by("-created_at").first()
 
     if not payment:
         raise SubscriptionError("Payment record not found for this reference.")
@@ -592,8 +607,10 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     if not plan:
         raise SubscriptionError("Target plan not found.")
 
+    duration_months = int(payment.metadata.get("duration_months") or 1) if isinstance(payment.metadata, dict) else 1
+
     if payment.status == Payment.Status.CAPTURED:
-        activate_plan(user, plan, months=1)
+        activate_plan(user, plan, months=duration_months)
         return {
             "status": "already_active",
             "detail": f"Plan {plan.name} is active.",
@@ -603,7 +620,7 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
         }
 
     # Server-side verification with Payment Provider (Paystack or Monnify)
-    chosen_provider = payment.provider or provider or "paystack"
+    chosen_provider = payment.provider or provider or "monnify"
     verified_paid = False
 
     if chosen_provider == "paystack":
@@ -621,7 +638,7 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
                 data = resp.json()
                 if data.get("status") and data.get("data", {}).get("status") == "success":
                     paid_kobo = data.get("data", {}).get("amount", 0)
-                    expected_kobo = int(plan.monthly_price * 100)
+                    expected_kobo = int(payment.amount * 100)
                     if paid_kobo >= expected_kobo:
                         verified_paid = True
                     else:
@@ -652,10 +669,27 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
                 body = data.get("responseBody", {})
                 if body.get("paymentStatus") in ("PAID", "SUCCESS", "OVERPAID"):
                     paid_amount = Decimal(str(body.get("amountPaid", "0")))
-                    if paid_amount >= plan.monthly_price:
+                    if paid_amount >= payment.amount:
                         verified_paid = True
                     else:
                         raise SubscriptionError("Underpayment detected. Subscription could not be activated.")
+                else:
+                    # Fallback query by transactionReference if different
+                    txn_ref = body.get("transactionReference") or payment_ref
+                    resp_v1 = http_requests.get(
+                        f"{base_url}/api/v1/merchant/transactions/query?paymentReference={encoded_ref}",
+                        headers={
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json",
+                        },
+                        timeout=15,
+                        verify=False,
+                    )
+                    v1_body = resp_v1.json().get("responseBody", {})
+                    if v1_body.get("paymentStatus") in ("PAID", "SUCCESS", "OVERPAID"):
+                        paid_amount = Decimal(str(v1_body.get("amountPaid", "0")))
+                        if paid_amount >= payment.amount:
+                            verified_paid = True
             except SubscriptionError:
                 raise
             except Exception as e:
@@ -674,7 +708,7 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     payment.captured_at = timezone.now()
     payment.save(update_fields=["status", "captured_at"])
 
-    activate_plan(user, plan, months=1)
+    activate_plan(user, plan, months=duration_months)
 
     return {
         "status": "activated",
