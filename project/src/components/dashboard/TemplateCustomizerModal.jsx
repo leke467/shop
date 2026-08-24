@@ -589,7 +589,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                           <label className="block text-xs font-bold text-gray-900">{label}</label>
                           {desc && <p className="text-[11px] text-gray-500">{desc}</p>}
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <input
                             type="text"
                             name={key}
@@ -598,25 +598,41 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                             placeholder="https://images.unsplash.com/..."
                             className="flex-1 px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-mono"
                           />
-                          <label className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold cursor-pointer text-center shrink-0">
-                            Upload File
-                            <input
-                              type="file"
-                              accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
-                              className="hidden"
-                              onChange={(e) => handleImageFileChange(key, e.target.files[0])}
-                            />
-                          </label>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <label className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold cursor-pointer text-center shrink-0">
+                              Upload File
+                              <input
+                                type="file"
+                                accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                                className="hidden"
+                                onChange={(e) => handleImageFileChange(key, e.target.files[0])}
+                              />
+                            </label>
+                            {form[key] && (
+                              <button
+                                type="button"
+                                onClick={() => setForm(prev => ({ ...prev, [key]: '' }))}
+                                className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+                                title="Remove Image"
+                              >
+                                ✕ Remove
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {form[key] && (
-                          <div className="flex items-center gap-3 mt-1.5">
-                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 bg-gray-100">
+                          <div className="flex items-center gap-3 mt-1.5 p-2 bg-white rounded-xl border border-gray-200">
+                            <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-300 bg-gray-100 shrink-0">
                               <img src={getImageUrl(form[key])} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate">{form[key]}</p>
+                              <p className="text-[10px] text-gray-500">Active image</p>
                             </div>
                             <button
                               type="button"
                               onClick={() => setForm(prev => ({ ...prev, [key]: '' }))}
-                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors"
+                              className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-bold transition-colors shrink-0"
                             >
                               ✕ Remove Image
                             </button>

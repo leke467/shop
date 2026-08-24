@@ -256,8 +256,8 @@ export default function HomePage() {
       isAuthenticated ? personalAPI.feed() : Promise.resolve(null),
     ]).then(([shopRes, prodRes, feedRes]) => {
       if (shopRes.status === 'fulfilled') setShops((shopRes.value?.results || shopRes.value || []).filter(s => !s.is_locked && s.status === 'active'))
-      if (prodRes.status === 'fulfilled') setProducts((prodRes.value?.results || prodRes.value || []).filter(p => !p.is_locked && (!p.shop || p.shop.status === 'active')))
-      if (feedRes.status === 'fulfilled' && feedRes.value) setFeedProducts((feedRes.value?.results || []).filter(p => !p.is_locked && (!p.shop || p.shop.status === 'active')))
+      if (prodRes.status === 'fulfilled') setProducts((prodRes.value?.results || prodRes.value || []).filter(p => !p.is_locked && (p.shop_status ? p.shop_status === 'active' : true)))
+      if (feedRes.status === 'fulfilled' && feedRes.value) setFeedProducts((feedRes.value?.results || []).filter(p => !p.is_locked && (p.shop_status ? p.shop_status === 'active' : true)))
     }).finally(() => setLoading(false))
   }, [isAuthenticated])
 

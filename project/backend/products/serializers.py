@@ -63,6 +63,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight for catalog listing."""
     shop_name = serializers.CharField(source="shop.name", read_only=True)
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
+    shop_status = serializers.CharField(source="shop.status", read_only=True, default="active")
     category_name = serializers.CharField(source="category.name", read_only=True, default=None)
     primary_image = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
@@ -75,7 +76,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "public_id", "name", "slug", "base_price", "compare_at_price",
             "currency", "status", "is_featured",
             "rating_average", "rating_count", "view_count",
-            "shop_name", "shop_slug", "category_name", "primary_image",
+            "shop_name", "shop_slug", "shop_status", "category_name", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
