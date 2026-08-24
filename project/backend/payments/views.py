@@ -11,6 +11,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import IsSuperadminOrStaff
+
 from orders.serializers import OrderSerializer
 from payments.gateways import get_gateway
 from payments.models import Payment, RefundRequest, WebhookEvent
@@ -1134,4 +1136,59 @@ class PaymentReceiptDownloadView(APIView):
 </html>
 """
         return HttpResponse(html_content, content_type="text/html")
+
+
+# ---------------------------------------------------------------------------
+# Payment Gateway Controls (Enable / Disable Paystack & Monnify)
+# ---------------------------------------------------------------------------
+
+class PaymentGatewaySettingsView(APIView):
+    """
+    GET /api/payments/settings/
+    Public: returns active status of payment providers.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .models import PaymentGatewaySetting
+        s = PaymentGatewaySetting.get_settings()
+        return Response({
+            "paystack_enabled": s.paystack_enabled,
+            "monnify_enabled": s.monnify_enabled,
+            "default_provider": s.default_provider,
+        })
+
+
+class AdminPaymentGatewaySettingsView(APIView):
+    """
+    GET/PATCH /api/payments/admin/settings/
+    SuperAdmin endpoint to view and toggle payment gateways.
+    """
+    permission_classes = [IsSuperadminOrStaff]
+
+    def get(self, request):
+        from .models import PaymentGatewaySetting
+        s = PaymentGatewaySetting.get_settings()
+        return Response({
+            "paystack_enabled": s.paystack_enabled,
+            "monnify_enabled": s.monnify_enabled,
+            "default_provider": s.default_provider,
+        })
+
+    def patch(self, request):
+        from .models import PaymentGatewaySetting
+        s = PaymentGatewaySetting.get_settings()
+        if "paystack_enabled" in request.data:
+            s.paystack_enabled = bool(request.data["paystack_enabled"])
+        if "monnify_enabled" in request.data:
+            s.monnify_enabled = bool(request.data["monnify_enabled"])
+        if "default_provider" in request.data and request.data["default_provider"] in ["paystack", "monnify"]:
+            s.default_provider = request.data["default_provider"]
+        s.save()
+        return Response({
+            "paystack_enabled": s.paystack_enabled,
+            "monnify_enabled": s.monnify_enabled,
+            "default_provider": s.default_provider,
+            "detail": "Payment gateway settings updated successfully.",
+        })
 

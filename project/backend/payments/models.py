@@ -336,3 +336,40 @@ class RefundRequest(BaseModel):
             f"RefundRequest<{self.public_id}> "
             f"{self.get_reason_display()} ({self.status})"
         )
+
+
+class PaymentGatewaySetting(TimeStampedModel):
+    """
+    Global platform settings to activate or deactivate payment providers (Paystack, Monnify).
+    Managed via Django Admin or SuperAdmin Dashboard.
+    """
+    paystack_enabled = models.BooleanField(
+        default=True,
+        help_text="Whether Paystack payment gateway is active for checkouts and subscriptions."
+    )
+    monnify_enabled = models.BooleanField(
+        default=True,
+        help_text="Whether Monnify (Moniepoint) payment gateway is active for checkouts and subscriptions."
+    )
+    default_provider = models.CharField(
+        max_length=20,
+        choices=[("paystack", "Paystack"), ("monnify", "Monnify")],
+        default="monnify",
+        help_text="Default preferred gateway when both are active."
+    )
+
+    class Meta:
+        verbose_name = "Payment Gateway Setting"
+        verbose_name_plural = "Payment Gateway Settings"
+
+    def __str__(self) -> str:
+        return f"Gateways: Paystack={'ON' if self.paystack_enabled else 'OFF'}, Monnify={'ON' if self.monnify_enabled else 'OFF'}"
+
+    @classmethod
+    def get_settings(cls) -> "PaymentGatewaySetting":
+        obj, _ = cls.objects.get_or_create(id=1, defaults={
+            "paystack_enabled": True,
+            "monnify_enabled": True,
+            "default_provider": "monnify",
+        })
+        return obj

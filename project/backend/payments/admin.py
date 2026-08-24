@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Payment, Refund, RefundRequest, Transaction, WebhookEvent
+from .models import Payment, Refund, RefundRequest, Transaction, WebhookEvent, PaymentGatewaySetting
 
 
 # ---------------------------------------------------------------------------
@@ -169,4 +169,20 @@ class RefundRequestAdmin(admin.ModelAdmin):
             rejected += 1
 
         self.message_user(request, f"Rejected {rejected} refund request(s).")
+
+
+# ---------------------------------------------------------------------------
+# Payment Gateway Settings (Enable / Disable Paystack & Monnify)
+# ---------------------------------------------------------------------------
+
+@admin.register(PaymentGatewaySetting)
+class PaymentGatewaySettingAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "paystack_enabled", "monnify_enabled", "default_provider", "updated_at")
+    list_editable = ("paystack_enabled", "monnify_enabled", "default_provider")
+
+    def has_add_permission(self, request):
+        return not PaymentGatewaySetting.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 

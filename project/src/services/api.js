@@ -376,7 +376,6 @@ export const orderAPI = {
   bankTransferConfirm: (paymentId) =>
     api.post('/payments/bank-transfer/confirm/', { payment: paymentId }).then(r => r.data),
 
-
   // Paystack Verify
   verifyPaystack: (reference) =>
     api.get(`/payments/paystack/verify/${reference}/`).then(r => r.data),
@@ -408,6 +407,18 @@ export const orderAPI = {
     api.get(`/orders/shop-orders/${shopSlug}/`).then(r => r.data),
   updateFulfillmentStatus: (groupId, status) =>
     api.patch(`/orders/groups/${groupId}/status/`, { status }).then(r => r.data),
+}
+
+// ── Payment Gateway Settings ─────────────────────────────────
+export const paymentSettingsAPI = {
+  getSettings: () =>
+    api.get('/payments/settings/').then(r => r.data),
+  admin: {
+    getSettings: () =>
+      api.get('/payments/admin/settings/').then(r => r.data),
+    updateSettings: (data) =>
+      api.patch('/payments/admin/settings/', data).then(r => r.data),
+  },
 }
 
 // ── Addresses ────────────────────────────────────────────────

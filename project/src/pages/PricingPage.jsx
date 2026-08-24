@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { subscriptionAPI } from '../services/api'
+import { subscriptionAPI, paymentSettingsAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 
 const FEATURE_ROWS = [
@@ -33,6 +33,7 @@ export default function PricingPage() {
   const [upgrading, setUpgrading] = useState(null) // plan code being processed
   const [error, setError] = useState('')
   const [downgradeBlockers, setDowngradeBlockers] = useState(null)
+  const [gatewaySettings, setGatewaySettings] = useState({ paystack_enabled: true, monnify_enabled: true })
 
   // Coupon state
   const [couponInput, setCouponInput] = useState(initialCoupon)
@@ -42,12 +43,16 @@ export default function PricingPage() {
 
   useEffect(() => {
     setLoading(true)
-    const calls = [subscriptionAPI.plans()]
+    const calls = [
+      subscriptionAPI.plans(),
+      paymentSettingsAPI.getSettings().catch(() => ({ paystack_enabled: true, monnify_enabled: true })),
+    ]
     if (isAuthenticated) calls.push(subscriptionAPI.current().catch(() => null))
     Promise.all(calls)
-      .then(([plansData, currentData]) => {
+      .then(([plansData, gateData, currentData]) => {
         const loadedPlans = Array.isArray(plansData) ? plansData : (plansData?.results || [])
         setPlans(loadedPlans)
+        if (gateData) setGatewaySettings(gateData)
         if (currentData) setCurrent(currentData)
 
         // Auto-validate initial coupon from URL query param
@@ -451,43 +456,54 @@ export default function PricingPage() {
                         <p className="text-xs font-bold uppercase tracking-wider text-gray-400 text-center">
                           Select Payment Provider
                         </p>
-                        <button
-                          onClick={() => handleUpgrade(selectedPlanForPayment, 'paystack')}
-                          disabled={upgrading === selectedPlanForPayment.code}
-                          className="w-full p-4 rounded-2xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all flex items-center justify-between text-left group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-lg">
-                              P
+                        
+                        {gatewaySettings.paystack_enabled !== false && (
+                          <button
+                            onClick={() => handleUpgrade(selectedPlanForPayment, 'paystack')}
+                            disabled={upgrading === selectedPlanForPayment.code}
+                            className="w-full p-4 rounded-2xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all flex items-center justify-between text-left group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-lg">
+                                P
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900 group-hover:text-emerald-600">Paystack</p>
+                                <p className="text-xs text-gray-500">Debit Card, Bank Transfer, USSD</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-gray-900 group-hover:text-emerald-600">Paystack</p>
-                              <p className="text-xs text-gray-500">Debit Card, Bank Transfer, USSD</p>
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-emerald-600">
-                            Pay ₦{finalDue.toLocaleString()} →
-                          </span>
-                        </button>
+                            <span className="text-sm font-bold text-emerald-600">
+                              Pay ₦{finalDue.toLocaleString()} →
+                            </span>
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => handleUpgrade(selectedPlanForPayment, 'monnify')}
-                          disabled={upgrading === selectedPlanForPayment.code}
-                          className="w-full p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all flex items-center justify-between text-left group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
-                              M
+                        {gatewaySettings.monnify_enabled !== false && (
+                          <button
+                            onClick={() => handleUpgrade(selectedPlanForPayment, 'monnify')}
+                            disabled={upgrading === selectedPlanForPayment.code}
+                            className="w-full p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all flex items-center justify-between text-left group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                                M
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900 group-hover:text-blue-600">Monnify (Moniepoint)</p>
+                                <p className="text-xs text-gray-500">Instant Bank Transfer, Card, Account</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-gray-900 group-hover:text-blue-600">Monnify (Moniepoint)</p>
-                              <p className="text-xs text-gray-500">Instant Bank Transfer, Card, Account</p>
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-blue-600">
-                            Pay ₦{finalDue.toLocaleString()} →
-                          </span>
-                        </button>
+                            <span className="text-sm font-bold text-blue-600">
+                              Pay ₦{finalDue.toLocaleString()} →
+                            </span>
+                          </button>
+                        )}
+
+                        {gatewaySettings.paystack_enabled === false && gatewaySettings.monnify_enabled === false && (
+                          <p className="text-xs text-center text-red-500 font-semibold py-2">
+                            Online payment gateways are currently undergoing scheduled maintenance. Please check back shortly or contact support.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

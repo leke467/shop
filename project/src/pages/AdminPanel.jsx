@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { adminDashboardAPI, subscriptionAPI } from '../services/api'
+import { adminDashboardAPI, subscriptionAPI, paymentSettingsAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
@@ -50,6 +50,14 @@ export default function AdminPanel() {
   const [adminNotes, setAdminNotes] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
+  // Payment Gateway Settings
+  const [gatewaySettings, setGatewaySettings] = useState({
+    paystack_enabled: true,
+    monnify_enabled: true,
+    default_provider: 'monnify',
+  })
+  const [gatewayLoading, setGatewayLoading] = useState(false)
+
   useEffect(() => {
     if (userLoading) return
     if (!isAuthenticated || (!isAdmin && !isStaff)) {
@@ -75,8 +83,12 @@ export default function AdminPanel() {
         const data = await adminDashboardAPI.users({ role: userRoleFilter, search: searchQuery })
         setUsersList(data.users || [])
       } else if (tab === 'payments') {
-        const data = await adminDashboardAPI.payments()
-        setPayments(data)
+        const [pData, sData] = await Promise.all([
+          adminDashboardAPI.payments().catch(() => null),
+          paymentSettingsAPI.admin.getSettings().catch(() => null),
+        ])
+        setPayments(pData)
+        if (sData) setGatewaySettings(sData)
       } else if (tab === 'disputes') {
         const data = await adminDashboardAPI.disputes()
         setDisputes(data.disputes || [])
@@ -145,6 +157,22 @@ export default function AdminPanel() {
       toast('Failed to resolve dispute.', 'error')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  // --- Payment Gateway Controls ---
+  const handleToggleGateway = async (gatewayKey, currentValue) => {
+    try {
+      setGatewayLoading(true)
+      const res = await paymentSettingsAPI.admin.updateSettings({
+        [gatewayKey]: !currentValue,
+      })
+      setGatewaySettings(res)
+      toast(`Payment Gateway ${gatewayKey.includes('paystack') ? 'Paystack' : 'Monnify'} ${!currentValue ? 'activated' : 'deactivated'}!`, 'success')
+    } catch (err) {
+      toast('Failed to update payment gateway setting.', 'error')
+    } finally {
+      setGatewayLoading(false)
     }
   }
 
@@ -532,9 +560,74 @@ export default function AdminPanel() {
             )}
 
             {/* PAYMENTS TAB */}
-            {activeTab === 'payments' && payments && (
+            {activeTab === 'payments' && (
               <motion.div key="payments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h2 className="text-2xl font-extrabold text-white">Payment Logs & Monnify Disbursements</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-white">Payments & Gateway Controls</h2>
+                    <p className="text-sm text-gray-400 mt-1">Manage live payment processors, audit checkout logs, and process disbursements.</p>
+                  </div>
+                </div>
+
+                {/* Gateway Switch Controls Card */}
+                <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6 shadow-md">
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                    <span>⚙️</span> Payment Gateway Status & Availability
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-6">
+                    Activate or deactivate payment providers platform-wide. When deactivated, customers and vendors will only see active gateways during checkout and subscription upgrades.
+                  </p>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {/* Paystack Card */}
+                    <div className={`p-5 rounded-2xl border transition-all ${gatewaySettings.paystack_enabled ? 'bg-gray-900/90 border-emerald-500/40' : 'bg-gray-900/40 border-rose-500/30 opacity-75'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-sm">P</span>
+                          <div>
+                            <h4 className="font-bold text-white text-sm">Paystack Gateway</h4>
+                            <p className="text-xs text-gray-400">Cards, Bank Transfer, USSD</p>
+                          </div>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${gatewaySettings.paystack_enabled ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700'}`}>
+                          {gatewaySettings.paystack_enabled ? '● Active' : '○ Deactivated'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={gatewayLoading}
+                        onClick={() => handleToggleGateway('paystack_enabled', gatewaySettings.paystack_enabled)}
+                        className={`w-full py-2 px-4 rounded-xl text-xs font-bold transition-all shadow ${gatewaySettings.paystack_enabled ? 'bg-rose-600/90 hover:bg-rose-600 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                      >
+                        {gatewaySettings.paystack_enabled ? 'Deactivate Paystack' : 'Activate Paystack'}
+                      </button>
+                    </div>
+
+                    {/* Monnify Card */}
+                    <div className={`p-5 rounded-2xl border transition-all ${gatewaySettings.monnify_enabled ? 'bg-gray-900/90 border-emerald-500/40' : 'bg-gray-900/40 border-rose-500/30 opacity-75'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 font-bold flex items-center justify-center text-sm">M</span>
+                          <div>
+                            <h4 className="font-bold text-white text-sm">Monnify (Moniepoint)</h4>
+                            <p className="text-xs text-gray-400">Direct Bank Transfer, Cards</p>
+                          </div>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${gatewaySettings.monnify_enabled ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700'}`}>
+                          {gatewaySettings.monnify_enabled ? '● Active' : '○ Deactivated'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={gatewayLoading}
+                        onClick={() => handleToggleGateway('monnify_enabled', gatewaySettings.monnify_enabled)}
+                        className={`w-full py-2 px-4 rounded-xl text-xs font-bold transition-all shadow ${gatewaySettings.monnify_enabled ? 'bg-rose-600/90 hover:bg-rose-600 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                      >
+                        {gatewaySettings.monnify_enabled ? 'Deactivate Monnify' : 'Activate Monnify'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Monnify Payments Log */}

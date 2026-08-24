@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     AdminRefundRequestActionView,
     AdminRefundRequestListView,
+    AdminPaymentGatewaySettingsView,
     BankTransferAccountsView,
     BankTransferConfirmView,
     BankTransferStatusView,
@@ -11,6 +12,7 @@ from .views import (
     MonnifyWebhookView,
     PaymentReceiptDownloadView,
     PaymentReceiptView,
+    PaymentGatewaySettingsView,
     PaystackVerifyView,
     PaystackWebhookView,
     RefundRequestView,
@@ -57,6 +59,10 @@ urlpatterns = [
     path("webhooks/stripe/", StripeWebhookView.as_view(), name="stripe-webhook"),
     path("webhooks/paystack/", PaystackWebhookView.as_view(), name="paystack-webhook"),
     path("webhooks/monnify/", MonnifyWebhookView.as_view(), name="monnify-webhook"),
+
+    # Payment Gateway Settings
+    path("settings/", PaymentGatewaySettingsView.as_view(), name="payment-gateway-settings"),
+    path("admin/settings/", AdminPaymentGatewaySettingsView.as_view(), name="admin-payment-gateway-settings"),
 
     # Refund Requests (Buyer & Admin)
     path("refund-requests/", RefundRequestView.as_view(), name="refund-requests"),
