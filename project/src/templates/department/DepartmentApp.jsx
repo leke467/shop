@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  DEPARTMENT — Traditional E-Commerce with Sidebar Category Filters
     Think: Traditional department store with left sidebar filters,
@@ -31,8 +32,13 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
       {/* Main Header */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to={`/shop/${base}`} className="font-bold text-xl text-[#1B3A5C]">
-            {shop?.name || 'DEPARTMENT STORE'}
+          <Link to={`/shop/${base}`} className="flex items-center gap-2">
+            <BrandLogoRenderer
+              shop={shop}
+              accentColor="#1B3A5C"
+              textClassName="font-bold text-xl text-[#1B3A5C]"
+              logoClassName="w-8 h-8 rounded-lg"
+            />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">

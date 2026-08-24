@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, getImageUrl } from '../../services/api'
 import { getTemplateById } from '../../templates/registry'
+import BrandLogoRenderer from '../shop/BrandLogoRenderer'
 
 const FONT_OPTIONS = [
   { id: 'Inter', name: 'Inter', category: 'Clean & Modern Sans', preview: 'The quick brown fox jumps over the lazy dog' },
@@ -145,6 +146,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
     banner_url: shop?.banner || '',
     logo_url: shop?.logo || '',
+    logo_position: 'left',
     footer_note: '',
   })
 
@@ -229,6 +231,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
           banner_url: shop?.banner || tokens.banner_url || '',
           logo_url: shop?.logo || tokens.logo_url || '',
+          logo_position: tokens.logo_position || 'left',
           footer_note: tokens.footer_note || '',
         }))
       })
@@ -356,6 +359,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
         banner_url: finalBannerUrl,
         logo_url: finalLogoUrl,
+        logo_position: form.logo_position || 'left',
         footer_note: form.footer_note,
       }
 
@@ -1029,6 +1033,63 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                       <img src={getImageUrl(form.logo_url)} alt="Logo" className="max-h-full max-w-full object-contain" />
                     </div>
                   )}
+                </div>
+
+                {/* Logo Placement & Alignment */}
+                <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200/80 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-900 mb-0.5">
+                      Logo Placement & Alignment (Storefront Header)
+                    </label>
+                    <p className="text-[11px] text-gray-500">
+                      Choose where the logo sits relative to your store name in the navbar.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'left', label: 'Beginning (Left)', desc: '[Logo] Store Name', icon: '⬅️' },
+                      { id: 'middle', label: 'Middle (Between Words)', desc: 'Store [Logo] Name', icon: '↔️' },
+                      { id: 'right', label: 'End (Right)', desc: 'Store Name [Logo]', icon: '➡️' },
+                    ].map((pos) => {
+                      const isSelected = (form.logo_position || 'left') === pos.id
+                      return (
+                        <button
+                          key={pos.id}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, logo_position: pos.id }))}
+                          className={`p-3 rounded-xl border text-left transition-all relative ${
+                            isSelected
+                              ? 'border-primary-500 bg-primary-50 text-primary-900 ring-2 ring-primary-500/20 shadow-xs'
+                              : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-base">{pos.icon}</span>
+                            {isSelected && <span className="text-[10px] bg-primary-600 text-white font-bold px-1.5 py-0.5 rounded">Active</span>}
+                          </div>
+                          <p className="text-xs font-bold">{pos.label}</p>
+                          <p className="text-[10px] font-mono text-gray-500 mt-0.5">{pos.desc}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Real-Time Live Header Logo Preview */}
+                  <div className="pt-2 border-t border-gray-200/60 flex flex-col items-center justify-center text-center">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5">Live Header Logo Preview</span>
+                    <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-xs w-full flex items-center justify-center">
+                      <BrandLogoRenderer
+                        customLogo={form.logo_url}
+                        customName={form.name || shop?.name || 'Honey Spicy'}
+                        positionOverride={form.logo_position || 'left'}
+                        accentColor={form.primary_color || '#E5A43B'}
+                        textClassName="font-bold text-base text-gray-900"
+                        logoClassName="w-8 h-8 rounded-lg"
+                        textStyle={{ fontFamily: form.heading_font || form.font_family || 'Poppins' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>

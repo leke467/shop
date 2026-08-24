@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  BAZAAR — Marketplace with Category Pill Filters + Review Badges
     Think: Etsy/Amazon hybrid marketplace. Top filter bar with pill categories,
@@ -29,14 +30,12 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
       <header className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link to={`/shop/${base}`} className="flex items-center gap-2 flex-shrink-0">
-            {(shop?.logo || shop?.theme?.extra_tokens?.logo_url) ? (
-              <img src={getImageUrl(shop?.logo || shop?.theme?.extra_tokens?.logo_url)} alt="" className="w-8 h-8 rounded-lg object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm">
-                {shop?.name?.[0] || 'B'}
-              </div>
-            )}
-            <span className="font-bold text-lg hidden sm:block">{shop?.name || 'Bazaar'}</span>
+            <BrandLogoRenderer
+              shop={shop}
+              accentColor="#FF6B35"
+              textClassName="font-bold text-lg text-gray-900"
+              logoClassName="w-8 h-8 rounded-lg"
+            />
           </Link>
 
           {/* Search Bar — marketplace style */}

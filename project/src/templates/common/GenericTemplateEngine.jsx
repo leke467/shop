@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import Logo from '../../components/Logo'
+import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
@@ -153,23 +154,13 @@ function EngineNavbar({ config, shop, shopSlug }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand */}
         <Link to={homeUrl} className="flex items-center gap-3">
-          {logoSrc ? (
-            <img
-              src={getImageUrl(logoSrc)}
-              alt={shop?.name || 'Shop'}
-              className="w-10 h-10 rounded-xl object-cover"
-            />
-          ) : (
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-white"
-              style={{ backgroundColor: primaryAccent }}
-            >
-              {shop?.name?.charAt(0) || 'M'}
-            </div>
-          )}
-          <span className="font-extrabold text-xl" style={{ color: config.textColor }}>
-            {shop?.name || config.defaultName || 'Store'}
-          </span>
+          <BrandLogoRenderer
+            shop={shop}
+            accentColor={primaryAccent}
+            textClassName="font-extrabold text-xl tracking-tight"
+            textStyle={{ color: config.textColor }}
+            logoClassName="w-10 h-10 rounded-xl"
+          />
         </Link>
 
         {/* Desktop Links */}

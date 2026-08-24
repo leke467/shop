@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import { getImageUrl } from '../../../services/api'
 import Logo from '../../../components/Logo'
+import BrandLogoRenderer from '../../../components/shop/BrandLogoRenderer'
 
 export default function ObsidianNavbar({ shop, shopSlug }) {
   const navigate = useNavigate()
@@ -29,23 +30,12 @@ export default function ObsidianNavbar({ shop, shopSlug }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand Logo & Name */}
         <Link to={homeUrl} className="flex items-center gap-3 group">
-          {shop?.logo ? (
-            <img
-              src={getImageUrl(shop.logo)}
-              alt={shop.name}
-              className="w-10 h-10 rounded-xl object-cover border border-white/20 shadow-md group-hover:scale-105 transition-transform"
-            />
-          ) : (
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${primaryAccent}, #4C1D95)` }}
-            >
-              {shop?.name?.charAt(0) || 'O'}
-            </div>
-          )}
-          <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-purple-300 transition-colors">
-            {shop?.name || 'Obsidian Luxe'}
-          </span>
+          <BrandLogoRenderer
+            shop={shop}
+            accentColor={primaryAccent}
+            textClassName="font-extrabold text-xl tracking-tight text-white group-hover:text-purple-300 transition-colors"
+            logoClassName="w-10 h-10 rounded-xl border border-white/20 shadow-md group-hover:scale-105 transition-transform"
+          />
         </Link>
 
         {/* Desktop Nav Links */}

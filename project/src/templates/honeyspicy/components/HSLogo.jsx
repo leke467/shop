@@ -1,20 +1,22 @@
 import { motion } from 'framer-motion'
-import { getImageUrl } from '../../../services/api'
+import BrandLogoRenderer from '../../../components/shop/BrandLogoRenderer'
 
 export default function HSLogo({ shop }) {
-  const logoSrc = shop?.logo || shop?.theme?.extra_tokens?.logo_url
+  const extra = shop?.theme?.extra_tokens || {}
+  const primaryColor = extra.primary_color || '#E5A43B'
 
   return (
     <motion.div
       className="hs-logo"
-      whileHover={{ rotate: [0, -10, 10, -5, 0], transition: { duration: 0.5 } }}
+      whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
     >
-      {logoSrc ? (
-        <img src={getImageUrl(logoSrc)} alt={shop?.name || 'Shop'} className="hs-logo-img" />
-      ) : (
-        <span className="hs-logo-text">{shop?.name?.[0] || '🍯'}</span>
-      )}
-      <span className="hs-logo-name">{shop?.name || 'Shop'}</span>
+      <BrandLogoRenderer
+        shop={shop}
+        accentColor={primaryColor}
+        textClassName="hs-logo-name"
+        logoClassName="hs-logo-img"
+        fallbackIcon={<span className="hs-logo-text">{shop?.name?.[0] || '🍯'}</span>}
+      />
     </motion.div>
   )
 }

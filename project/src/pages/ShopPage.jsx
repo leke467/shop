@@ -7,6 +7,7 @@ import { useShop, getTemplateShopCache, setTemplateShopCache } from '../context/
 import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
 import TemplateRouter from '../templates/TemplateRouter'
+import BrandLogoRenderer from '../components/shop/BrandLogoRenderer'
 
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)

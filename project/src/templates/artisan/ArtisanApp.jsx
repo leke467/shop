@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ARTISAN — Newspaper / Broadsheet Editorial Column Layout
     Think: NYT Cooking section, print broadsheet with justified columns
@@ -23,9 +24,15 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
         <div className="max-w-6xl mx-auto px-6 py-6 text-center">
           <Link to="/" className="text-[10px] tracking-[0.4em] uppercase text-[#8B7355] block mb-1" style={{ fontFamily: 'sans-serif' }}>← Back to MultiShop</Link>
           <Link to={`/shop/${base}`}>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight border-y-2 border-[#2D2D2D] py-3 mt-2 mb-2 uppercase" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {shop?.name || 'THE ARTISAN GAZETTE'}
-            </h1>
+            <div className="border-y-2 border-[#2D2D2D] py-3 mt-2 mb-2 flex justify-center">
+              <BrandLogoRenderer
+                shop={shop}
+                accentColor="#8B7355"
+                textClassName="text-3xl sm:text-5xl font-bold tracking-tight uppercase"
+                textStyle={{ fontFamily: "'Playfair Display', serif" }}
+                logoClassName="w-10 h-10 rounded-full"
+              />
+            </div>
           </Link>
           <div className="flex items-center justify-center gap-6 text-[10px] tracking-[0.3em] uppercase text-[#8B7355]" style={{ fontFamily: 'sans-serif' }}>
             <Link to={`/shop/${base}`} className="hover:text-[#2D2D2D] transition-colors">Front Page</Link>

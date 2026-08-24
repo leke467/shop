@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ZENITH — Dashboard / Analytics-Panel Layout with Stats Sidebar
     Think: Stripe dashboard meets product catalog, data-driven storefront
@@ -22,8 +23,12 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
       <header className="sticky top-0 z-40 bg-[#1E293B] border-b border-[#334155]">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between text-sm">
           <Link to={`/shop/${base}`} className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">Z</div>
-            <span className="font-semibold text-white">{shop?.name || 'Zenith'}</span>
+            <BrandLogoRenderer
+              shop={shop}
+              accentColor="#4F46E5"
+              textClassName="font-semibold text-white text-base"
+              logoClassName="w-7 h-7 rounded-lg"
+            />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-[#94A3B8] text-xs font-medium">
