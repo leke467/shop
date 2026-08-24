@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  BOHO — Masonry/Pinterest Staggered Grid + Arch-Top Cards
     Think: Etsy craft fair, handmade pottery shop, watercolor textures
@@ -20,15 +21,18 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
 
   return (
     <div className="min-h-screen bg-[#FAF5EF] text-[#5C4033] selection:bg-[#C4956A] selection:text-white" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="boho" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Bohemian Header with arch motif */}
-      <header className="sticky top-0 z-40 bg-[#FAF5EF]/95 backdrop-blur-md">
+      <header className="hidden md:block sticky top-0 z-40 bg-[#FAF5EF]/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="text-center">
             <span className="text-[9px] tracking-[0.5em] uppercase text-[#C4956A] block" style={{ fontFamily: 'sans-serif' }}>handcrafted with love</span>
             <span className="text-2xl">{shop?.name || 'Bohème Artisan'}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm text-[#8B6F5C]" style={{ fontFamily: 'sans-serif' }}>
+          <nav className="flex items-center gap-8 text-sm text-[#8B6F5C]" style={{ fontFamily: 'sans-serif' }}>
             <Link to={`/shop/${base}`} className="hover:text-[#5C4033] transition-colors">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#5C4033] transition-colors">Shop All</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#5C4033] transition-colors">About Story</Link>
@@ -36,7 +40,7 @@ export default function BohoApp({ shop, products = [], reviews = [], shopSlug })
           </nav>
 
           <div className="flex items-center gap-3" style={{ fontFamily: 'sans-serif' }}>
-            <Link to="/" className="hidden sm:block text-xs text-[#C4956A] hover:text-[#5C4033]">← MultiShop</Link>
+            <Link to="/" className="text-xs text-[#C4956A] hover:text-[#5C4033]">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)} className="px-4 py-2 bg-[#5C4033] text-[#FAF5EF] rounded-full text-xs font-bold hover:bg-[#4A3B32] transition-colors">
               🧺 Basket ({cartCount})
             </button>
@@ -176,29 +180,29 @@ function BohoCatalog({ shop, products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <div className="py-16 text-center text-[#8B6F5C] text-sm" style={{ fontFamily: 'sans-serif' }}>No treasures found matching your search.</div>
       ) : (
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+        <div className="columns-2 sm:columns-2 lg:columns-3 gap-3 sm:gap-6 space-y-3 sm:space-y-6">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
-            const heights = ['h-64', 'h-72', 'h-56', 'h-80']
+            const heights = ['h-48 sm:h-64', 'h-56 sm:h-72', 'h-40 sm:h-56', 'h-60 sm:h-80']
             const h = heights[idx % heights.length]
 
             return (
-              <div key={p.id || idx} className="break-inside-avoid bg-white rounded-t-[80px] rounded-b-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border border-[#E8DDD2]">
+              <div key={p.id || idx} className="break-inside-avoid bg-white rounded-t-[40px] sm:rounded-t-[80px] rounded-b-xl sm:rounded-b-2xl overflow-hidden shadow-sm sm:shadow-md hover:shadow-xl transition-shadow border border-[#E8DDD2]">
                 <div className={`${h} overflow-hidden cursor-pointer`} onClick={() => onQuickView?.(p)}>
                   {imgSrc
                     ? <img src={imgSrc} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                    : <div className="w-full h-full bg-[#F5EDE3] flex items-center justify-center text-4xl">🏺</div>}
+                    : <div className="w-full h-full bg-[#F5EDE3] flex items-center justify-center text-3xl sm:text-4xl">🏺</div>}
                 </div>
-                <div className="p-5 space-y-2" style={{ fontFamily: 'sans-serif' }}>
-                  <h3 className="text-lg text-[#5C4033] cursor-pointer" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }} onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                  <p className="text-xs text-[#8B6F5C] line-clamp-2">{p.description || 'Artisan handmade piece.'}</p>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-lg font-bold text-[#5C4033]">₦{price.toLocaleString()}</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => onQuickView?.(p)} className="text-xs text-[#C4956A] hover:underline">View</button>
-                      <button onClick={() => addToCart(p)} className="px-3 py-1.5 bg-[#5C4033] text-[#FAF5EF] rounded-full text-xs font-bold hover:bg-[#4A3B32] transition-colors">+ Add</button>
+                <div className="p-3 sm:p-5 space-y-1 sm:space-y-2" style={{ fontFamily: 'sans-serif' }}>
+                  <h3 className="text-sm sm:text-lg text-[#5C4033] cursor-pointer truncate" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }} onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                  <p className="text-[10px] sm:text-xs text-[#8B6F5C] line-clamp-2 hidden sm:block">{p.description || 'Artisan handmade piece.'}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1 sm:pt-2 gap-1.5">
+                    <span className="text-xs sm:text-lg font-bold text-[#5C4033]">₦{price.toLocaleString()}</span>
+                    <div className="flex gap-1 sm:gap-2">
+                      <button onClick={() => onQuickView?.(p)} className="text-[10px] sm:text-xs text-[#C4956A] hover:underline">View</button>
+                      <button onClick={() => addToCart(p)} className="w-full sm:w-auto px-2 sm:px-3 py-1 sm:py-1.5 bg-[#5C4033] text-[#FAF5EF] rounded-full text-[10px] sm:text-xs font-bold hover:bg-[#4A3B32] transition-colors">+ Add</button>
                     </div>
                   </div>
                 </div>

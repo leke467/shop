@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ARTISAN — Newspaper / Broadsheet Editorial Column Layout
@@ -21,8 +22,11 @@ export default function ArtisanApp({ shop, products = [], reviews = [], shopSlug
 
   return (
     <div className="min-h-screen bg-[#FBF8F0] text-[#2D2D2D]" style={{ fontFamily: "'Lora', 'Georgia', serif" }}>
-      {/* Broadsheet Header */}
-      <header className="border-b-2 border-[#2D2D2D] bg-[#FBF8F0]">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="boho" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Broadsheet Desktop Header */}
+      <header className="hidden md:block border-b-2 border-[#2D2D2D] bg-[#FBF8F0]">
         <div className="max-w-6xl mx-auto px-6 py-6 text-center">
           <Link to="/" className="text-[10px] tracking-[0.4em] uppercase text-[#8B7355] block mb-1" style={{ fontFamily: 'sans-serif' }}>← Back to MultiShop</Link>
           <Link to={`/shop/${base}`}>
@@ -182,28 +186,28 @@ function ArtisanCatalog({ products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <p className="text-center py-12 text-sm text-[#8B7355]" style={{ fontFamily: 'sans-serif' }}>No classifieds match your criteria.</p>
       ) : (
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-8" style={{ columnRule: '1px solid #D4C5A9' }}>
+        <div className="columns-2 sm:columns-2 lg:columns-3 gap-4 sm:gap-8" style={{ columnRule: '1px solid #D4C5A9' }}>
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
 
             return (
-              <div key={p.id || idx} className="break-inside-avoid mb-8 border-b border-[#D4C5A9] pb-6">
+              <div key={p.id || idx} className="break-inside-avoid mb-4 sm:mb-8 border-b border-[#D4C5A9] pb-4 sm:pb-6">
                 {imgSrc && (
-                  <div className="h-48 overflow-hidden mb-3 bg-[#E8E0D0] cursor-pointer" onClick={() => onQuickView?.(p)}>
+                  <div className="h-32 sm:h-48 overflow-hidden mb-2 sm:mb-3 bg-[#E8E0D0] cursor-pointer" onClick={() => onQuickView?.(p)}>
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover sepia hover:sepia-0 transition-all duration-500" />
                   </div>
                 )}
-                <h3 className="text-xl font-bold mb-1 cursor-pointer" style={{ fontFamily: "'Playfair Display', serif" }} onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                <p className="text-xs text-[#555] mb-2 leading-relaxed" style={{ fontFamily: 'sans-serif', textAlign: 'justify' }}>
+                <h3 className="text-sm sm:text-xl font-bold mb-1 cursor-pointer truncate" style={{ fontFamily: "'Playfair Display', serif" }} onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                <p className="text-[10px] sm:text-xs text-[#555] mb-2 leading-relaxed hidden sm:block" style={{ fontFamily: 'sans-serif', textAlign: 'justify' }}>
                   {p.description || 'A finely crafted artisan piece, made with care and attention to detail.'}
                 </p>
-                <div className="flex items-center justify-between" style={{ fontFamily: 'sans-serif' }}>
-                  <span className="font-bold text-lg text-[#2D2D2D]">₦{price.toLocaleString()}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => onQuickView?.(p)} className="text-[10px] text-[#8B7355] underline uppercase hover:text-[#2D2D2D]">Details</button>
-                    <button onClick={() => addToCart(p)} className="px-3 py-1.5 bg-[#2D2D2D] text-[#FBF8F0] text-[10px] uppercase tracking-wider hover:bg-[#1A1A1A] transition-all">+ Add</button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5" style={{ fontFamily: 'sans-serif' }}>
+                  <span className="font-bold text-xs sm:text-lg text-[#2D2D2D]">₦{price.toLocaleString()}</span>
+                  <div className="flex gap-1 sm:gap-2">
+                    <button onClick={() => onQuickView?.(p)} className="text-[9px] sm:text-[10px] text-[#8B7355] underline uppercase hover:text-[#2D2D2D]">Details</button>
+                    <button onClick={() => addToCart(p)} className="w-full sm:w-auto px-2 sm:px-3 py-1 sm:py-1.5 bg-[#2D2D2D] text-[#FBF8F0] text-[9px] sm:text-[10px] uppercase tracking-wider hover:bg-[#1A1A1A] transition-all text-center">+ Add</button>
                   </div>
                 </div>
               </div>

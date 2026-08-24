@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  EMERALD — Split-Screen Vertical Layout
     Left panel = fixed brand/nav column, Right panel = scrollable content
@@ -19,7 +20,10 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
   const base = shopSlug || shop?.slug || ''
 
   return (
-    <div className="flex min-h-screen bg-[#F0FDF4] text-[#064E3B] font-sans">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#F0FDF4] text-[#064E3B] font-sans">
+      {/* MOBILE TOP NAVIGATION & DRAWER */}
+      <TemplateMobileNav shop={shop} shopSlug={shopSlug} theme="emerald" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* LEFT FIXED SIDEBAR — always visible on desktop */}
       <aside className="hidden lg:flex flex-col justify-between w-72 bg-[#022C22] text-white p-8 sticky top-0 h-screen border-r border-emerald-800">
         <div className="space-y-8">
@@ -45,19 +49,8 @@ export default function EmeraldApp({ shop, products = [], reviews = [], shopSlug
         </div>
       </aside>
 
-      {/* MOBILE TOP BAR */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#022C22] text-white px-4 py-3 flex items-center justify-between">
-        <Link to={base ? `/shop/${base}` : '/'} className="font-light text-lg">{shop?.name || 'VERDANT'}</Link>
-        <div className="flex gap-3 items-center">
-          <Link to={base ? `/shop/${base}/about` : '/about'} className="text-emerald-300 hover:text-white text-xs">About</Link>
-          <Link to={base ? `/shop/${base}/reviews` : '/reviews'} className="text-emerald-300 hover:text-white text-xs">Reviews</Link>
-          <Link to="/" className="text-emerald-400 text-xs">← MultiShop</Link>
-          <button onClick={() => setIsCartOpen(true)} className="bg-emerald-600 px-3 py-1 rounded text-xs font-bold">Bag ({cartCount})</button>
-        </div>
-      </div>
-
       {/* RIGHT SCROLLABLE CONTENT */}
-      <main className="flex-1 lg:ml-0 mt-14 lg:mt-0 flex flex-col min-h-screen">
+      <main className="flex-1 lg:ml-0 flex flex-col min-h-screen">
         <div className="flex-1">
           <Routes>
             <Route index element={<EmeraldHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />

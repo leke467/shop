@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  DEPARTMENT — Traditional E-Commerce with Sidebar Category Filters
@@ -21,8 +22,11 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
 
   return (
     <div className="min-h-screen bg-white text-[#333]" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="default" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Top Utility Bar */}
-      <div className="bg-[#1B3A5C] text-white text-[10px] py-1.5 px-6">
+      <div className="hidden md:block bg-[#1B3A5C] text-white text-[10px] py-1.5 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span>Free delivery on orders over ₦15,000 · Customer support: 09:00 – 18:00</span>
           <div className="flex gap-4">
@@ -31,8 +35,8 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
         </div>
       </div>
 
-      {/* Main Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
+      {/* Main Desktop Header */}
+      <header className="hidden md:block border-b border-gray-200 bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="flex items-center gap-2">
             <BrandLogoRenderer
@@ -43,7 +47,7 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
             />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+          <nav className="flex items-center gap-6 text-xs font-semibold text-gray-600 uppercase tracking-wider">
             <Link to={`/shop/${base}`} className="hover:text-[#1B3A5C]">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#1B3A5C]">All Products</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#1B3A5C]">About Us</Link>

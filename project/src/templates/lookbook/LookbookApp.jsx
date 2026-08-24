@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  LOOKBOOK — Full-Viewport Scroll-Snap Slides
     Each product is a full-screen slide. Scroll vertically to flip through.
@@ -20,13 +21,16 @@ export default function LookbookApp({ shop, products = [], reviews = [], shopSlu
 
   return (
     <div className="min-h-screen bg-[#111] text-white" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
-      {/* Floating overlay header */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between mix-blend-difference">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="minimalist" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Floating overlay desktop header */}
+      <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 px-6 py-4 items-center justify-between mix-blend-difference">
         <Link to={`/shop/${base}`} className="text-xl font-bold tracking-[0.2em] uppercase text-white">
           {shop?.name || 'LOOKBOOK'}
         </Link>
         <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest">
-          <Link to="/" className="hidden sm:block text-white/60 hover:text-white">MultiShop</Link>
+          <Link to="/" className="text-white/60 hover:text-white">MultiShop</Link>
           <Link to={`/shop/${base}/catalog`} className="text-white/60 hover:text-white">Index</Link>
           <Link to={`/shop/${base}/about`} className="text-white/60 hover:text-white">About</Link>
           <Link to={`/shop/${base}/reviews`} className="text-white/60 hover:text-white">Reviews</Link>
@@ -198,17 +202,21 @@ function LookbookIndex({ products = [], onQuickView }) {
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
             return (
-              <div key={p.id || idx} className="flex items-center gap-6 py-6 border-b border-white/10 group hover:bg-white/5 px-4 -mx-4 transition-colors">
-                <span className="text-3xl font-black text-white/10 w-12 flex-shrink-0">{String(idx + 1).padStart(2, '0')}</span>
-                {imgSrc && <img src={imgSrc} alt="" onClick={() => onQuickView?.(p)} className="w-16 h-16 object-cover flex-shrink-0 grayscale group-hover:grayscale-0 transition-all cursor-pointer" />}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-lg truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                  <p className="text-xs text-white/40 truncate">{p.description || 'Editorial collection'}</p>
+              <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 py-4 sm:py-6 border-b border-white/10 group hover:bg-white/5 px-2 sm:px-4 transition-colors">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <span className="text-xl sm:text-3xl font-black text-white/20 w-8 sm:w-12 flex-shrink-0">{String(idx + 1).padStart(2, '0')}</span>
+                  {imgSrc && <img src={imgSrc} alt="" onClick={() => onQuickView?.(p)} className="w-12 h-12 sm:w-16 sm:h-16 rounded-md object-cover flex-shrink-0 grayscale group-hover:grayscale-0 transition-all cursor-pointer" />}
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm sm:text-lg truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                    <p className="text-[10px] sm:text-xs text-white/40 truncate">{p.description || 'Editorial collection'}</p>
+                  </div>
                 </div>
-                <span className="font-bold text-lg flex-shrink-0">₦{price.toLocaleString()}</span>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => onQuickView?.(p)} className="px-3 py-2 border border-white/30 text-white text-xs font-bold uppercase tracking-wider hover:bg-white/10">View</button>
-                  <button onClick={() => addToCart(p)} className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-white/90 transition-all">+ Add</button>
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pl-11 sm:pl-0">
+                  <span className="font-bold text-sm sm:text-lg">₦{price.toLocaleString()}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => onQuickView?.(p)} className="px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/30 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-white/10">View</button>
+                    <button onClick={() => addToCart(p)} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-white/90 transition-all">+ Add</button>
+                  </div>
                 </div>
               </div>
             )

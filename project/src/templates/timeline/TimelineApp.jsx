@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  TIMELINE → GALLERY MUSEUM — One-at-a-time Art Exhibition
     Products shown as framed art on dark gallery walls.
@@ -21,15 +22,18 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-[#E8E4DE]" style={{ fontFamily: "'Cormorant Garamond', 'Georgia', serif" }}>
-      {/* Museum Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-[#1A1A1A]/90 backdrop-blur-md border-b border-[#333]">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="royal" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Museum Desktop Header */}
+      <header className="hidden md:block fixed top-0 left-0 right-0 z-40 bg-[#1A1A1A]/90 backdrop-blur-md border-b border-[#333]">
         <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="flex items-center gap-3">
             <span className="text-[10px] tracking-[0.5em] uppercase text-[#8A7E72]" style={{ fontFamily: 'sans-serif' }}>Gallery</span>
             <span className="text-xl font-light tracking-wider">{shop?.name || 'THE GALLERY'}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-[11px] tracking-[0.3em] uppercase text-[#6B6460]" style={{ fontFamily: 'sans-serif' }}>
+          <nav className="flex items-center gap-8 text-[11px] tracking-[0.3em] uppercase text-[#6B6460]" style={{ fontFamily: 'sans-serif' }}>
             <Link to={`/shop/${base}`} className="hover:text-[#E8E4DE] transition-colors">Exhibition</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#E8E4DE] transition-colors">Collection</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#E8E4DE] transition-colors">About Story</Link>
@@ -37,7 +41,7 @@ export default function TimelineApp({ shop, products = [], reviews = [], shopSlu
           </nav>
 
           <div className="flex items-center gap-4" style={{ fontFamily: 'sans-serif' }}>
-            <Link to="/" className="hidden sm:block text-[10px] text-[#6B6460] hover:text-[#E8E4DE] tracking-wider">← MultiShop</Link>
+            <Link to="/" className="text-[10px] text-[#6B6460] hover:text-[#E8E4DE] tracking-wider">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 border border-[#444] text-[11px] tracking-wider uppercase hover:bg-[#333] transition-all">
               Acquire ({cartCount})
@@ -252,29 +256,29 @@ function GalleryCollection({ products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <div className="py-20 text-center text-[#6B6460] text-sm" style={{ fontFamily: 'sans-serif' }}>No exhibition pieces found.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-16">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
             return (
               <div key={p.id || idx} className="group">
-                <div className="bg-[#0F0F0F] p-3 shadow-xl mb-4 cursor-pointer" style={{ boxShadow: '0 0 40px rgba(0,0,0,0.6)' }} onClick={() => onQuickView?.(p)}>
+                <div className="bg-[#0F0F0F] p-2 sm:p-3 shadow-xl mb-2 sm:mb-4 cursor-pointer" style={{ boxShadow: '0 0 40px rgba(0,0,0,0.6)' }} onClick={() => onQuickView?.(p)}>
                   <div className="aspect-[4/3] bg-[#222] overflow-hidden">
                     {imgSrc
                       ? <img src={imgSrc} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      : <div className="w-full h-full flex items-center justify-center text-4xl text-[#333]">🖼</div>}
+                      : <div className="w-full h-full flex items-center justify-center text-2xl sm:text-4xl text-[#333]">🖼</div>}
                   </div>
                 </div>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-[9px] tracking-[0.4em] uppercase text-[#6B6460] block mb-1" style={{ fontFamily: 'sans-serif' }}>{p.category?.name || 'Piece'}</span>
-                    <h3 className="text-xl font-light tracking-wide cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5 sm:gap-4">
+                  <div className="truncate">
+                    <span className="text-[8px] sm:text-[9px] tracking-[0.4em] uppercase text-[#6B6460] block mb-0.5 sm:mb-1" style={{ fontFamily: 'sans-serif' }}>{p.category?.name || 'Piece'}</span>
+                    <h3 className="text-sm sm:text-xl font-light tracking-wide cursor-pointer truncate" onClick={() => onQuickView?.(p)}>{p.name}</h3>
                   </div>
-                  <div className="text-right flex-shrink-0" style={{ fontFamily: 'sans-serif' }}>
-                    <span className="text-lg font-light block">₦{price.toLocaleString()}</span>
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:text-right flex-shrink-0 pt-1 sm:pt-0" style={{ fontFamily: 'sans-serif' }}>
+                    <span className="text-xs sm:text-lg font-light block">₦{price.toLocaleString()}</span>
                     <button onClick={() => addToCart(p)}
-                      className="text-[10px] text-[#6B6460] hover:text-[#E8E4DE] uppercase tracking-wider mt-1 transition-colors">
+                      className="text-[9px] sm:text-[10px] text-[#6B6460] hover:text-[#E8E4DE] uppercase tracking-wider mt-0.5 sm:mt-1 transition-colors">
                       + Acquire
                     </button>
                   </div>

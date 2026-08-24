@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  INDUSTRIAL — Blueprint / Technical Schematic Layout
     Think: Construction supply catalog, engineering blueprint, exposed steel
@@ -20,11 +21,14 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
 
   return (
     <div className="min-h-screen bg-[#1C1C1C] text-[#E0D8C8]" style={{ fontFamily: "'Space Mono', 'Courier New', monospace" }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={shopSlug || base} theme="industrial" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Caution Stripe Top Bar */}
       <div className="h-2" style={{ background: 'repeating-linear-gradient(45deg, #F59E0B, #F59E0B 10px, #1C1C1C 10px, #1C1C1C 20px)' }} />
 
-      {/* Industrial Header */}
-      <header className="border-b border-dashed border-[#3D3D3D] sticky top-0 z-40 bg-[#1C1C1C]/95 backdrop-blur-sm">
+      {/* Industrial Desktop Header */}
+      <header className="hidden md:block border-b border-dashed border-[#3D3D3D] sticky top-0 z-40 bg-[#1C1C1C]/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between text-xs uppercase tracking-widest">
           <Link to={`/shop/${base}`} className="flex items-center gap-3">
             <span className="text-[#F59E0B] font-bold">⚙️</span>
@@ -34,7 +38,7 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-[#6B6B6B]">
+          <nav className="flex items-center gap-8 text-[#6B6B6B]">
             <Link to={`/shop/${base}`} className="hover:text-[#F59E0B] transition-colors">[MAIN]</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#F59E0B] transition-colors">[INVENTORY]</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#F59E0B] transition-colors">[ABOUT]</Link>
@@ -42,7 +46,7 @@ export default function IndustrialApp({ shop, products = [], reviews = [], shopS
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link to="/" className="hidden sm:block text-[#6B6B6B] hover:text-[#F59E0B]">[← MULTISHOP]</Link>
+            <Link to="/" className="text-[#6B6B6B] hover:text-[#F59E0B]">[← MULTISHOP]</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 border border-dashed border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B] hover:text-black transition-all">
               CRATE [{cartCount}]

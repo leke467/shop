@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  FUTURA — Glassmorphic Floating Panels + Holographic Gradients
     Think: Apple Vision Pro UI, frosted glass cards, iridescent gradients
@@ -20,6 +21,9 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden" style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: 'linear-gradient(135deg, #0c0015 0%, #1a0a2e 30%, #0d1b2a 60%, #0a0a0a 100%)' }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="cyberpunk" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Floating ambient blobs */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #7c3aed, transparent)', filter: 'blur(100px)' }} />
@@ -27,15 +31,15 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
         <div className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #06b6d4, transparent)', filter: 'blur(100px)' }} />
       </div>
 
-      {/* Glassmorphic Header */}
-      <header className="sticky top-4 z-40 mx-4 sm:mx-8 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+      {/* Glassmorphic Desktop Header */}
+      <header className="hidden md:block sticky top-4 z-40 mx-4 sm:mx-8 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="px-6 h-16 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold" style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>F</div>
             <span className="font-semibold text-sm tracking-wider">{shop?.name || 'FUTURA'}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs text-white/50">
+          <nav className="flex items-center gap-6 text-xs text-white/50">
             <Link to={`/shop/${base}`} className="hover:text-white transition-colors">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-white transition-colors">Explore</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-white transition-colors">About</Link>
@@ -43,7 +47,7 @@ export default function FuturaApp({ shop, products = [], reviews = [], shopSlug 
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link to="/" className="hidden sm:block text-xs text-white/40 hover:text-white">← MultiShop</Link>
+            <Link to="/" className="text-xs text-white/40 hover:text-white">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 rounded-xl text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
               Cart ({cartCount})
@@ -172,9 +176,9 @@ function FuturaCatalog({ products = [], onQuickView }) {
 
       {/* Glassmorphic floating panels */}
       {filtered.length === 0 ? (
-        <p className="text-center py-16 text-xs text-white/40">No items found matching your filter.</p>
+        <p className="text-center py-16 text-sm text-white/30">No items match your query.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -182,33 +186,33 @@ function FuturaCatalog({ products = [], onQuickView }) {
 
             return (
               <div key={p.id || idx}
-                className="rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300"
+                className="rounded-2xl sm:rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
 
-                <div className="h-56 overflow-hidden relative cursor-pointer"
+                <div className="h-36 sm:h-56 overflow-hidden relative cursor-pointer"
                   onClick={() => onQuickView?.(p)}
                   style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.1), rgba(236,72,153,0.1))' }}>
                   {imgSrc
                     ? <img src={imgSrc} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
-                    : <div className="w-full h-full flex items-center justify-center text-4xl text-white/20">✦</div>}
+                    : <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl text-white/20">✦</div>}
 
                   <button onClick={(e) => { e.stopPropagation(); onQuickView?.(p) }}
-                    className="absolute top-3 right-3 px-3 py-1.5 rounded-xl text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-all"
                     style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
                     Quick View
                   </button>
                 </div>
 
-                <div className="p-5 space-y-2">
-                  <h3 className="font-semibold text-sm text-white truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                  <p className="text-[11px] text-white/40 line-clamp-1">{p.description || 'Premium item'}</p>
-                  <div className="flex items-center justify-between pt-3">
-                    <span className="font-bold"
+                <div className="p-3 sm:p-5 space-y-1 sm:space-y-2">
+                  <h3 className="font-semibold text-xs sm:text-sm text-white truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                  <p className="text-[10px] sm:text-[11px] text-white/40 line-clamp-1 hidden sm:block">{p.description || 'Premium item'}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1 sm:pt-3 gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm"
                       style={{ background: 'linear-gradient(135deg, #c084fc, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                       ₦{price.toLocaleString()}
                     </span>
                     <button onClick={() => addToCart(p)}
-                      className="px-4 py-2 rounded-xl text-[10px] font-bold text-white hover:scale-105 transition-transform"
+                      className="w-full sm:w-auto px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-bold text-white hover:scale-105 transition-transform text-center"
                       style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
                       + Add
                     </button>

@@ -436,7 +436,7 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
             <p className="mt-2 text-sm" style={{ color: config.subtextColor }}>No products found matching search.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {filtered.map(p => {
               const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
               const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -445,38 +445,38 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
               return (
                 <div
                   key={p.id || p.slug}
-                  className="rounded-3xl border overflow-hidden flex flex-col justify-between transition-all hover:shadow-xl"
+                  className="rounded-2xl sm:rounded-3xl border overflow-hidden flex flex-col justify-between transition-all hover:shadow-xl"
                   style={{ borderColor: config.borderColor, backgroundColor: config.cardBg }}
                 >
-                  <div className="relative h-60 bg-gray-100 overflow-hidden cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
+                  <div className="relative h-36 sm:h-60 bg-gray-100 overflow-hidden cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
                     {imgSrc ? (
                       <img src={imgSrc} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🛍️</div>
+                      <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl">🛍️</div>
                     )}
 
                     <button
                       onClick={(e) => { e.stopPropagation(); onQuickView && onQuickView(p); }}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white text-xs backdrop-blur-md hover:bg-black"
+                      className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 rounded-full bg-black/60 text-white text-[10px] sm:text-xs backdrop-blur-md hover:bg-black"
                     >
                       👁️
                     </button>
                   </div>
 
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
                     <div>
                       {p.category?.name && (
-                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryAccent }}>{p.category.name}</span>
+                        <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryAccent }}>{p.category.name}</span>
                       )}
-                      <h3 className="font-bold text-base line-clamp-1 mt-0.5 cursor-pointer hover:underline" style={{ color: config.textColor }} onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
-                      <p className="text-xs line-clamp-2 mt-1" style={{ color: config.subtextColor }}>{p.description || 'Quality product'}</p>
+                      <h3 className="font-bold text-xs sm:text-base line-clamp-1 mt-0.5 cursor-pointer hover:underline" style={{ color: config.textColor }} onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
+                      <p className="text-[10px] sm:text-xs line-clamp-2 mt-1 hidden sm:block" style={{ color: config.subtextColor }}>{p.description || 'Quality product'}</p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: config.borderColor }}>
-                      <span className="text-lg font-black" style={{ color: config.textColor }}>₦{price.toLocaleString()}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 sm:pt-3 border-t gap-1.5" style={{ borderColor: config.borderColor }}>
+                      <span className="text-xs sm:text-lg font-black" style={{ color: config.textColor }}>₦{price.toLocaleString()}</span>
                       <button
                         onClick={() => addToCart(p)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md hover:scale-105 transition-all"
+                        className="w-full sm:w-auto px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-white shadow-md hover:scale-105 transition-all text-center"
                         style={{ backgroundColor: primaryAccent }}
                       >
                         + Add

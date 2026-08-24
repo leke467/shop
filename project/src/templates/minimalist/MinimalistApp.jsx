@@ -7,6 +7,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import './minimalist.css'
 
 export default function MinimalistApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -22,8 +23,11 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
 
   return (
     <div className="min-template font-sans bg-white text-gray-900 min-h-screen flex flex-col selection:bg-black selection:text-white">
-      {/* Top Architectural Header */}
-      <header className="border-b border-gray-200 sticky top-0 z-40 bg-white/90 backdrop-blur-md">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={shopSlug} theme="minimalist" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Desktop Architectural Header */}
+      <header className="hidden md:block border-b border-gray-200 sticky top-0 z-40 bg-white/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to={homeUrl} className="flex items-center gap-3 group">
             <span className="font-mono text-xs uppercase tracking-widest text-gray-400">STUDIO //</span>
@@ -32,7 +36,7 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-gray-500">
+          <nav className="flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-gray-500">
             <Link to={homeUrl} className="hover:text-black transition-colors">01. Home</Link>
             <Link to={catalogUrl} className="hover:text-black transition-colors">02. Index</Link>
             <Link to={baseSlug ? `/shop/${baseSlug}/about` : '/about'} className="hover:text-black transition-colors">03. About</Link>
@@ -42,7 +46,7 @@ export default function MinimalistApp({ shop, products = [], reviews = [], shopS
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="hidden sm:inline-block px-3 py-1.5 border border-gray-900 font-mono text-[11px] uppercase tracking-widest hover:bg-black hover:text-white transition-all"
+              className="px-3 py-1.5 border border-gray-900 font-mono text-[11px] uppercase tracking-widest hover:bg-black hover:text-white transition-all"
             >
               ← MultiShop
             </Link>
@@ -212,14 +216,14 @@ function MinimalistCatalog({ shop, products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <div className="py-20 text-center font-mono text-xs uppercase tracking-widest text-gray-400">NO OBJECTS FOUND.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-x-12 sm:gap-y-16">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
 
             return (
-              <div key={p.id || idx} className="group flex flex-col space-y-4">
+              <div key={p.id || idx} className="group flex flex-col space-y-3 sm:space-y-4">
                 <div className="relative aspect-4/5 bg-gray-100 border border-gray-200 overflow-hidden cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
                   {imgSrc ? (
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" />
@@ -229,23 +233,23 @@ function MinimalistCatalog({ shop, products = [], onQuickView }) {
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onQuickView && onQuickView(p); }}
-                    className="absolute top-4 right-4 bg-white text-black font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-black opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white text-black font-mono text-[9px] sm:text-[10px] uppercase tracking-widest px-2 sm:px-3 py-1 sm:py-1.5 border border-black opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     INSPECT
                   </button>
                 </div>
 
-                <div className="flex justify-between items-baseline font-mono text-xs uppercase tracking-wider pt-2 border-t border-gray-100">
-                  <div>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-baseline font-mono text-xs uppercase tracking-wider pt-2 border-t border-gray-100 gap-1">
+                  <div className="truncate">
                     <span className="text-gray-400 block text-[10px]">[{String(idx + 1).padStart(2, '0')}]</span>
-                    <h3 className="font-bold text-gray-900 group-hover:underline mt-0.5 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
+                    <h3 className="font-bold text-gray-900 group-hover:underline mt-0.5 cursor-pointer truncate" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
                   </div>
-                  <span className="font-black text-black">₦{price.toLocaleString()}</span>
+                  <span className="font-black text-black text-xs sm:text-sm">₦{price.toLocaleString()}</span>
                 </div>
 
                 <button
                   onClick={() => addToCart(p)}
-                  className="w-full py-2.5 border border-black font-mono text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all text-center"
+                  className="w-full py-2 sm:py-2.5 border border-black font-mono text-[10px] sm:text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all text-center"
                 >
                   + Add to Bag
                 </button>

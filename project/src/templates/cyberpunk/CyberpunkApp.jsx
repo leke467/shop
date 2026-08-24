@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import './cyberpunk.css'
 
 export default function CyberpunkApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -21,14 +22,17 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
 
   return (
     <div className="cyber-template bg-[#080810] text-[#00F0FF] min-h-screen font-mono selection:bg-[#FF007F] selection:text-white">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={shopSlug} theme="cyberpunk" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Cyber Telemetry Header Bar */}
-      <div className="bg-[#121220] border-b border-[#FF007F]/40 px-6 py-1 text-[11px] flex justify-between items-center text-[#FF007F]">
+      <div className="hidden md:flex bg-[#121220] border-b border-[#FF007F]/40 px-6 py-1 text-[11px] justify-between items-center text-[#FF007F]">
         <span>[SYS_STATUS: ONLINE] [NEURAL_LINK: ESTABLISHED]</span>
-        <span className="hidden sm:inline">[PORTAL: MULTISHOP_HUB_v2.0]</span>
+        <span>[PORTAL: MULTISHOP_HUB_v2.0]</span>
       </div>
 
       {/* Cyber HUD Navbar */}
-      <header className="border-b border-[#00F0FF]/30 bg-[#0A0A14]/90 backdrop-blur-md sticky top-0 z-40">
+      <header className="hidden md:block border-b border-[#00F0FF]/30 bg-[#0A0A14]/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to={homeUrl} className="flex items-center gap-3 group">
             <div className="w-10 h-10 border border-[#FF007F] bg-[#FF007F]/10 flex items-center justify-center text-white font-black text-xl shadow-[0_0_15px_#FF007F]">
@@ -39,7 +43,7 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs font-bold uppercase tracking-widest text-[#94A3B8]">
+          <nav className="flex items-center gap-6 text-xs font-bold uppercase tracking-widest text-[#94A3B8]">
             <Link to={homeUrl} className="hover:text-[#00F0FF] transition-colors">[01] // HOME</Link>
             <Link to={catalogUrl} className="hover:text-[#00F0FF] transition-colors">[02] // GRID</Link>
             <Link to={baseSlug ? `/shop/${baseSlug}/about` : '/about'} className="hover:text-[#00F0FF] transition-colors">[03] // ABOUT</Link>
@@ -49,7 +53,7 @@ export default function CyberpunkApp({ shop, products = [], reviews = [], shopSl
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="hidden sm:inline-block px-3 py-1.5 border border-[#FF007F]/50 text-[#FF007F] text-xs font-bold uppercase hover:bg-[#FF007F] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,127,0.3)]"
+              className="px-3 py-1.5 border border-[#FF007F]/50 text-[#FF007F] text-xs font-bold uppercase hover:bg-[#FF007F] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,127,0.3)]"
             >
               ← MULTISHOP
             </Link>
@@ -216,11 +220,11 @@ function CyberpunkCatalog({ shop, products = [], onQuickView }) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="py-20 text-center text-xs text-[#FF007F] border border-[#FF007F]/40 bg-[#120814]">
+        <div className="py-20 text-center text-[#FF007F] font-bold tracking-widest text-sm">
           [ERROR: NO_HARDWARE_FOUND]
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -229,34 +233,34 @@ function CyberpunkCatalog({ shop, products = [], onQuickView }) {
             return (
               <div
                 key={p.id || idx}
-                className="bg-[#0D0D1A] border border-[#00F0FF]/30 p-4 hover:border-[#FF007F] hover:shadow-[0_0_20px_rgba(255,0,127,0.3)] transition-all flex flex-col justify-between"
+                className="bg-[#0D0D1A] border border-[#00F0FF]/30 p-2.5 sm:p-4 hover:border-[#FF007F] hover:shadow-[0_0_20px_rgba(255,0,127,0.3)] transition-all flex flex-col justify-between"
               >
-                <div className="relative h-56 bg-slate-950 border border-[#00F0FF]/20 overflow-hidden mb-4 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
+                <div className="relative h-40 sm:h-56 bg-slate-950 border border-[#00F0FF]/20 overflow-hidden mb-3 sm:mb-4 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
                   {imgSrc ? (
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover opacity-85 hover:opacity-100 transition-opacity" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl text-[#FF007F]">⚡</div>
+                    <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl text-[#FF007F]">⚡</div>
                   )}
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onQuickView && onQuickView(p); }}
-                    className="absolute top-2 right-2 bg-black/80 text-[#00F0FF] border border-[#00F0FF] px-2 py-1 text-[10px]"
+                    className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-black/80 text-[#00F0FF] border border-[#00F0FF] px-1.5 sm:px-2 py-0.5 sm:py-1 text-[9px] sm:text-[10px]"
                   >
                     INSPECT
                   </button>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <span className="text-[10px] text-[#FF007F] block">[ITEM_ID: #{String(idx + 1).padStart(3, '0')}]</span>
-                  <h3 className="text-base font-bold uppercase text-white truncate cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
-                  <p className="text-xs text-[#94A3B8] line-clamp-2">{p.description || 'Cyberpunk gear.'}</p>
+                <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
+                  <span className="text-[9px] sm:text-[10px] text-[#FF007F] block">[ITEM_ID: #{String(idx + 1).padStart(3, '0')}]</span>
+                  <h3 className="text-xs sm:text-base font-bold uppercase text-white truncate cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
+                  <p className="text-[10px] sm:text-xs text-[#94A3B8] line-clamp-2 hidden sm:block">{p.description || 'Cyberpunk gear.'}</p>
                 </div>
 
-                <div className="pt-3 border-t border-[#00F0FF]/20 flex items-center justify-between">
-                  <span className="text-lg font-bold text-white">₦{price.toLocaleString()}</span>
+                <div className="pt-2 sm:pt-3 border-t border-[#00F0FF]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <span className="text-xs sm:text-lg font-bold text-white">₦{price.toLocaleString()}</span>
                   <button
                     onClick={() => addToCart(p)}
-                    className="bg-[#FF007F] text-white border border-white px-3 py-1.5 text-xs font-bold uppercase shadow-[0_0_10px_#FF007F] hover:bg-[#D9006C]"
+                    className="w-full sm:w-auto bg-[#FF007F] text-white border border-white px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold uppercase shadow-[0_0_10px_#FF007F] hover:bg-[#D9006C]"
                   >
                     + MOUNT
                   </button>

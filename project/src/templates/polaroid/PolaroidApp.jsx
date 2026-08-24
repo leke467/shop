@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  POLAROID — Scattered Tilted Photo Cards on a Cork Board
     Products displayed as polaroid snapshots at random angles on a
@@ -27,8 +28,11 @@ export default function PolaroidApp({ shop, products = [], reviews = [], shopSlu
       backgroundColor: '#C4A882',
       backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.08\'/%3E%3C/svg%3E")',
     }}>
-      {/* Handwritten Header pinned to top */}
-      <header className="sticky top-0 z-40 bg-[#C4A882]/95 backdrop-blur-sm border-b border-[#B09670]">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="boho" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Handwritten Desktop Header pinned to top */}
+      <header className="hidden md:block sticky top-0 z-40 bg-[#C4A882]/95 backdrop-blur-sm border-b border-[#B09670]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="text-3xl font-bold text-[#4A3728]">
             📸 {shop?.name || 'Snapshots'}
@@ -158,7 +162,7 @@ function PolaroidBoard({ products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <p className="text-center py-16 text-lg text-[#8B6F55]">No snapshots found on the board 📸</p>
       ) : (
-        <div className="flex flex-wrap justify-center gap-8">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-3 sm:gap-8">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -168,27 +172,27 @@ function PolaroidBoard({ products = [], onQuickView }) {
 
             return (
               <div key={p.id || idx}
-                className="relative bg-white p-3 pb-16 w-56 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:z-10 cursor-pointer group"
+                className="relative bg-white p-2 sm:p-3 pb-12 sm:pb-16 w-full sm:w-56 shadow-md sm:shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:z-10 cursor-pointer group"
                 style={{ transform: `rotate(${rotation})` }}
                 onClick={() => onQuickView?.(p)}>
 
                 {/* Pin or tape */}
-                {pin && <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl z-10">{pin}</span>}
+                {pin && <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-base sm:text-xl z-10">{pin}</span>}
 
                 {/* Photo */}
-                <div className="h-52 bg-gray-100 overflow-hidden">
+                <div className="h-32 sm:h-52 bg-gray-100 overflow-hidden">
                   {imgSrc
                     ? <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">📷</div>}
+                    : <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl text-gray-300">📷</div>}
                 </div>
 
                 {/* Handwritten caption area */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 pt-2">
-                  <h3 className="text-lg text-[#4A3728] truncate leading-tight">{p.name}</h3>
-                  <div className="flex items-center justify-between mt-1" style={{ fontFamily: 'sans-serif' }}>
-                    <span className="font-bold text-sm text-[#4A3728]">₦{price.toLocaleString()}</span>
+                <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 pt-1 sm:pt-2">
+                  <h3 className="text-sm sm:text-lg text-[#4A3728] truncate leading-tight">{p.name}</h3>
+                  <div className="flex items-center justify-between mt-0.5 sm:mt-1" style={{ fontFamily: 'sans-serif' }}>
+                    <span className="font-bold text-xs sm:text-sm text-[#4A3728]">₦{price.toLocaleString()}</span>
                     <button onClick={(e) => { e.stopPropagation(); addToCart(p) }}
-                      className="px-2.5 py-1 bg-[#4A3728] text-[#F5E6D3] rounded text-[10px] font-bold opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#4A3728] text-[#F5E6D3] rounded text-[9px] sm:text-[10px] font-bold opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       + Add
                     </button>
                   </div>

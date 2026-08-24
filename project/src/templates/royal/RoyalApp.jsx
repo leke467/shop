@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  ROYAL — Cinematic Full-Width Hero + Horizontal-Scroll Catalog
     Think: Netflix-style horizontal carousels, gold accent borders, velvet background
@@ -20,8 +21,11 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
 
   return (
     <div className="min-h-screen bg-[#1A1019] text-[#F5E6D3] font-serif selection:bg-[#C9A84C] selection:text-black">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="royal" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Royal Crown Header */}
-      <header className="sticky top-0 z-40 bg-[#1A1019]/95 backdrop-blur-md border-b border-[#C9A84C]/30">
+      <header className="hidden md:block sticky top-0 z-40 bg-[#1A1019]/95 backdrop-blur-md border-b border-[#C9A84C]/30">
         <div className="max-w-[1600px] mx-auto px-8 h-20 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="flex items-center gap-4">
             <span className="text-[#C9A84C] text-2xl">♛</span>
@@ -31,7 +35,7 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs tracking-[0.3em] uppercase text-[#C9A84C]/60">
+          <nav className="flex items-center gap-8 text-xs tracking-[0.3em] uppercase text-[#C9A84C]/60">
             <Link to={`/shop/${base}`} className="hover:text-[#C9A84C] transition-colors">Throne</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#C9A84C] transition-colors">Gallery</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#C9A84C]">About</Link>
@@ -39,7 +43,7 @@ export default function RoyalApp({ shop, products = [], reviews = [], shopSlug }
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link to="/" className="hidden sm:block text-xs text-[#C9A84C]/50 hover:text-[#C9A84C] tracking-wider">← MultiShop</Link>
+            <Link to="/" className="text-xs text-[#C9A84C]/50 hover:text-[#C9A84C] tracking-wider">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)} className="px-5 py-2.5 bg-gradient-to-r from-[#C9A84C] to-[#A07B3C] text-[#1A1019] text-xs font-bold uppercase tracking-wider rounded-none hover:from-[#D4B55C]">
               ♛ Bag ({cartCount})
             </button>

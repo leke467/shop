@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import './retro.css'
 
 export default function RetroApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -23,8 +24,11 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
 
   return (
     <div className="retro-template bg-[#FFFBEB] text-[#78350F] min-h-screen font-serif selection:bg-[#EA580C] selection:text-white">
-      {/* Groovy 70s Header */}
-      <header className="border-b-2 border-[#D97706]/40 bg-[#FEF3C7] sticky top-0 z-40">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="retro" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Groovy 70s Desktop Header */}
+      <header className="hidden md:block border-b-2 border-[#D97706]/40 bg-[#FEF3C7] sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to={homeUrl} className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#EA580C] text-white flex items-center justify-center font-bold text-xl border-2 border-[#78350F] shadow-md">
@@ -35,7 +39,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 font-sans font-bold text-sm uppercase tracking-wider text-[#92400E]">
+          <nav className="flex items-center gap-8 font-sans font-bold text-sm uppercase tracking-wider text-[#92400E]">
             <Link to={homeUrl} className="hover:text-[#EA580C] transition-colors">Records & Home</Link>
             <Link to={catalogUrl} className="hover:text-[#EA580C] transition-colors">Analog Index</Link>
             <Link to={aboutUrl} className="hover:text-[#EA580C] transition-colors">About Story</Link>
@@ -45,7 +49,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="hidden sm:inline-block px-3 py-1.5 rounded-full bg-[#FDE68A] border border-[#D97706] font-sans font-bold text-xs text-[#78350F] hover:bg-[#FCD34D] transition-colors"
+              className="px-3 py-1.5 rounded-full bg-[#FDE68A] border border-[#D97706] font-sans font-bold text-xs text-[#78350F] hover:bg-[#FCD34D] transition-colors"
             >
               ← MultiShop
             </Link>
@@ -54,7 +58,7 @@ export default function RetroApp({ shop, products = [], reviews = [], shopSlug }
               onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 rounded-full bg-[#EA580C] text-white font-sans font-bold text-xs uppercase shadow-md hover:bg-[#C2410C] transition-colors"
             >
-              Vinyl Bag ({cartCount})
+              Bag ({cartCount})
             </button>
           </div>
         </div>
@@ -210,9 +214,9 @@ function RetroCatalog({ shop, products = [], onQuickView }) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="py-20 text-center font-sans text-sm text-[#92400E]">No vintage records found matching query.</div>
+        <div className="py-20 text-center font-sans font-bold text-sm text-[#92400E]">NO ANALOG OBJECTS FOUND.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-8">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -221,33 +225,33 @@ function RetroCatalog({ shop, products = [], onQuickView }) {
             return (
               <div
                 key={p.id || idx}
-                className="bg-[#FEF3C7] border-2 border-[#D97706]/40 rounded-3xl p-5 shadow-md hover:border-[#EA580C] hover:shadow-xl transition-all flex flex-col justify-between"
+                className="bg-[#FEF3C7] border-2 border-[#D97706]/40 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm sm:shadow-md hover:border-[#EA580C] hover:shadow-xl transition-all flex flex-col justify-between"
               >
-                <div className="relative h-60 rounded-2xl bg-white border border-[#D97706]/30 overflow-hidden mb-4 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
+                <div className="relative h-36 sm:h-60 rounded-xl sm:rounded-2xl bg-white border border-[#D97706]/30 overflow-hidden mb-2 sm:mb-4 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
                   {imgSrc ? (
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">📻</div>
+                    <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl">📻</div>
                   )}
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onQuickView && onQuickView(p); }}
-                    className="absolute top-3 right-3 bg-[#EA580C] text-white font-sans text-[10px] font-bold px-3 py-1 rounded-full shadow-md"
+                    className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3 bg-[#EA580C] text-white font-sans text-[8px] sm:text-[10px] font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md"
                   >
                     Inspect
                   </button>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <h3 className="text-xl font-bold text-[#78350F] truncate cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
-                  <p className="text-xs font-sans text-[#92400E] line-clamp-2">{p.description || 'Vintage analog LP.'}</p>
+                <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-4">
+                  <h3 className="text-xs sm:text-xl font-bold text-[#78350F] truncate cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
+                  <p className="text-[10px] sm:text-xs font-sans text-[#92400E] line-clamp-2 hidden sm:block">{p.description || 'Vintage analog LP.'}</p>
                 </div>
 
-                <div className="pt-3 border-t border-[#D97706]/30 flex items-center justify-between font-sans">
-                  <span className="text-xl font-extrabold text-[#78350F]">₦{price.toLocaleString()}</span>
+                <div className="pt-2 sm:pt-3 border-t border-[#D97706]/30 flex flex-col sm:flex-row sm:items-center justify-between font-sans gap-1.5">
+                  <span className="text-xs sm:text-xl font-extrabold text-[#78350F]">₦{price.toLocaleString()}</span>
                   <button
                     onClick={() => addToCart(p)}
-                    className="bg-[#EA580C] text-white px-4 py-2 rounded-full font-bold text-xs uppercase shadow-md hover:bg-[#C2410C]"
+                    className="w-full sm:w-auto bg-[#EA580C] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase shadow-md hover:bg-[#C2410C] text-center"
                   >
                     + Bag
                   </button>

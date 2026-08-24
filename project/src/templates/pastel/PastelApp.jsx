@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 
 /*  PASTEL — Bento Grid Dashboard Layout
     Think: iOS widget dashboard, rounded blob shapes, soft gradients
@@ -20,15 +21,18 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FDF2F8] via-[#F3E8FF] to-[#EFF6FF] text-[#4A3560]" style={{ fontFamily: "'Nunito', 'Quicksand', sans-serif" }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="pastel" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Soft Pill-Shaped Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/60 border-b border-purple-100/50">
+      <header className="hidden md:block sticky top-0 z-40 backdrop-blur-lg bg-white/60 border-b border-purple-100/50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to={`/shop/${base}`} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-sm font-bold shadow-md">✦</div>
             <span className="font-extrabold text-lg text-[#4A3560]">{shop?.name || 'Pastel Dream'}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-purple-400">
+          <nav className="flex items-center gap-6 text-sm font-bold text-purple-400">
             <Link to={`/shop/${base}`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">Home</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">Shop ✦</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-[#4A3560] px-3 py-1.5 rounded-full hover:bg-purple-50 transition-all">About Story</Link>
@@ -36,7 +40,7 @@ export default function PastelApp({ shop, products = [], reviews = [], shopSlug 
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link to="/" className="hidden sm:block text-xs text-purple-400 hover:text-[#4A3560] font-bold">← MultiShop</Link>
+            <Link to="/" className="text-xs text-purple-400 hover:text-[#4A3560] font-bold">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-full text-xs font-bold shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all">
               🛍️ {cartCount}

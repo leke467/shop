@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import './popart.css'
 
 export default function PopArtApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -23,8 +24,11 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
 
   return (
     <div className="pop-template bg-[#FEF08A] text-black min-h-screen font-black selection:bg-pink-500 selection:text-white">
-      {/* Neobrutalist Header */}
-      <header className="border-b-4 border-black bg-white sticky top-0 z-40">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="popart" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Neobrutalist Desktop Header */}
+      <header className="hidden md:block border-b-4 border-black bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to={homeUrl} className="flex items-center gap-3 transform -rotate-1 hover:rotate-0 transition-transform">
             <span className="bg-pink-500 text-white px-3 py-1 text-xl font-black border-2 border-black shadow-[3px_3px_0px_#000]">
@@ -35,7 +39,7 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="flex items-center gap-6">
             <Link to={homeUrl} className="px-4 py-2 bg-yellow-300 border-2 border-black font-bold uppercase shadow-[3px_3px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
               Home
             </Link>
@@ -53,7 +57,7 @@ export default function PopArtApp({ shop, products = [], reviews = [], shopSlug 
           <div className="flex items-center gap-3">
             <Link
               to="/"
-              className="hidden sm:inline-block px-3 py-1.5 bg-lime-300 border-2 border-black font-bold text-xs uppercase shadow-[3px_3px_0px_#000] hover:bg-lime-400"
+              className="px-3 py-1.5 bg-lime-300 border-2 border-black font-bold text-xs uppercase shadow-[3px_3px_0px_#000] hover:bg-lime-400"
             >
               ← MultiShop
             </Link>
@@ -216,11 +220,11 @@ function PopArtCatalog({ shop, products = [], onQuickView }) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-white border-4 border-black p-12 text-center font-black text-lg shadow-[6px_6px_0px_#000]">
+        <div className="py-20 text-center text-2xl font-black uppercase text-pink-600 bg-white border-4 border-black p-8 shadow-[6px_6px_0px_#000]">
           NO DROPS FOUND! 💥
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-8">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
@@ -229,40 +233,40 @@ function PopArtCatalog({ shop, products = [], onQuickView }) {
             return (
               <div
                 key={p.id || idx}
-                className="bg-white border-4 border-black p-4 shadow-[6px_6px_0px_#000] hover:-translate-y-1 transition-transform flex flex-col justify-between"
+                className="bg-white border-2 sm:border-4 border-black p-2.5 sm:p-4 shadow-[3px_3px_0px_#000] sm:shadow-[6px_6px_0px_#000] hover:-translate-y-1 transition-transform flex flex-col justify-between"
               >
-                <div className="relative h-56 bg-pink-100 border-2 border-black overflow-hidden mb-4 cursor-pointer" onClick={() => onQuickView?.(p)}>
+                <div className="relative h-36 sm:h-56 bg-pink-100 border sm:border-2 border-black overflow-hidden mb-2 sm:mb-4 cursor-pointer" onClick={() => onQuickView?.(p)}>
                   {imgSrc ? (
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">💥</div>
+                    <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl">💥</div>
                   )}
 
-                  <span className="absolute top-2 left-2 bg-yellow-300 border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase shadow-[2px_2px_0px_#000]">
+                  <span className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-yellow-300 border sm:border-2 border-black px-1 sm:px-2 py-0.5 text-[8px] sm:text-[11px] font-black uppercase shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000]">
                     HOT DROP
                   </span>
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onQuickView?.(p); }}
-                    className="absolute top-2 right-2 bg-white border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                    className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-white border sm:border-2 border-black px-1 sm:px-2 py-0.5 text-[8px] sm:text-[11px] font-black uppercase shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000] hover:bg-yellow-300"
                   >
-                    INSPECT 🔍
+                    🔍
                   </button>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <h3 className="text-lg font-black uppercase truncate leading-tight cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                  <p className="text-xs text-gray-700 font-bold line-clamp-2">{p.description || 'Exclusive item.'}</p>
+                <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-4">
+                  <h3 className="text-xs sm:text-lg font-black uppercase truncate leading-tight cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                  <p className="text-[10px] sm:text-xs text-gray-700 font-bold line-clamp-2 hidden sm:block">{p.description || 'Exclusive item.'}</p>
                 </div>
 
-                <div className="pt-3 border-t-3 border-black flex items-center justify-between">
-                  <span className="text-xl font-black bg-cyan-300 border-2 border-black px-2 py-0.5 shadow-[2px_2px_0px_#000]">
+                <div className="pt-2 sm:pt-3 border-t sm:border-t-3 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <span className="text-xs sm:text-xl font-black bg-cyan-300 border sm:border-2 border-black px-1 sm:px-2 py-0.5 shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000]">
                     ₦{price.toLocaleString()}
                   </span>
 
                   <button
                     onClick={() => addToCart(p)}
-                    className="bg-pink-500 text-white border-2 border-black px-4 py-2 font-black text-xs uppercase shadow-[3px_3px_0px_#000] hover:bg-pink-600 active:translate-x-0.5 active:translate-y-0.5"
+                    className="w-full sm:w-auto bg-pink-500 text-white border sm:border-2 border-black px-2 sm:px-4 py-1 sm:py-2 font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_#000] sm:shadow-[3px_3px_0px_#000] hover:bg-pink-600 active:translate-x-0.5 active:translate-y-0.5 text-center"
                   >
                     + ADD
                   </button>

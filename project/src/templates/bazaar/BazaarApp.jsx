@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  BAZAAR — Marketplace with Category Pill Filters + Review Badges
@@ -28,8 +29,11 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-[#333]" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
-      {/* Marketplace Search Header */}
-      <header className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="default" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* Marketplace Desktop Search Header */}
+      <header className="hidden md:block sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link to={`/shop/${base}`} className="flex items-center gap-2 flex-shrink-0">
             <BrandLogoRenderer
@@ -57,7 +61,7 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
             <Link to={`/shop/${base}/catalog`} className="text-xs text-gray-500 hover:text-[#FF6B35] font-medium">Catalog</Link>
             <Link to={`/shop/${base}/about`} className="text-xs text-gray-500 hover:text-[#FF6B35] font-medium">About</Link>
             <Link to={`/shop/${base}/reviews`} className="text-xs text-gray-500 hover:text-[#FF6B35]">Reviews</Link>
-            <Link to="/" className="hidden md:block text-xs text-gray-500 hover:text-[#FF6B35]">← MultiShop</Link>
+            <Link to="/" className="text-xs text-gray-500 hover:text-[#FF6B35]">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="relative px-3 py-2 bg-[#FF6B35] text-white rounded-lg text-xs font-bold hover:bg-[#E85D26] transition-colors">
               🛒 Cart

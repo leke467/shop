@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
 
 /*  ZENITH — Dashboard / Analytics-Panel Layout with Stats Sidebar
@@ -21,8 +22,11 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-[#E2E8F0]" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={shopSlug || base} theme="cyberpunk" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
       {/* Top Utility Bar */}
-      <header className="sticky top-0 z-40 bg-[#1E293B] border-b border-[#334155]">
+      <header className="hidden md:block sticky top-0 z-40 bg-[#1E293B] border-b border-[#334155]">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between text-sm">
           <Link to={`/shop/${base}`} className="flex items-center gap-3">
             <BrandLogoRenderer
@@ -33,7 +37,7 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
             />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-[#94A3B8] text-xs font-medium">
+          <nav className="flex items-center gap-6 text-[#94A3B8] text-xs font-medium">
             <Link to={`/shop/${base}`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">Overview</Link>
             <Link to={`/shop/${base}/catalog`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">Products</Link>
             <Link to={`/shop/${base}/about`} className="hover:text-white px-3 py-1.5 rounded-md hover:bg-[#334155] transition-all">About Story</Link>
@@ -41,7 +45,7 @@ export default function ZenithApp({ shop, products = [], reviews = [], shopSlug 
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link to="/" className="hidden sm:block text-xs text-[#94A3B8] hover:text-white">← MultiShop</Link>
+            <Link to="/" className="text-xs text-[#94A3B8] hover:text-white">← MultiShop</Link>
             <button onClick={() => setIsCartOpen(true)}
               className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all">
               Cart ({cartCount})
@@ -219,27 +223,29 @@ function ZenithCatalog({ products = [], onQuickView }) {
         </div>
       ) : (
         /* GRID VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
             return (
               <div key={p.id || idx} className="bg-[#1E293B] border border-[#334155] rounded-xl overflow-hidden hover:border-indigo-500 transition-colors group flex flex-col justify-between">
-                <div className="h-48 bg-[#0F172A] overflow-hidden relative cursor-pointer" onClick={() => onQuickView?.(p)}>
+                <div className="h-36 sm:h-48 bg-[#0F172A] overflow-hidden relative cursor-pointer" onClick={() => onQuickView?.(p)}>
                   {imgSrc
                     ? <img src={imgSrc} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    : <div className="w-full h-full flex items-center justify-center text-3xl text-[#334155]">📦</div>}
-                  <button onClick={(e) => { e.stopPropagation(); onQuickView?.(p); }} className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-md text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    : <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl text-[#334155]">📦</div>}
+                  <button onClick={(e) => { e.stopPropagation(); onQuickView?.(p); }} className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-md text-[9px] sm:text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
                     Quick View
                   </button>
                 </div>
-                <div className="p-4 space-y-2">
-                  <span className="text-[10px] text-indigo-400 font-semibold">{p.category?.name || 'General'}</span>
-                  <h3 className="font-semibold text-sm text-white truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="font-bold text-white">₦{price.toLocaleString()}</span>
-                    <button onClick={() => addToCart(p)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-500 transition-colors">+ Add</button>
+                <div className="p-3 sm:p-4 space-y-1 sm:space-y-2">
+                  <span className="text-[9px] sm:text-[10px] text-indigo-400 font-semibold">{p.category?.name || 'General'}</span>
+                  <h3 className="font-semibold text-xs sm:text-sm text-white truncate cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1 sm:pt-2 gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-white">₦{price.toLocaleString()}</span>
+                    <button onClick={() => addToCart(p)} className="w-full sm:w-auto px-2 sm:px-3 py-1 bg-indigo-600 text-white rounded-md text-[10px] sm:text-xs font-bold hover:bg-indigo-500 transition-colors text-center">
+                      + Add
+                    </button>
                   </div>
                 </div>
               </div>

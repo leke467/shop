@@ -6,6 +6,7 @@ import { getImageUrl, orderAPI } from '../../services/api'
 import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
 import TemplateAboutView from '../../components/shop/TemplateAboutView'
 import TemplateFooterView from '../../components/shop/TemplateFooterView'
+import TemplateMobileNav from '../../components/shop/TemplateMobileNav'
 import './monochrome.css'
 
 export default function MonochromeApp({ shop, products = [], reviews = [], shopSlug }) {
@@ -23,8 +24,11 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
 
   return (
     <div className="mono-template bg-black text-white min-h-screen font-serif selection:bg-white selection:text-black">
-      {/* High-Fashion Editorial Header */}
-      <header className="border-b border-zinc-800 sticky top-0 z-40 bg-black/90 backdrop-blur-md">
+      {/* Mobile Top Navigation & Drawer */}
+      <TemplateMobileNav shop={shop} shopSlug={base} theme="monochrome" cartCount={cartCount} setIsCartOpen={setIsCartOpen} />
+
+      {/* High-Fashion Editorial Desktop Header */}
+      <header className="hidden md:block border-b border-zinc-800 sticky top-0 z-40 bg-black/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to={homeUrl} className="flex items-center gap-3">
             <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-zinc-500">NOIR //</span>
@@ -33,7 +37,7 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 font-sans text-[11px] uppercase tracking-[0.25em] text-zinc-400">
+          <nav className="flex items-center gap-8 font-sans text-[11px] uppercase tracking-[0.25em] text-zinc-400">
             <Link to={homeUrl} className="hover:text-white transition-colors">Cover</Link>
             <Link to={catalogUrl} className="hover:text-white transition-colors">Editorial</Link>
             <Link to={aboutUrl} className="hover:text-white transition-colors">Story</Link>
@@ -43,7 +47,7 @@ export default function MonochromeApp({ shop, products = [], reviews = [], shopS
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="hidden sm:inline-block px-3 py-1.5 border border-zinc-700 font-sans text-[10px] uppercase tracking-[0.2em] text-zinc-300 hover:border-white hover:text-white transition-all"
+              className="px-3 py-1.5 border border-zinc-700 font-sans text-[10px] uppercase tracking-[0.2em] text-zinc-300 hover:border-white hover:text-white transition-all"
             >
               ← MULTISHOP
             </Link>
@@ -200,14 +204,14 @@ function MonochromeCatalog({ products = [], onQuickView }) {
       {filtered.length === 0 ? (
         <div className="py-20 text-center font-sans text-[11px] tracking-widest text-zinc-500 uppercase">NO PIECES FOUND.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-12">
           {filtered.map((p, idx) => {
             const img = p.primary_image || p.image || p.images?.[0]?.medium || p.images?.[0]?.image
             const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
             const price = Number(p.base_price || p.price || 0)
 
             return (
-              <div key={p.id || idx} className="group flex flex-col space-y-4">
+              <div key={p.id || idx} className="group flex flex-col space-y-2 sm:space-y-4">
                 <div className="relative aspect-3/4 border border-zinc-800 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>
                   {imgSrc ? (
                     <img src={imgSrc} alt={p.name} className="w-full h-full object-cover grayscale group-hover:scale-105 transition-transform duration-700" />
@@ -217,23 +221,23 @@ function MonochromeCatalog({ products = [], onQuickView }) {
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onQuickView && onQuickView(p); }}
-                    className="absolute top-4 right-4 bg-white text-black font-sans text-[10px] tracking-widest uppercase px-3 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white text-black font-sans text-[8px] sm:text-[10px] tracking-widest uppercase px-2 sm:px-3 py-1 sm:py-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     INSPECT
                   </button>
                 </div>
 
-                <div className="flex justify-between items-baseline border-t border-zinc-900 pt-3">
-                  <div>
-                    <span className="font-sans text-[9px] tracking-widest text-zinc-500 block">[{String(idx + 1).padStart(2, '0')}]</span>
-                    <h3 className="font-normal text-lg uppercase tracking-wider text-white mt-0.5 cursor-pointer" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-baseline border-t border-zinc-900 pt-2 sm:pt-3 gap-1">
+                  <div className="truncate">
+                    <span className="font-sans text-[8px] sm:text-[9px] tracking-widest text-zinc-500 block">[{String(idx + 1).padStart(2, '0')}]</span>
+                    <h3 className="font-normal text-xs sm:text-lg uppercase tracking-wider text-white mt-0.5 cursor-pointer truncate" onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
                   </div>
-                  <span className="font-sans font-bold text-sm text-white">₦{price.toLocaleString()}</span>
+                  <span className="font-sans font-bold text-xs sm:text-sm text-white">₦{price.toLocaleString()}</span>
                 </div>
 
                 <button
                   onClick={() => addToCart(p)}
-                  className="w-full py-3 border border-zinc-700 font-sans text-[10px] tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all"
+                  className="w-full py-2 sm:py-3 border border-zinc-700 font-sans text-[9px] sm:text-[10px] tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all text-center"
                 >
                   + Add to Bag
                 </button>
