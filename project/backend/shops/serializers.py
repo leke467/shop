@@ -155,6 +155,8 @@ class ShopDetailSerializer(serializers.ModelSerializer):
 
 class ShopCreateUpdateSerializer(serializers.ModelSerializer):
     """Write serializer — owner is set from the request."""
+    logo = serializers.FileField(required=False, allow_null=True)
+    banner = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = Shop

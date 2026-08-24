@@ -586,7 +586,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                           📁 Upload Banner
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
                             className="hidden"
                             onChange={(e) => e.target.files?.[0] && handleImageFileChange('banner_url', e.target.files[0])}
                           />
@@ -626,7 +626,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                           📁 Upload Logo
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
                             className="hidden"
                             onChange={(e) => e.target.files?.[0] && handleImageFileChange('logo_url', e.target.files[0])}
                           />

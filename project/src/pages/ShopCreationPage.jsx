@@ -666,7 +666,7 @@ function ShopCreationPage() {
                           <p className="text-sm text-gray-500 mt-1">Upload your shop logo (square format recommended)</p>
                           <input 
                             type="file" 
-                            accept="image/*"
+                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
                             onChange={(e) => updateForm('logo', e.target.files[0])}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
@@ -701,7 +701,7 @@ function ShopCreationPage() {
                           <p className="text-sm text-gray-500 mt-1">Upload your banner image (1200×400px recommended)</p>
                           <input 
                             type="file" 
-                            accept="image/*"
+                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
                             onChange={(e) => updateForm('banner', e.target.files[0])}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />

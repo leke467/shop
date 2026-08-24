@@ -92,9 +92,9 @@ class Shop(BaseModel, SoftDeleteModel):
         help_text="Admin notes about the verification review.",
     )
 
-    # Branding assets (processed into responsive variants by the image pipeline).
-    logo = models.ImageField(upload_to="shops/logos/", blank=True, null=True)
-    banner = models.ImageField(upload_to="shops/banners/", blank=True, null=True)
+    # Branding assets (supports SVG, PNG, JPG, WEBP, GIF, and all image formats).
+    logo = models.FileField(upload_to="shops/logos/", blank=True, null=True)
+    banner = models.FileField(upload_to="shops/banners/", blank=True, null=True)
 
     # Contact.
     email = models.EmailField(blank=True)
