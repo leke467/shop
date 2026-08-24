@@ -33,7 +33,7 @@ class CategoryListView(generics.ListAPIView):
 # ---------------------------------------------------------------------------
 
 class ProductListView(generics.ListAPIView):
-    """Public: browse products across all shops, filterable."""
+    """Public: browse products across all active shops, filterable."""
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
     search_fields = ["name", "description", "tags"]
@@ -42,11 +42,26 @@ class ProductListView(generics.ListAPIView):
     filterset_fields = ["status", "is_featured", "category", "shop__slug"]
 
     def get_queryset(self):
-        qs = Product.objects.filter(status=Product.Status.ACTIVE).select_related(
+        from shops.models import Shop
+        shop_slug = self.request.query_params.get("shop")
+
+        # If the authenticated owner is loading their own shop's products (e.g. dashboard), allow draft shop
+        if shop_slug and self.request.user.is_authenticated:
+            if Shop.objects.filter(slug=shop_slug, owner=self.request.user).exists() or self.request.user.is_staff:
+                return Product.objects.filter(
+                    shop__slug=shop_slug,
+                    status=Product.Status.ACTIVE,
+                ).select_related("shop", "category").prefetch_related("images")
+
+        # Public listing across marketplace: ONLY active products from ACTIVE, non-deleted shops
+        qs = Product.objects.filter(
+            status=Product.Status.ACTIVE,
+            shop__status=Shop.Status.ACTIVE,
+            shop__is_deleted=False,
+        ).select_related(
             "shop", "category"
         ).prefetch_related("images")
         
-        shop_slug = self.request.query_params.get("shop")
         if shop_slug:
             qs = qs.filter(shop__slug=shop_slug)
             
@@ -69,8 +84,22 @@ class ShopProductListView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        from shops.models import Shop
+        slug = self.kwargs["slug"]
+        user = self.request.user
+
+        # If user is owner or staff, allow them to manage/view products even if shop is in draft
+        if user.is_authenticated and (Shop.objects.filter(slug=slug, owner=user).exists() or user.is_staff):
+            return Product.objects.filter(
+                shop__slug=slug,
+                status=Product.Status.ACTIVE,
+            ).select_related("shop", "category").prefetch_related("images")
+
+        # Public visitors only see products if the shop itself is active
         return Product.objects.filter(
-            shop__slug=self.kwargs["slug"],
+            shop__slug=slug,
+            shop__status=Shop.Status.ACTIVE,
+            shop__is_deleted=False,
             status=Product.Status.ACTIVE,
         ).select_related("shop", "category").prefetch_related("images")
 
@@ -100,9 +129,24 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated(), IsOwnerOrReadOnly()]
 
     def get_queryset(self):
-        return Product.objects.select_related("shop", "category").prefetch_related(
-            "variants__inventory", "images"
-        )
+        from shops.models import Shop
+        from django.db.models import Q
+        user = self.request.user
+
+        if user.is_authenticated and not user.is_staff:
+            return Product.objects.filter(
+                Q(shop__status=Shop.Status.ACTIVE, shop__is_deleted=False, status=Product.Status.ACTIVE)
+                | Q(shop__owner=user)
+            ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
+        elif user.is_authenticated and user.is_staff:
+            return Product.objects.all().select_related("shop", "category").prefetch_related("variants__inventory", "images")
+
+        # Public visitors only see product if the shop is active
+        return Product.objects.filter(
+            shop__status=Shop.Status.ACTIVE,
+            shop__is_deleted=False,
+            status=Product.Status.ACTIVE,
+        ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())

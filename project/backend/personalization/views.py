@@ -106,7 +106,11 @@ def build_recommendations(user, limit=24):
     affinity_shop_ids = [s["target_id"] for s in shop_affinities]
 
     # Build combined query.
-    qs = Product.objects.filter(status=Product.Status.ACTIVE)
+    qs = Product.objects.filter(
+        status=Product.Status.ACTIVE,
+        shop__status="active",
+        shop__is_deleted=False,
+    )
 
     if affinity_cat_ids or affinity_shop_ids:
         q = Q()
@@ -161,7 +165,10 @@ class PersonalizedFeedView(APIView):
         if cache and cache.product_ids:
             # Serve from cache — preserving order.
             products = Product.objects.filter(
-                pk__in=cache.product_ids, status=Product.Status.ACTIVE
+                pk__in=cache.product_ids,
+                status=Product.Status.ACTIVE,
+                shop__status="active",
+                shop__is_deleted=False,
             ).select_related("shop", "category").prefetch_related("images")
             # Re-order by the cached order.
             id_order = {pid: idx for idx, pid in enumerate(cache.product_ids)}

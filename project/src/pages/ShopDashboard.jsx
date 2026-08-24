@@ -221,6 +221,7 @@ export default function ShopDashboard() {
     phone: '',
     email: '',
     address: '',
+    status: 'draft',
   })
   const [savingShopInfo, setSavingShopInfo] = useState(false)
 
@@ -233,6 +234,7 @@ export default function ShopDashboard() {
         phone: shop.phone || '',
         email: shop.email || '',
         address: shop.address || '',
+        status: shop.status || 'draft',
       })
     }
   }, [shop])
@@ -1725,8 +1727,12 @@ export default function ShopDashboard() {
                         <span className="text-xs font-medium text-gray-500">Status:</span>
                         <select
                           className="input py-1 px-2 text-xs w-28 font-semibold"
-                          value={shop.status}
-                          onChange={(e) => handleShopStatusChange(e.target.value)}
+                          value={shopNameForm.status || shop.status || 'draft'}
+                          onChange={(e) => {
+                            const newStatus = e.target.value
+                            setShopNameForm(prev => ({ ...prev, status: newStatus }))
+                            handleShopStatusChange(newStatus)
+                          }}
                         >
                           <option value="draft">Draft</option>
                           <option value="active">Active</option>

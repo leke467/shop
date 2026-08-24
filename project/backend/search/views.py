@@ -42,7 +42,7 @@ class UnifiedSearchView(APIView):
 
         # --- Shops ---
         if search_type in ("all", "shops"):
-            shops_qs = Shop.objects.filter(status=Shop.Status.ACTIVE)
+            shops_qs = Shop.objects.filter(status=Shop.Status.ACTIVE, is_deleted=False)
             if q:
                 shops_qs = shops_qs.filter(
                     Q(name__icontains=q)
@@ -71,7 +71,9 @@ class UnifiedSearchView(APIView):
         # --- Products ---
         if search_type in ("all", "products"):
             products_qs = Product.objects.filter(
-                status=Product.Status.ACTIVE
+                status=Product.Status.ACTIVE,
+                shop__status=Shop.Status.ACTIVE,
+                shop__is_deleted=False,
             ).select_related("shop", "category").prefetch_related("images")
 
             if q:
