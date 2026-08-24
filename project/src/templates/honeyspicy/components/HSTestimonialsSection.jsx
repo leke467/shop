@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HSAnimatedSection from './HSAnimatedSection'
 
-export default function HSTestimonialsSection({ reviews }) {
+export default function HSTestimonialsSection({ reviews, shop }) {
   const [current, setCurrent] = useState(0)
   const testimonials = (reviews || []).filter(r => r.comment)
+  const extra = shop?.theme?.extra_tokens || {}
+  const testimonialsTitle = extra.testimonials_title || extra.honeyspicy_testimonials_title || 'What Our Customers Say'
+  const testimonialsSubtitle = extra.testimonials_subtitle || extra.honeyspicy_testimonials_subtitle || "Don't just take our word for it"
 
   useEffect(() => {
     if (testimonials.length <= 1) return
@@ -21,8 +24,8 @@ export default function HSTestimonialsSection({ reviews }) {
       <div className="hs-container">
         <HSAnimatedSection>
           <div className="hs-section-header">
-            <h2>What Our Customers Say</h2>
-            <p>Don&apos;t just take our word for it</p>
+            <h2>{testimonialsTitle}</h2>
+            <p>{testimonialsSubtitle}</p>
           </div>
         </HSAnimatedSection>
         <div className="hs-testimonial-carousel">

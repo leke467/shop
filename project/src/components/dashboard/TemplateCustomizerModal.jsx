@@ -72,37 +72,23 @@ const COLOR_PRESETS = [
 ]
 
 function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId) {
-  const HONEY_DEFAULTS = [
-    'Explore Our Menu',
-    'Our Signature Treats',
-    'Explore our most popular and delicious creations',
-    'Handcrafted to perfection with premium quality',
-    'What Our Happy Customers Say',
-    'Fresh Daily',
-    'All of our treats are made fresh every day',
-    'Order Now',
-    'View Menu',
-    'Handcrafted Quality',
-    'Explore Catalog',
-    'Catalog description',
-    'Client Reviews',
-    'What Our Clients Say',
-  ]
-
   const pick = (key, schemaDefault, globalDefault = '') => {
+    // 1. Scoped override specifically saved for this template (e.g. honeyspicy_categories_title)
     const scopedVal = tokens[`${currentTemplateId}_${key}`]
     if (scopedVal !== undefined && scopedVal !== null && scopedVal !== '') {
-      if (currentTemplateId === 'honeyspicy' || !HONEY_DEFAULTS.includes(scopedVal)) {
-        return scopedVal
+      return scopedVal
+    }
+
+    // 2. Global token ONLY if this template is currently the active template recorded in tokens
+    const activeTemplateInTokens = tokens.template_id || shop?.template_id || 'honeyspicy'
+    if (activeTemplateInTokens === currentTemplateId) {
+      const globalVal = tokens[key]
+      if (globalVal !== undefined && globalVal !== null && globalVal !== '') {
+        return globalVal
       }
     }
 
-    if (tokens[key] !== undefined && tokens[key] !== null && tokens[key] !== '') {
-      if (currentTemplateId === 'honeyspicy' || !HONEY_DEFAULTS.includes(tokens[key])) {
-        return tokens[key]
-      }
-    }
-
+    // 3. Fall back to template-specific schema default
     return schemaDefault !== undefined ? schemaDefault : globalDefault
   }
 
@@ -168,10 +154,10 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
     value4_title: pick('value4_title', 'Community'),
     value4_desc: pick('value4_desc', 'We believe in empowering and supporting our community.'),
 
-    banner_url: shop?.banner || tokens.banner_url || '',
-    logo_url: shop?.logo || tokens.logo_url || '',
-    logo_position: tokens.logo_position || 'left',
-    footer_note: tokens.footer_note || '',
+    banner_url: tokens[`${currentTemplateId}_banner_url`] || (tokens.template_id === currentTemplateId ? (shop?.banner || tokens.banner_url) : '') || '',
+    logo_url: tokens[`${currentTemplateId}_logo_url`] || (tokens.template_id === currentTemplateId ? (shop?.logo || tokens.logo_url) : '') || '',
+    logo_position: tokens[`${currentTemplateId}_logo_position`] || tokens.logo_position || 'left',
+    footer_note: tokens[`${currentTemplateId}_footer_note`] || (tokens.template_id === currentTemplateId ? tokens.footer_note : '') || '',
   }
 }
 
@@ -342,20 +328,32 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         logo_position: form.logo_position || 'left',
         footer_note: form.footer_note,
 
-        // Scoped overrides per template
+        // Scoped overrides per template - ensures 100% isolation across templates
         [`${targetTemplate}_categories_title`]: form.categories_title,
         [`${targetTemplate}_categories_subtitle`]: form.categories_subtitle,
-        [`${targetTemplate}_hero_badge`]: form.hero_badge,
-        [`${targetTemplate}_hero_cta_primary`]: form.hero_cta_primary,
-        [`${targetTemplate}_hero_cta_secondary`]: form.hero_cta_secondary,
         [`${targetTemplate}_featured_title`]: form.featured_title,
         [`${targetTemplate}_featured_subtitle`]: form.featured_subtitle,
         [`${targetTemplate}_testimonials_title`]: form.testimonials_title,
+        [`${targetTemplate}_hero_welcome_prefix`]: form.hero_welcome_prefix,
+        [`${targetTemplate}_hero_headline`]: form.hero_headline,
+        [`${targetTemplate}_hero_subtitle`]: form.hero_subtitle,
+        [`${targetTemplate}_hero_badge`]: form.hero_badge,
+        [`${targetTemplate}_hero_cta_primary`]: form.hero_cta_primary,
+        [`${targetTemplate}_hero_cta_secondary`]: form.hero_cta_secondary,
+        [`${targetTemplate}_hero_image_1`]: form.hero_image_1,
+        [`${targetTemplate}_hero_image_2`]: form.hero_image_2,
+        [`${targetTemplate}_hero_image_3`]: form.hero_image_3,
         [`${targetTemplate}_font_family`]: form.font_family,
+        [`${targetTemplate}_heading_font`]: form.heading_font,
+        [`${targetTemplate}_body_font`]: form.body_font,
         [`${targetTemplate}_primary_color`]: form.primary_color,
         [`${targetTemplate}_banner_color`]: form.banner_color,
         [`${targetTemplate}_background_color`]: form.background_color,
         [`${targetTemplate}_text_color`]: form.text_color,
+        [`${targetTemplate}_banner_url`]: finalBannerUrl,
+        [`${targetTemplate}_logo_url`]: finalLogoUrl,
+        [`${targetTemplate}_logo_position`]: form.logo_position || 'left',
+        [`${targetTemplate}_footer_note`]: form.footer_note,
       }
 
       const updatedTheme = await shopAPI.updateTheme(shop.slug, {

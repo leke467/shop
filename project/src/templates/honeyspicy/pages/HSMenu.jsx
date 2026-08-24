@@ -13,6 +13,10 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
   const [quickViewProduct, setQuickViewProduct] = useState(null)
   const { addToCart } = useCart()
 
+  const extra = shop?.theme?.extra_tokens || {}
+  const menuTitle = extra.categories_title || extra.honeyspicy_categories_title || 'Our Menu'
+  const menuSubtitle = extra.categories_subtitle || extra.honeyspicy_categories_subtitle || 'Discover our delicious gourmet selection made with love'
+
   const categories = useMemo(() => {
     const cats = new Set((products || []).map(p => p.category_name || p.category || 'Other'))
     return ['All', ...Array.from(cats)]
@@ -41,8 +45,8 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
         <section className="hs-menu-hero">
           <div className="hs-container">
             <HSAnimatedSection>
-              <h1>Our Menu</h1>
-              <p>Discover our delicious gourmet selection made with love</p>
+              <h1>{menuTitle}</h1>
+              <p>{menuSubtitle}</p>
             </HSAnimatedSection>
           </div>
         </section>

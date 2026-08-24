@@ -15,7 +15,7 @@ export default function HSHome({ shop, products, reviews, shopSlug }) {
         <HSHeroSection shop={shop} products={products} shopSlug={shopSlug} />
         <HSFeaturedProducts shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickViewProduct} />
         <HSAboutSection shop={shop} products={products} />
-        <HSTestimonialsSection reviews={reviews} />
+        <HSTestimonialsSection reviews={reviews} shop={shop} />
         {quickViewProduct && (
           <HSQuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
         )}
