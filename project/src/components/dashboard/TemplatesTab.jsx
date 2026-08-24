@@ -25,11 +25,8 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
       if (onShopUpdate) onShopUpdate({ ...shop, template_id: templateId })
     } catch (err) {
       const data = err?.response?.data
-      if (data?.error?.type === 'FeatureGated') {
-        setError('Premium templates require the Growth plan (₦7,500/mo) or higher. Please upgrade your subscription.')
-      } else {
-        setError(data?.detail || 'Failed to apply template. Please try again.')
-      }
+      const msg = data?.detail || data?.error?.detail || 'This template requires an upgraded subscription plan. Please upgrade your plan.'
+      setError(msg)
     } finally {
       setApplying(null)
     }

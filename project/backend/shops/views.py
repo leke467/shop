@@ -175,6 +175,28 @@ class ShopThemeView(generics.RetrieveUpdateAPIView):
         return theme
 
     def update(self, request, *args, **kwargs):
+        from subscriptions.services import get_current_plan, recommend_upgrade_for_feature
+        plan = get_current_plan(request.user)
+        if not plan or not (getattr(plan, "custom_shop_theme_enabled", False) or getattr(plan, "custom_shop_template_enabled", False) or getattr(plan, "premium_templates_enabled", False)):
+            rec = (
+                recommend_upgrade_for_feature("custom_shop_theme_enabled")
+                or recommend_upgrade_for_feature("custom_shop_template_enabled")
+                or recommend_upgrade_for_feature("premium_templates_enabled")
+            )
+            rec_name = rec.name if rec else "an upgraded"
+            price_str = f" (₦{int(rec.monthly_price):,}/mo)" if rec and rec.monthly_price > 0 else ""
+            return Response(
+                {
+                    "detail": f"Custom shop themes require the {rec_name} plan{price_str} or higher. Please upgrade your subscription.",
+                    "error": {
+                        "type": "FeatureGated",
+                        "feature": "custom_shop_theme_enabled",
+                        "required_plan": rec.code if rec else "starter",
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
@@ -215,7 +237,7 @@ class ShopTemplateView(APIView):
     Body: { "template_id": "honeyspicy" }       # set a template
     Body: { "template_id": "" }                  # clear / revert to default
 
-    Requires the seller's subscription plan to have ``premium_templates_enabled``.
+    Requires the seller's subscription plan to have ``custom_shop_template_enabled``.
     """
     permission_classes = [IsAuthenticated]
 
@@ -239,16 +261,22 @@ class ShopTemplateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             # Gate behind the subscription feature flag.
-            from subscriptions.services import get_current_plan
+            from subscriptions.services import get_current_plan, recommend_upgrade_for_feature
             plan = get_current_plan(request.user)
-            if not plan or not plan.premium_templates_enabled:
+            if not plan or not (getattr(plan, "custom_shop_template_enabled", False) or getattr(plan, "premium_templates_enabled", False)):
+                rec = (
+                    recommend_upgrade_for_feature("custom_shop_template_enabled")
+                    or recommend_upgrade_for_feature("premium_templates_enabled")
+                )
+                rec_name = rec.name if rec else "an upgraded"
+                price_str = f" (₦{int(rec.monthly_price):,}/mo)" if rec and rec.monthly_price > 0 else ""
                 return Response(
                     {
-                        "detail": "Premium templates require the Growth plan or higher.",
+                        "detail": f"Custom shop templates require the {rec_name} plan{price_str} or higher. Please upgrade your subscription.",
                         "error": {
                             "type": "FeatureGated",
-                            "feature": "premium_templates_enabled",
-                            "required_plan": "growth",
+                            "feature": "custom_shop_template_enabled",
+                            "required_plan": rec.code if rec else "growth",
                         },
                     },
                     status=status.HTTP_403_FORBIDDEN,
