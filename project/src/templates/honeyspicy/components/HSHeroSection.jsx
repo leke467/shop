@@ -43,6 +43,7 @@ export default function HSHeroSection({ shop, products, shopSlug }) {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   }
+  const welcomePrefix = extra.hero_welcome_prefix !== undefined ? extra.hero_welcome_prefix : 'Welcome to'
 
   return (
     <section className="hs-hero">
@@ -53,7 +54,8 @@ export default function HSHeroSection({ shop, products, shopSlug }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.6, 0.05, 0.01, 0.99] }}
           >
-            Welcome to <span className="hs-highlight">{heroHeadline}</span>
+            {welcomePrefix ? <>{welcomePrefix} </> : null}
+            <span className="hs-highlight">{heroHeadline}</span>
           </motion.h1>
 
           <motion.p

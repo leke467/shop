@@ -13,7 +13,7 @@ export default function HSHome({ shop, products, reviews, shopSlug }) {
     <HSPageTransition>
       <main>
         <HSHeroSection shop={shop} products={products} shopSlug={shopSlug} />
-        <HSFeaturedProducts products={products} shopSlug={shopSlug} onQuickView={setQuickViewProduct} />
+        <HSFeaturedProducts shop={shop} products={products} shopSlug={shopSlug} onQuickView={setQuickViewProduct} />
         <HSAboutSection shop={shop} products={products} />
         <HSTestimonialsSection reviews={reviews} />
         {quickViewProduct && (

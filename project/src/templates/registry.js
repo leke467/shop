@@ -217,6 +217,8 @@ export function getTemplate(templateId) {
   return TEMPLATES[templateId] || null
 }
 
+export const getTemplateById = getTemplate
+
 /**
  * Get all available template definitions as an array.
  * @returns {object[]}

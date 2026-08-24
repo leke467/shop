@@ -3,17 +3,20 @@ import HSAnimatedSection from './HSAnimatedSection'
 import { useCart } from '../../../context/CartContext'
 import { getImageUrl } from '../../../services/api'
 
-export default function HSFeaturedProducts({ products, shopSlug, onQuickView }) {
+export default function HSFeaturedProducts({ shop, products, shopSlug, onQuickView }) {
   const { addToCart } = useCart()
   const featured = (products || []).slice(0, 6)
+  const extra = shop?.theme?.extra_tokens || {}
+  const featuredTitle = extra.featured_title || 'Our Signature Treats'
+  const featuredSubtitle = extra.featured_subtitle || 'Explore our most popular and delicious creations'
 
   return (
     <section className="hs-featured hs-section">
       <div className="hs-container">
         <HSAnimatedSection>
           <div className="hs-section-header">
-            <h2>Our Signature Treats</h2>
-            <p>Explore our most popular and delicious creations</p>
+            <h2>{featuredTitle}</h2>
+            <p>{featuredSubtitle}</p>
           </div>
         </HSAnimatedSection>
 

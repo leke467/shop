@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, getImageUrl } from '../../services/api'
+import { getTemplateById } from '../../templates/registry'
+
+const FONT_OPTIONS = [
+  { id: 'Inter', name: 'Inter', category: 'Clean & Modern Sans', preview: 'The quick brown fox jumps over the lazy dog' },
+  { id: 'Poppins', name: 'Poppins', category: 'Friendly Geometric', preview: 'Sweet bakes & fresh artisan treats' },
+  { id: 'Playfair Display', name: 'Playfair Display', category: 'Luxurious Serif', preview: 'Exquisite craftsmanship & elegance' },
+  { id: 'Cinzel', name: 'Cinzel', category: 'Royal Classical', preview: 'Imperial heritage & prestigious quality' },
+  { id: 'Outfit', name: 'Outfit', category: 'Contemporary Minimalist', preview: 'Simplicity meets refined aesthetics' },
+  { id: 'Plus Jakarta Sans', name: 'Plus Jakarta Sans', category: 'Crisp Digital', preview: 'High performance modern experience' },
+  { id: 'Montserrat', name: 'Montserrat', category: 'Architectural Bold', preview: 'Urban energy & powerful typography' },
+  { id: 'Space Grotesk', name: 'Space Grotesk', category: 'Cyberpunk & Tech', preview: 'Future tech & cybernetic systems' },
+  { id: 'Syne', name: 'Syne', category: 'Avant-Garde Fashion', preview: 'Expressive style & luxury lookbook' },
+  { id: 'Cormorant Garamond', name: 'Cormorant Garamond', category: 'Vintage Fine Serif', preview: 'Timeless luxury & bespoke goods' },
+  { id: 'Caveat', name: 'Caveat', category: 'Handmade Bakes Script', preview: 'Handcrafted with warmth and passion' },
+  { id: 'Pacifico', name: 'Pacifico', category: 'Playful Diner Script', preview: 'Delicious delights & sweet flavours' },
+]
 
 const COLOR_PRESETS = [
   {
@@ -43,24 +59,52 @@ const COLOR_PRESETS = [
     background_color: '#F0F9FF',
     text_color: '#0C4A6E',
   },
+  {
+    name: 'Royal Gold & Velvet',
+    icon: '👑',
+    primary_color: '#D4AF37',
+    banner_color: '#1A0B2E',
+    background_color: '#0D0614',
+    text_color: '#FBF8F0',
+  },
 ]
 
-export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveSuccess }) {
-  const [activeTab, setActiveTab] = useState('colors')
+export default function TemplateCustomizerModal({ shop, templateId, isOpen, onClose, onSaveSuccess }) {
+  const [activeTab, setActiveTab] = useState('hero')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const activeTemplateMeta = getTemplateById(templateId || shop?.template_id || 'honeyspicy') || {
+    id: templateId || 'honeyspicy',
+    name: 'Custom Template',
+    category: 'Storefront',
+  }
 
   const [form, setForm] = useState({
     name: shop?.name || '',
     tagline: shop?.tagline || '',
     description: shop?.description || '',
 
-    // Hero Section
+    // Hero Section & Welcome Prefix
+    hero_welcome_prefix: 'Welcome to',
     hero_headline: '',
     hero_subtitle: '',
+    hero_badge: 'Handcrafted Quality',
     hero_cta_primary: 'Order Now',
     hero_cta_secondary: 'View Menu',
+
+    // Featured & Section Titles
+    featured_title: 'Our Signature Treats',
+    featured_subtitle: 'Explore our most popular and delicious creations',
+    categories_title: 'Explore Our Menu',
+    categories_subtitle: 'Handcrafted to perfection with premium quality',
+    testimonials_title: 'What Our Happy Customers Say',
+
+    // Typography & Fonts
+    font_family: 'Poppins',
+    heading_font: 'Poppins',
+    body_font: 'Inter',
 
     // 4 Grouped Template Colors
     primary_color: '#E5A43B',
@@ -68,13 +112,20 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
     background_color: '#FFFDF9',
     text_color: '#2B1F0C',
 
-    // Features Banner
+    // Hero Showcase Images (3 Cards)
+    hero_image_1: '',
+    hero_image_2: '',
+    hero_image_3: '',
+
+    // Features Banner (4 Highlights)
     feature1_title: 'Fresh Daily',
     feature1_desc: 'All of our treats are made fresh every day',
     feature2_title: 'Quality Ingredients',
     feature2_desc: 'We use only the finest ingredients',
     feature3_title: 'Fast Delivery',
     feature3_desc: 'Doorstep delivery within 30 minutes',
+    feature4_title: 'Secure Checkout',
+    feature4_desc: '100% buyer protection via MultiShop Escrow',
 
     // Full About Page
     about_hero_title: 'Our Story',
@@ -94,7 +145,26 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
 
     banner_url: shop?.banner || '',
     logo_url: shop?.logo || '',
+    footer_note: '',
   })
+
+  // Dynamically load Google Font in Customizer preview
+  useEffect(() => {
+    const fontsToLoad = [form.font_family, form.heading_font, form.body_font].filter(Boolean)
+    fontsToLoad.forEach(font => {
+      if (!['inherit', 'sans-serif', 'serif'].includes(font)) {
+        const cleanFont = font.split(',')[0].replace(/['"]/g, '').trim()
+        const fontId = `google-font-${cleanFont.replace(/\s+/g, '-')}`
+        if (!document.getElementById(fontId)) {
+          const link = document.createElement('link')
+          link.id = fontId
+          link.rel = 'stylesheet'
+          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cleanFont)}:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap`
+          document.head.appendChild(link)
+        }
+      }
+    })
+  }, [form.font_family, form.heading_font, form.body_font])
 
   useEffect(() => {
     if (!shop?.slug) return
@@ -107,10 +177,22 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
           tagline: shop?.tagline || '',
           description: shop?.description || '',
 
+          hero_welcome_prefix: tokens.hero_welcome_prefix !== undefined ? tokens.hero_welcome_prefix : 'Welcome to',
           hero_headline: tokens.hero_headline ?? shop?.name ?? '',
           hero_subtitle: tokens.hero_subtitle ?? shop?.tagline ?? shop?.description ?? '',
+          hero_badge: tokens.hero_badge || 'Handcrafted Quality',
           hero_cta_primary: tokens.hero_cta_primary || 'Order Now',
           hero_cta_secondary: tokens.hero_cta_secondary || 'View Menu',
+
+          featured_title: tokens.featured_title || 'Our Signature Treats',
+          featured_subtitle: tokens.featured_subtitle || 'Explore our most popular and delicious creations',
+          categories_title: tokens.categories_title || 'Explore Our Menu',
+          categories_subtitle: tokens.categories_subtitle || 'Handcrafted to perfection with premium quality',
+          testimonials_title: tokens.testimonials_title || 'What Our Happy Customers Say',
+
+          font_family: tokens.font_family || 'Poppins',
+          heading_font: tokens.heading_font || tokens.font_family || 'Poppins',
+          body_font: tokens.body_font || 'Inter',
 
           hero_image_1: tokens.hero_image_1 || '',
           hero_image_2: tokens.hero_image_2 || '',
@@ -127,6 +209,8 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
           feature2_desc: tokens.feature2_desc || 'We use only the finest ingredients',
           feature3_title: tokens.feature3_title || 'Fast Delivery',
           feature3_desc: tokens.feature3_desc || 'Doorstep delivery within 30 minutes',
+          feature4_title: tokens.feature4_title || 'Secure Checkout',
+          feature4_desc: tokens.feature4_desc || '100% buyer protection via MultiShop Escrow',
 
           about_hero_title: tokens.about_hero_title || tokens.about_title || 'Our Story',
           about_hero_subtitle: tokens.about_hero_subtitle || 'Learn about our journey and passion',
@@ -145,10 +229,11 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
 
           banner_url: shop?.banner || tokens.banner_url || '',
           logo_url: shop?.logo || tokens.logo_url || '',
+          footer_note: tokens.footer_note || '',
         }))
       })
       .catch(() => {})
-  }, [shop, isOpen])
+  }, [shop, isOpen, templateId])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -190,12 +275,29 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
         description: form.description,
       })
 
+      const targetTemplate = templateId || shop?.template_id || 'honeyspicy'
+      if (templateId && templateId !== shop?.template_id) {
+        await shopAPI.setTemplate(shop.slug, targetTemplate)
+      }
+
       const extra_tokens = {
         ...existingTokens,
+        hero_welcome_prefix: form.hero_welcome_prefix,
         hero_headline: form.hero_headline,
         hero_subtitle: form.hero_subtitle,
+        hero_badge: form.hero_badge,
         hero_cta_primary: form.hero_cta_primary,
         hero_cta_secondary: form.hero_cta_secondary,
+
+        featured_title: form.featured_title,
+        featured_subtitle: form.featured_subtitle,
+        categories_title: form.categories_title,
+        categories_subtitle: form.categories_subtitle,
+        testimonials_title: form.testimonials_title,
+
+        font_family: form.font_family,
+        heading_font: form.heading_font,
+        body_font: form.body_font,
 
         hero_image_1: form.hero_image_1,
         hero_image_2: form.hero_image_2,
@@ -212,6 +314,8 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
         feature2_desc: form.feature2_desc,
         feature3_title: form.feature3_title,
         feature3_desc: form.feature3_desc,
+        feature4_title: form.feature4_title,
+        feature4_desc: form.feature4_desc,
 
         about_hero_title: form.about_hero_title,
         about_hero_subtitle: form.about_hero_subtitle,
@@ -231,6 +335,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
 
         banner_url: form.banner_url,
         logo_url: form.logo_url,
+        footer_note: form.footer_note,
       }
 
       const updatedTheme = await shopAPI.updateTheme(shop.slug, {
@@ -242,23 +347,35 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
 
       const fullShop = {
         ...updatedShop,
+        template_id: targetTemplate,
         theme: updatedTheme,
       }
 
-      setSuccess('Storefront content and colors saved successfully!')
+      setSuccess(`Storefront content, fonts, and template applied successfully!`)
       if (onSaveSuccess) onSaveSuccess(fullShop)
       setTimeout(() => {
         setSuccess('')
         onClose()
       }, 1200)
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Failed to save customization. Please try again.')
+      const msg = err?.response?.data?.detail || err?.response?.data?.error?.detail || 'Failed to save customization. Please check plan permissions.'
+      setError(msg)
     } finally {
       setSaving(false)
     }
   }
 
   if (!isOpen) return null
+
+  const TABS = [
+    { id: 'hero', label: '🎯 Hero & Headline' },
+    { id: 'sections', label: '🛍️ Section Titles' },
+    { id: 'fonts', label: '🔤 Fonts & Typography' },
+    { id: 'colors', label: '🎨 4 Colors' },
+    { id: 'features', label: '⭐ Features Banner' },
+    { id: 'about', label: '📖 About & Story' },
+    { id: 'branding', label: '🏷️ Logo & Banner' },
+  ]
 
   return (
     <AnimatePresence>
@@ -267,18 +384,25 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
           initial={{ opacity: 0, y: 50, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.98 }}
-          className="bg-white text-gray-900 w-full sm:max-w-2xl h-[92vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border-t sm:border border-gray-100 flex flex-col"
+          className="bg-white text-gray-900 w-full sm:max-w-3xl h-[94vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border-t sm:border border-gray-100 flex flex-col"
         >
-          {/* Mobile Drag Indicator / Header */}
+          {/* Mobile Drag Indicator */}
           <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto my-2" />
 
-          {/* Sticky Header */}
-          <div className="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-pink-500/10 shrink-0">
+          {/* Sticky Header with Template Badge */}
+          <div className="px-4 py-3.5 sm:px-6 sm:py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-pink-500/10 to-purple-500/10 shrink-0">
             <div>
-              <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
-                <span>⚙️</span> Manage Storefront
-              </h2>
-              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 line-clamp-1">Customize 4 colors, hero, features & about story for {shop?.name}</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-1.5">
+                  <span>⚙️</span> Manage Template
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500 text-white shadow-xs">
+                  {activeTemplateMeta.name}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                Customize every word, prefix, headline, signature section, and Google font.
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -301,14 +425,9 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
             </div>
           )}
 
-          {/* Scrollable Mobile Navigation Tabs */}
-          <div className="px-3 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex gap-1.5 sm:gap-2 overflow-x-auto bg-gray-50/80 backdrop-blur-sm shrink-0 scrollbar-none">
-            {[
-              { id: 'colors', label: '🎨 4 Color Scheme' },
-              { id: 'hero', label: '🎯 Hero Section' },
-              { id: 'features', label: '⭐ Features Banner' },
-              { id: 'about', label: '📖 Full About Page' },
-            ].map(tab => (
+          {/* Scrollable Navigation Tabs */}
+          <div className="px-3 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex gap-1.5 sm:gap-2 overflow-x-auto bg-gray-50/90 backdrop-blur-sm shrink-0 scrollbar-none">
+            {TABS.map(tab => (
               <button
                 key={tab.id}
                 type="button"
@@ -326,6 +445,269 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
 
           {/* Form Content Body */}
           <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-white">
+            
+            {/* 1. HERO & HEADLINE TAB */}
+            {activeTab === 'hero' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">✨ Main Headline Customization</h3>
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Welcome Prefix (e.g. "Welcome to", "Introducing", or leave blank)
+                    </label>
+                    <input
+                      type="text"
+                      name="hero_welcome_prefix"
+                      value={form.hero_welcome_prefix}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-semibold"
+                      placeholder='e.g. Welcome to'
+                    />
+                    <p className="text-[11px] text-gray-500 mt-1">This text appears right before your main store headline in script/accent font.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Main Store Headline Title</label>
+                    <input
+                      type="text"
+                      name="hero_headline"
+                      value={form.hero_headline}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-black"
+                      placeholder="e.g. Honeyspicy / Apex Store"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Hero Subtitle / Catchphrase</label>
+                    <input
+                      type="text"
+                      name="hero_subtitle"
+                      value={form.hero_subtitle}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
+                      placeholder="e.g. Discover our amazing products crafted with love and passion!"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Primary Button Text (CTA 1)</label>
+                    <input
+                      type="text"
+                      name="hero_cta_primary"
+                      value={form.hero_cta_primary}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                      placeholder="e.g. Order Now"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Secondary Button Text (CTA 2)</label>
+                    <input
+                      type="text"
+                      name="hero_cta_secondary"
+                      value={form.hero_cta_secondary}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                      placeholder="e.g. View Menu / Catalog"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200">
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">🖼️ Hero Showcase Floating Images (3 Cards)</h4>
+                  <p className="text-[11px] text-gray-500 mb-3">Upload your product images or paste direct URLs for the 3 showcase cards.</p>
+
+                  <div className="space-y-3">
+                    {[
+                      { key: 'hero_image_1', label: 'Showcase Image 1 (Top Float)' },
+                      { key: 'hero_image_2', label: 'Showcase Image 2 (Center Main)' },
+                      { key: 'hero_image_3', label: 'Showcase Image 3 (Bottom Float)' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                        <label className="block text-xs font-bold text-gray-900">{label}</label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="text"
+                            name={key}
+                            value={form[key] || ''}
+                            onChange={handleChange}
+                            placeholder="https://images.unsplash.com/..."
+                            className="flex-1 px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold cursor-pointer text-center shrink-0">
+                            Upload File
+                            <input
+                              type="file"
+                              accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                              className="hidden"
+                              onChange={(e) => handleImageFileChange(key, e.target.files[0])}
+                            />
+                          </label>
+                        </div>
+                        {form[key] && (
+                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 mt-1">
+                            <img src={getImageUrl(form[key])} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. STORE SECTIONS & TITLES TAB */}
+            {activeTab === 'sections' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">🍰 Featured / Signature Treats Section</h3>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Featured Section Title (e.g. "Our Signature Treats")
+                    </label>
+                    <input
+                      type="text"
+                      name="featured_title"
+                      value={form.featured_title}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                      placeholder="e.g. Our Signature Treats"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Featured Section Subtitle (e.g. "Explore our most popular and delicious creations")
+                    </label>
+                    <input
+                      type="text"
+                      name="featured_subtitle"
+                      value={form.featured_subtitle}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
+                      placeholder="e.g. Explore our most popular and delicious creations"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">📂 Catalog / Menu Page Headers</h3>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Menu Page Headline</label>
+                    <input
+                      type="text"
+                      name="categories_title"
+                      value={form.categories_title}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                      placeholder="e.g. Explore Our Menu"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Menu Page Subtitle</label>
+                    <input
+                      type="text"
+                      name="categories_subtitle"
+                      value={form.categories_subtitle}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
+                      placeholder="e.g. Handcrafted to perfection with premium quality"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Testimonials / Reviews Title</label>
+                  <input
+                    type="text"
+                    name="testimonials_title"
+                    value={form.testimonials_title}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-bold"
+                    placeholder="e.g. What Our Happy Customers Say"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 3. FONTS & TYPOGRAPHY TAB */}
+            {activeTab === 'fonts' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">Select Google Font Family</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto p-1 border border-gray-200 rounded-2xl">
+                    {FONT_OPTIONS.map(font => {
+                      const isSelected = form.font_family === font.id || form.heading_font === font.id
+                      return (
+                        <button
+                          key={font.id}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, font_family: font.id, heading_font: font.id }))}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'border-amber-500 bg-amber-50 shadow-xs ring-2 ring-amber-400/20'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-gray-900" style={{ fontFamily: font.id }}>
+                              {font.name}
+                            </span>
+                            <span className="text-[10px] font-semibold text-gray-500 uppercase">{font.category}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-1" style={{ fontFamily: font.id }}>
+                            {font.preview}
+                          </p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Heading Font</label>
+                    <input
+                      type="text"
+                      name="heading_font"
+                      value={form.heading_font}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm font-bold"
+                      placeholder="e.g. Poppins, Playfair Display"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Body Text Font</label>
+                    <input
+                      type="text"
+                      name="body_font"
+                      value={form.body_font}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm font-medium"
+                      placeholder="e.g. Inter, Outfit"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Font Sample Preview */}
+                <div className="p-4 rounded-2xl bg-gray-900 text-white space-y-2">
+                  <span className="text-[10px] uppercase font-mono tracking-widest text-amber-400">Live Typography Preview</span>
+                  <h3 className="text-2xl font-bold" style={{ fontFamily: form.heading_font }}>
+                    {form.hero_welcome_prefix ? `${form.hero_welcome_prefix} ` : ''}{form.hero_headline || 'Honeyspicy Gourmet'}
+                  </h3>
+                  <p className="text-xs text-gray-300" style={{ fontFamily: form.body_font }}>
+                    {form.featured_subtitle || 'Explore our most popular and delicious creations crafted fresh every day.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 4. 4-COLOR SCHEME TAB */}
             {activeTab === 'colors' && (
               <div className="space-y-5">
                 <div>
@@ -360,7 +742,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
                       <div>
                         <span className="block text-xs font-bold text-gray-900">1. Primary Accent</span>
-                        <span className="block text-[10px] sm:text-[11px] text-gray-500">CTA buttons, highlights, badges</span>
+                        <span className="block text-[10px] sm:text-[11px] text-gray-500">CTA buttons, badges, links</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <input
@@ -384,7 +766,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
                       <div>
                         <span className="block text-xs font-bold text-gray-900">2. Features Banner</span>
-                        <span className="block text-[10px] sm:text-[11px] text-gray-500">Full-width features strip background</span>
+                        <span className="block text-[10px] sm:text-[11px] text-gray-500">Highlights strip background</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <input
@@ -407,7 +789,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                     {/* Color 3 */}
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
                       <div>
-                        <span className="block text-xs font-bold text-gray-900">3. Page Background</span>
+                        <span className="block text-xs font-bold text-gray-900">3. Page Canvas Background</span>
                         <span className="block text-[10px] sm:text-[11px] text-gray-500">Overall site canvas background</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -432,7 +814,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
                       <div>
                         <span className="block text-xs font-bold text-gray-900">4. Text & Headings</span>
-                        <span className="block text-[10px] sm:text-[11px] text-gray-500">Main titles and body text color</span>
+                        <span className="block text-[10px] sm:text-[11px] text-gray-500">Main titles & paragraph text</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <input
@@ -456,275 +838,48 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
               </div>
             )}
 
-            {activeTab === 'hero' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Shop Headline Title</label>
-                  <input
-                    type="text"
-                    name="hero_headline"
-                    value={form.hero_headline}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                    placeholder="e.g. Obsidian Zone 1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Hero Subtitle / Tagline</label>
-                  <input
-                    type="text"
-                    name="hero_subtitle"
-                    value={form.hero_subtitle}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                    placeholder="e.g. Your premium destination for custom gaming setups."
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Primary CTA Button</label>
-                    <input
-                      type="text"
-                      name="hero_cta_primary"
-                      value={form.hero_cta_primary}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="e.g. Order Now"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Secondary CTA Button</label>
-                    <input
-                      type="text"
-                      name="hero_cta_secondary"
-                      value={form.hero_cta_secondary}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
-                      placeholder="e.g. View Menu"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-gray-200">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">🖼️ Hero Section Showcase Images (3 Cards)</h4>
-                  <p className="text-[11px] text-gray-500 mb-3">Upload image files directly or paste image URLs for the 3 floating hero cards displayed on your storefront hero section.</p>
-
-                  <div className="space-y-3">
-                    {[
-                      { key: 'hero_image_1', label: 'Hero Showcase Image 1' },
-                      { key: 'hero_image_2', label: 'Hero Showcase Image 2' },
-                      { key: 'hero_image_3', label: 'Hero Showcase Image 3' },
-                    ].map(({ key, label }) => (
-                      <div key={key} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                        <label className="block text-xs font-bold text-gray-900">{label}</label>
-
-                        <div className="flex items-center gap-3">
-                          {/* Thumbnail preview */}
-                          <div className="w-14 h-14 rounded-xl border border-gray-300 bg-white overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
-                            {form[key] ? (
-                              <img src={getImageUrl(form[key])} alt={label} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-xl opacity-40">🖼️</span>
-                            )}
-                          </div>
-
-                          <div className="flex-1 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <label className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-xs inline-flex items-center gap-1.5">
-                                <span>📁</span> Choose File / Upload
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => e.target.files?.[0] && handleImageFileChange(key, e.target.files[0])}
-                                />
-                              </label>
-
-                              {form[key] && (
-                                <button
-                                  type="button"
-                                  onClick={() => setForm(prev => ({ ...prev, [key]: '' }))}
-                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl transition-all"
-                                >
-                                  Clear
-                                </button>
-                              )}
-                            </div>
-
-                            <input
-                              type="text"
-                              name={key}
-                              value={form[key] || ''}
-                              onChange={handleChange}
-                              className="w-full px-3 py-1.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-mono"
-                              placeholder="Or paste image URL (https://...)"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-gray-200">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">🏪 Store Banner & Brand Logo</h4>
-                  <p className="text-[11px] text-gray-500 mb-3">Upload custom banner artwork or store logo for your storefront.</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Banner Image */}
-                    <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                      <label className="block text-xs font-bold text-gray-900">Store Banner Image</label>
-                      <div className="w-full h-20 rounded-xl border border-gray-300 bg-white overflow-hidden flex items-center justify-center shadow-xs relative">
-                        {form.banner_url ? (
-                          <img src={getImageUrl(form.banner_url)} alt="Banner" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-sm text-gray-400 font-medium">🏞️ No Banner Uploaded</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="flex-1 px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-xs text-center">
-                          📁 Upload Banner
-                          <input
-                            type="file"
-                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
-                            className="hidden"
-                            onChange={(e) => e.target.files?.[0] && handleImageFileChange('banner_url', e.target.files[0])}
-                          />
-                        </label>
-                        {form.banner_url && (
-                          <button
-                            type="button"
-                            onClick={() => setForm(prev => ({ ...prev, banner_url: '' }))}
-                            className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl transition-all"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        name="banner_url"
-                        value={form.banner_url || ''}
-                        onChange={handleChange}
-                        className="w-full px-3 py-1.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-mono"
-                        placeholder="Or paste banner URL"
-                      />
-                    </div>
-
-                    {/* Logo Image */}
-                    <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-                      <label className="block text-xs font-bold text-gray-900">Store Brand Logo</label>
-                      <div className="w-full h-20 rounded-xl border border-gray-300 bg-white overflow-hidden flex items-center justify-center shadow-xs relative">
-                        {form.logo_url ? (
-                          <img src={getImageUrl(form.logo_url)} alt="Logo" className="w-16 h-16 object-contain" />
-                        ) : (
-                          <span className="text-sm text-gray-400 font-medium">🏷️ No Logo Uploaded</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="flex-1 px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-xs text-center">
-                          📁 Upload Logo
-                          <input
-                            type="file"
-                            accept="image/*,.svg,.svgz,.png,.jpg,.jpeg,.webp,.gif,.ico,.avif,.bmp"
-                            className="hidden"
-                            onChange={(e) => e.target.files?.[0] && handleImageFileChange('logo_url', e.target.files[0])}
-                          />
-                        </label>
-                        {form.logo_url && (
-                          <button
-                            type="button"
-                            onClick={() => setForm(prev => ({ ...prev, logo_url: '' }))}
-                            className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl transition-all"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        name="logo_url"
-                        value={form.logo_url || ''}
-                        onChange={handleChange}
-                        className="w-full px-3 py-1.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-mono"
-                        placeholder="Or paste logo URL"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* 5. FEATURES BANNER TAB */}
             {activeTab === 'features' && (
-              <div className="space-y-3.5">
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Feature 1</h4>
-                  <input
-                    type="text"
-                    name="feature1_title"
-                    value={form.feature1_title}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm font-bold"
-                    placeholder="Title (e.g. 24/7 Support)"
-                  />
-                  <input
-                    type="text"
-                    name="feature1_desc"
-                    value={form.feature1_desc}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-medium"
-                    placeholder="Description (e.g. Dedicated gaming hardware support)"
-                  />
-                </div>
-
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Feature 2</h4>
-                  <input
-                    type="text"
-                    name="feature2_title"
-                    value={form.feature2_title}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm font-bold"
-                    placeholder="Title (e.g. Genuine Hardware)"
-                  />
-                  <input
-                    type="text"
-                    name="feature2_desc"
-                    value={form.feature2_desc}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-medium"
-                    placeholder="Description (e.g. 100% authentic Alienware & Razer gear)"
-                  />
-                </div>
-
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Feature 3</h4>
-                  <input
-                    type="text"
-                    name="feature3_title"
-                    value={form.feature3_title}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm font-bold"
-                    placeholder="Title (e.g. Express Shipping)"
-                  />
-                  <input
-                    type="text"
-                    name="feature3_desc"
-                    value={form.feature3_desc}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-medium"
-                    placeholder="Description (e.g. Nationwide doorstep delivery within 24 hours)"
-                  />
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">Customize the 4 highlight cards displayed on your storefront feature strip.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { num: 1, titleKey: 'feature1_title', descKey: 'feature1_desc', defaultT: 'Fresh Daily', defaultD: 'All of our treats are made fresh every day' },
+                    { num: 2, titleKey: 'feature2_title', descKey: 'feature2_desc', defaultT: 'Quality Ingredients', defaultD: 'We use only the finest ingredients' },
+                    { num: 3, titleKey: 'feature3_title', descKey: 'feature3_desc', defaultT: 'Fast Delivery', defaultD: 'Doorstep delivery within 30 minutes' },
+                    { num: 4, titleKey: 'feature4_title', descKey: 'feature4_desc', defaultT: 'Secure Checkout', defaultD: '100% buyer protection via MultiShop Escrow' },
+                  ].map(f => (
+                    <div key={f.num} className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                      <span className="text-xs font-bold text-gray-900">Feature Card {f.num}</span>
+                      <input
+                        type="text"
+                        name={f.titleKey}
+                        value={form[f.titleKey]}
+                        onChange={handleChange}
+                        placeholder={f.defaultT}
+                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-bold"
+                      />
+                      <input
+                        type="text"
+                        name={f.descKey}
+                        value={form[f.descKey]}
+                        onChange={handleChange}
+                        placeholder={f.defaultD}
+                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
+            {/* 6. ABOUT & STORY TAB */}
             {activeTab === 'about' && (
               <div className="space-y-4">
-                {/* About Hero & Mission */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2.5">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">About Page Header & Mission</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">About Page Headlines</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-600 mb-1">About Hero Title</label>
                       <input
@@ -762,7 +917,7 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">Mission Tagline / Highlight</label>
+                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">Mission Highlight Quote</label>
                     <input
                       type="text"
                       name="about_mission_highlight"
@@ -781,101 +936,116 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
                       value={form.about_text}
                       onChange={handleChange}
                       className="w-full px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-medium"
-                      placeholder="Write your full brand story, custom setups, or business mission..."
+                      placeholder="Write your full brand story, handcrafted bakes, or business journey..."
                     />
                   </div>
                 </div>
 
                 {/* 4 Core Values */}
                 <div className="space-y-2.5">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Core Values Cards (About Page)</h4>
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Core Values Cards</h4>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-1.5">
-                      <span className="text-xs font-bold text-amber-900">Value 1 (🎯)</span>
-                      <input
-                        type="text"
-                        name="value1_title"
-                        value={form.value1_title}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-xs font-bold"
-                        placeholder="Title (e.g. Quality First)"
-                      />
-                      <input
-                        type="text"
-                        name="value1_desc"
-                        value={form.value1_desc}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-[11px]"
-                        placeholder="Description"
-                      />
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-1.5">
-                      <span className="text-xs font-bold text-amber-900">Value 2 (❤️)</span>
-                      <input
-                        type="text"
-                        name="value2_title"
-                        value={form.value2_title}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-xs font-bold"
-                        placeholder="Title (e.g. Customer Love)"
-                      />
-                      <input
-                        type="text"
-                        name="value2_desc"
-                        value={form.value2_desc}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-[11px]"
-                        placeholder="Description"
-                      />
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-1.5">
-                      <span className="text-xs font-bold text-amber-900">Value 3 (🌱)</span>
-                      <input
-                        type="text"
-                        name="value3_title"
-                        value={form.value3_title}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-xs font-bold"
-                        placeholder="Title (e.g. Sustainability)"
-                      />
-                      <input
-                        type="text"
-                        name="value3_desc"
-                        value={form.value3_desc}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-[11px]"
-                        placeholder="Description"
-                      />
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-1.5">
-                      <span className="text-xs font-bold text-amber-900">Value 4 (🤝)</span>
-                      <input
-                        type="text"
-                        name="value4_title"
-                        value={form.value4_title}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-xs font-bold"
-                        placeholder="Title (e.g. Community)"
-                      />
-                      <input
-                        type="text"
-                        name="value4_desc"
-                        value={form.value4_desc}
-                        onChange={handleChange}
-                        className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-[11px]"
-                        placeholder="Description"
-                      />
-                    </div>
+                    {[
+                      { num: 1, emoji: '🎯', t: 'value1_title', d: 'value1_desc', defaultT: 'Quality First' },
+                      { num: 2, emoji: '❤️', t: 'value2_title', d: 'value2_desc', defaultT: 'Customer Love' },
+                      { num: 3, emoji: '🌱', t: 'value3_title', d: 'value3_desc', defaultT: 'Sustainability' },
+                      { num: 4, emoji: '🤝', t: 'value4_title', d: 'value4_desc', defaultT: 'Community' },
+                    ].map(val => (
+                      <div key={val.num} className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 space-y-1.5">
+                        <span className="text-xs font-bold text-amber-900">Value {val.num} ({val.emoji})</span>
+                        <input
+                          type="text"
+                          name={val.t}
+                          value={form[val.t]}
+                          onChange={handleChange}
+                          className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-xs font-bold"
+                          placeholder={`Title (e.g. ${val.defaultT})`}
+                        />
+                        <input
+                          type="text"
+                          name={val.d}
+                          value={form[val.d]}
+                          onChange={handleChange}
+                          className="w-full px-2.5 py-1.5 bg-white text-gray-900 rounded-lg border border-gray-300 text-[11px]"
+                          placeholder="Description"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Mobile & Desktop Sticky Submit Footer */}
+            {/* 7. BRANDING & FOOTER TAB */}
+            {activeTab === 'branding' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Shop Logo (Supports SVG, PNG, WebP, JPG)</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      name="logo_url"
+                      value={form.logo_url}
+                      onChange={handleChange}
+                      placeholder="https://..."
+                      className="flex-1 px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-mono"
+                    />
+                    <label className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold cursor-pointer shrink-0">
+                      Upload Logo
+                      <input
+                        type="file"
+                        accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                        className="hidden"
+                        onChange={(e) => handleImageFileChange('logo_url', e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                  {form.logo_url && (
+                    <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 mt-2 bg-gray-50 flex items-center justify-center">
+                      <img src={getImageUrl(form.logo_url)} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Shop Banner Image</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      name="banner_url"
+                      value={form.banner_url}
+                      onChange={handleChange}
+                      placeholder="https://..."
+                      className="flex-1 px-3 py-2 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs font-mono"
+                    />
+                    <label className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold cursor-pointer shrink-0">
+                      Upload Banner
+                      <input
+                        type="file"
+                        accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                        className="hidden"
+                        onChange={(e) => handleImageFileChange('banner_url', e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Footer Tagline / Custom Note</label>
+                  <input
+                    type="text"
+                    name="footer_note"
+                    value={form.footer_note}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 text-xs sm:text-sm"
+                    placeholder="e.g. Handcrafted with love in Lagos, Nigeria."
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Sticky Submit Footer */}
             <div className="sticky bottom-0 z-20 pt-3 pb-3 -mx-4 -mb-4 px-4 sm:-mx-6 sm:-mb-6 sm:px-6 border-t border-gray-100 flex items-center justify-end gap-2.5 bg-white/95 backdrop-blur-md shadow-lg sm:shadow-none">
               <button
                 type="button"
@@ -887,9 +1057,9 @@ export default function TemplateCustomizerModal({ shop, isOpen, onClose, onSaveS
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-2 sm:flex-none px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 text-white text-xs sm:text-sm font-bold shadow-md hover:opacity-95 transition-all disabled:opacity-50 text-center"
+                className="flex-2 sm:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 text-white text-xs sm:text-sm font-bold shadow-md hover:opacity-95 transition-all disabled:opacity-50 text-center"
               >
-                {saving ? 'Saving...' : 'Save & Publish'}
+                {saving ? 'Saving & Publishing...' : 'Save & Publish Customization'}
               </button>
             </div>
           </form>

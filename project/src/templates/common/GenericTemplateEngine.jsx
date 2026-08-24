@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../../context/CartContext'
@@ -16,13 +16,29 @@ const NIGERIAN_STATES = [
 
 export default function GenericTemplateEngine({ config, shop, products = [], reviews = [], shopSlug }) {
   const [quickViewProduct, setQuickViewProduct] = useState(null)
+  const extra = shop?.theme?.extra_tokens || {}
+  const fontChoice = extra.font_family || extra.heading_font || config.fontFamily || ''
+
+  useEffect(() => {
+    if (fontChoice && !['inherit', 'sans-serif', 'serif'].includes(fontChoice)) {
+      const cleanFont = fontChoice.split(',')[0].replace(/['"]/g, '').trim()
+      const fontId = `custom-font-${cleanFont.replace(/\s+/g, '-')}`
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement('link')
+        link.id = fontId
+        link.rel = 'stylesheet'
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cleanFont)}:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap`
+        document.head.appendChild(link)
+      }
+    }
+  }, [fontChoice])
 
   return (
     <div
       style={{
-        backgroundColor: config.bgColor || '#ffffff',
-        color: config.textColor || '#111827',
-        fontFamily: config.fontFamily || 'Inter, sans-serif',
+        backgroundColor: extra.background_color || shop?.theme?.background_color || config.bgColor || '#ffffff',
+        color: extra.text_color || shop?.theme?.text_color || config.textColor || '#111827',
+        fontFamily: fontChoice ? `"${fontChoice}", ${config.fontFamily || 'Inter, sans-serif'}` : (config.fontFamily || 'Inter, sans-serif'),
         minHeight: '100vh',
       }}
     >
@@ -244,18 +260,24 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
 
+  const welcomePrefix = extra.hero_welcome_prefix !== undefined ? extra.hero_welcome_prefix : (config.badgeText || 'Exclusive Selection')
+  const cta1 = extra.hero_cta_primary || config.ctaPrimary || 'Explore Catalog ➔'
+  const cta2 = extra.hero_cta_secondary || 'View Cart 🛒'
+
   return (
     <div>
       {/* Hero Section */}
       <section className="py-16 sm:py-24 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <span
-              className="inline-block px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
-              style={{ backgroundColor: `${primaryAccent}20`, color: primaryAccent }}
-            >
-              {config.badgeText || 'Exclusive Selection'}
-            </span>
+            {welcomePrefix ? (
+              <span
+                className="inline-block px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
+                style={{ backgroundColor: `${primaryAccent}20`, color: primaryAccent }}
+              >
+                {welcomePrefix}
+              </span>
+            ) : null}
 
             <h1 className="text-4xl sm:text-6xl font-black leading-tight" style={{ color: config.textColor }}>
               {headline}
@@ -271,7 +293,7 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
                 className="px-8 py-4 rounded-2xl font-extrabold text-white shadow-lg hover:scale-105 transition-all text-base"
                 style={{ backgroundColor: primaryAccent }}
               >
-                {config.ctaPrimary || 'Explore Catalog ➔'}
+                {cta1}
               </button>
 
               <button
@@ -279,7 +301,7 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
                 className="px-8 py-4 rounded-2xl font-bold border transition-all text-base"
                 style={{ borderColor: config.borderColor, color: config.textColor, backgroundColor: config.cardBg }}
               >
-                View Cart 🛒
+                {cta2}
               </button>
             </div>
           </div>
@@ -294,10 +316,10 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
       <section className="py-12 border-y" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {(config.features || [
-            { icon: '🚀', title: 'Express Delivery', desc: 'Fast nationwide shipping to your doorstep' },
-            { icon: '🛡️', title: 'Escrow Security', desc: 'Protected by MultiShop Escrow' },
-            { icon: '💎', title: 'Verified Quality', desc: 'Authentic products direct from source' },
-            { icon: '🎧', title: '24/7 Support', desc: 'Dedicated customer assistance' },
+            { icon: '🚀', title: extra.feature1_title || 'Express Delivery', desc: extra.feature1_desc || 'Fast nationwide shipping to your doorstep' },
+            { icon: '🛡️', title: extra.feature2_title || 'Escrow Security', desc: extra.feature2_desc || 'Protected by MultiShop Escrow' },
+            { icon: '💎', title: extra.feature3_title || 'Verified Quality', desc: extra.feature3_desc || 'Authentic products direct from source' },
+            { icon: '🎧', title: extra.feature4_title || '24/7 Support', desc: extra.feature4_desc || 'Dedicated customer assistance' },
           ]).map((f, i) => (
             <div key={i} className="p-5 rounded-2xl border" style={{ borderColor: config.borderColor, backgroundColor: config.bgColor }}>
               <span className="text-3xl block mb-2">{f.icon}</span>
@@ -323,6 +345,9 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
   const [category, setCategory] = useState('all')
   const [sort, setSort] = useState('default')
   const primaryAccent = config.primaryColor || '#2563eb'
+  const extra = shop?.theme?.extra_tokens || {}
+  const catalogTitle = extra.featured_title || 'Our Collection'
+  const catalogSubtitle = extra.featured_subtitle || ''
 
   const categories = useMemo(() => {
     const set = new Set()
@@ -353,7 +378,8 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider" style={{ color: primaryAccent }}>Catalog</span>
-            <h2 className="text-3xl font-extrabold" style={{ color: config.textColor }}>Our Collection</h2>
+            <h2 className="text-3xl font-extrabold" style={{ color: config.textColor }}>{catalogTitle}</h2>
+            {catalogSubtitle && <p className="text-sm mt-1" style={{ color: config.subtextColor }}>{catalogSubtitle}</p>}
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">

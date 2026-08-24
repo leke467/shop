@@ -10,8 +10,14 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showManageModal, setShowManageModal] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const templates = getAllTemplates()
   const currentTemplate = shop?.template_id || ''
+
+  const openManageModal = (templateId) => {
+    setSelectedTemplateId(templateId || currentTemplate || 'honeyspicy')
+    setShowManageModal(true)
+  }
 
   const handleApply = async (templateId) => {
     if (!shop?.slug) return
@@ -199,36 +205,44 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
                         View Live
                       </button>
                       <button
-                        onClick={() => setShowManageModal(true)}
+                        onClick={() => openManageModal(template.id)}
                         className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-semibold hover:opacity-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
                       >
                         <span>⚙️</span> Manage
                       </button>
                     </div>
                   ) : (
-                    <>
+                    <div className="flex gap-1.5 sm:gap-2 w-full">
                       <button
                         onClick={() => handleApply(template.id)}
                         disabled={!!applying}
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-pink-400 text-white text-sm font-semibold hover:from-amber-500 hover:to-pink-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-2 px-3 sm:px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-pink-400 text-white text-xs sm:text-sm font-semibold hover:from-amber-500 hover:to-pink-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isApplying ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <span className="flex items-center justify-center gap-1.5">
+                            <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
                               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
                               <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
                             </svg>
                             Applying...
                           </span>
-                        ) : 'Apply Template'}
+                        ) : 'Apply'}
+                      </button>
+                      <button
+                        onClick={() => openManageModal(template.id)}
+                        className="px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1"
+                        title="Manage & customize this template"
+                      >
+                        <span>⚙️</span>
+                        <span className="hidden sm:inline">Manage</span>
                       </button>
                       <button
                         onClick={() => handlePreview(template.id)}
-                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-xs sm:text-sm font-medium hover:bg-gray-50 transition-colors"
                       >
                         Preview
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -261,6 +275,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
       {/* Storefront Customizer Modal */}
       <TemplateCustomizerModal
         shop={shop}
+        templateId={selectedTemplateId || currentTemplate || 'honeyspicy'}
         isOpen={showManageModal}
         onClose={() => setShowManageModal(false)}
         onSaveSuccess={onShopUpdate}
