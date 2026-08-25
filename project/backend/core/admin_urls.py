@@ -10,11 +10,13 @@ from core.admin_views import (
     AdminPaymentsView,
     AdminProductListView,
     AdminReferralsView,
+    AdminTestEmailsView,
     AdminUserListView,
 )
 
 urlpatterns = [
     path("overview/", AdminOverviewView.as_view(), name="admin-overview"),
+    path("test-emails/", AdminTestEmailsView.as_view(), name="admin-test-emails"),
     path("orders/", AdminOrderListView.as_view(), name="admin-orders"),
     path("orders/<int:pk>/", AdminOrderListView.as_view(), name="admin-order-detail"),
     path("products/", AdminProductListView.as_view(), name="admin-products"),

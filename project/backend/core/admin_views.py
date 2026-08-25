@@ -421,3 +421,137 @@ class AdminReferralsView(APIView):
                 "commission_referral_share": str(comm_share),
             }
         })
+
+
+class AdminTestEmailsView(APIView):
+    """
+    POST/GET /api/admin/test-emails/
+    Dispatches all 6 core transactional emails to the specified email address.
+    """
+    permission_classes = []
+
+    def post(self, request):
+        return self._send_tests(request)
+
+    def get(self, request):
+        return self._send_tests(request)
+
+    def _send_tests(self, request):
+        target_email = (
+            request.data.get("email") 
+            if hasattr(request, "data") and isinstance(request.data, dict) 
+            else None
+        ) or request.query_params.get("email") or "adeleke467@gmail.com"
+        
+        from types import SimpleNamespace
+        from core.emails import (
+            send_order_placed_buyer_email,
+            send_order_placed_seller_email,
+            send_order_shipped_buyer_email,
+            send_escrow_released_email,
+            send_order_cancelled_by_vendor_email,
+            send_dispute_opened_email,
+        )
+
+        results = {}
+
+        mock_user = SimpleNamespace(
+            email=target_email,
+            first_name="Adeleke",
+            username="adeleke",
+            is_authenticated=True,
+            is_staff=False,
+            pk=999,
+        )
+
+        mock_shop = SimpleNamespace(
+            name="HoneySpicy Delights",
+            slug="honeyspicy",
+            owner=mock_user,
+            commission_rate=Decimal("5.0"),
+        )
+
+        mock_item = SimpleNamespace(
+            product_name="Vanilla Luxury Ice Cream",
+            variant_name="500ml Tub",
+            quantity=2,
+            unit_price=Decimal("1500.00"),
+            line_total=Decimal("3000.00"),
+        )
+
+        mock_order = SimpleNamespace(
+            public_id="TEST-8899A1",
+            user=mock_user,
+            grand_total=Decimal("3750.00"),
+            subtotal=Decimal("3000.00"),
+            shipping_total=Decimal("500.00"),
+            tax_total=Decimal("250.00"),
+            shipping_line1="12 Admiralty Way, Lekki Phase 1",
+            shipping_city="Lagos",
+            shipping_state="Lagos",
+            shipping_full_name="Adeleke Test Buyer",
+            shipping_phone="08012345678",
+            currency="NGN",
+            status="confirmed",
+        )
+
+        mock_group = SimpleNamespace(
+            id=101,
+            order=mock_order,
+            shop=mock_shop,
+            delivery_code="582194",
+            status="shipped",
+            escrow_status="held",
+            subtotal=Decimal("3000.00"),
+            shipping_total=Decimal("500.00"),
+            logistics_markup=Decimal("0.00"),
+            items=SimpleNamespace(all=lambda: [mock_item]),
+        )
+
+        # 1. Buyer Order Confirmation
+        try:
+            send_order_placed_buyer_email(mock_order, [mock_group])
+            results["1_order_placed_buyer"] = "Sent successfully"
+        except Exception as e:
+            results["1_order_placed_buyer"] = f"Failed: {e}"
+
+        # 2. Seller New Order Alert
+        try:
+            send_order_placed_seller_email(mock_group)
+            results["2_order_placed_seller"] = "Sent successfully"
+        except Exception as e:
+            results["2_order_placed_seller"] = f"Failed: {e}"
+
+        # 3. Buyer Shipping Notification with Delivery Code
+        try:
+            send_order_shipped_buyer_email(mock_group)
+            results["3_order_shipped_with_code"] = "Sent successfully"
+        except Exception as e:
+            results["3_order_shipped_with_code"] = f"Failed: {e}"
+
+        # 4. Seller Escrow Payout Released
+        try:
+            send_escrow_released_email(mock_group, Decimal("3350.00"))
+            results["4_escrow_released_seller"] = "Sent successfully"
+        except Exception as e:
+            results["4_escrow_released_seller"] = f"Failed: {e}"
+
+        # 5. Buyer Order Cancelled & Refunded
+        try:
+            send_order_cancelled_by_vendor_email(mock_group, Decimal("3500.00"))
+            results["5_order_cancelled_refunded_buyer"] = "Sent successfully"
+        except Exception as e:
+            results["5_order_cancelled_refunded_buyer"] = f"Failed: {e}"
+
+        # 6. Dispute Opened Alert
+        try:
+            send_dispute_opened_email(mock_group, "Test dispute reason: package delay.")
+            results["6_dispute_opened"] = "Sent successfully"
+        except Exception as e:
+            results["6_dispute_opened"] = f"Failed: {e}"
+
+        return Response({
+            "status": "All test emails triggered",
+            "recipient": target_email,
+            "results": results,
+        })
