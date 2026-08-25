@@ -68,15 +68,7 @@ function MainLayout() {
   const knownShop = shopSlugFromPath && getShopBySlug ? getShopBySlug(shopSlugFromPath) : null
   const cachedTemplateId = shopSlugFromPath ? getTemplateShopCache(shopSlugFromPath) : null
 
-  const isTemplateActive = Boolean(
-    isShopRoute && (activeTemplateShop?.template_id || knownShop?.template_id || cachedTemplateId)
-  )
-
-  const isPendingShopTemplate = Boolean(
-    isShopRoute && activeTemplateShop === undefined && !knownShop && !cachedTemplateId
-  )
-
-  const hideMarketplaceNav = isTemplateActive || isPendingShopTemplate
+  const hideMarketplaceNav = isShopRoute
 
   // Scroll to top on route change
   useEffect(() => {
