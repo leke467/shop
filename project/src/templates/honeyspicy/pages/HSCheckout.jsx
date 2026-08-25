@@ -82,21 +82,42 @@ export default function HSCheckout({ shop, shopSlug }) {
     }
   }, [shop, shopSlug])
 
-  // Calculate dynamic delivery fee
-  const deliveryFee = (() => {
-    if (!deliveryZones || deliveryZones.length === 0) {
-      return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
-    }
-    const matchedZone = deliveryZones.find(z => z.state?.toLowerCase() === selectedState.toLowerCase() && z.is_active !== false)
-    if (matchedZone) return Number(matchedZone.fee || 0)
-    return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
-  })()
+  const [deliveryFee, setDeliveryFee] = useState(0)
+  const [deliveryAvailable, setDeliveryAvailable] = useState(true)
+  const [deliveryLoading, setDeliveryLoading] = useState(false)
+
+  // Fetch dynamic delivery fee for the selected state
+  useEffect(() => {
+    const slug = shop?.slug || shopSlug
+    if (!slug || !selectedState) return
+
+    setDeliveryLoading(true)
+    shopAPI.deliveryZoneForState(slug, selectedState)
+      .then(data => {
+        const zones = Array.isArray(data) ? data : (data?.results || [])
+        const activeZone = zones.find(z => z.is_active !== false)
+        if (activeZone && activeZone.fee !== null && activeZone.fee !== undefined) {
+          const rawFee = parseFloat(activeZone.fee)
+          const markup = Math.round(rawFee * 0.15)
+          setDeliveryFee(rawFee + markup)
+          setDeliveryAvailable(true)
+        } else {
+          setDeliveryFee(0)
+          setDeliveryAvailable(true)
+        }
+      })
+      .catch(() => {
+        setDeliveryFee(0)
+        setDeliveryAvailable(true)
+      })
+      .finally(() => setDeliveryLoading(false))
+  }, [shop, shopSlug, selectedState])
 
   // Calculate financial totals
   const discount = Number(couponDiscount || 0)
   const netSubtotal = Math.max(0, subtotal - discount)
   const vat = Math.round(netSubtotal * 0.075)
-  const grandTotal = netSubtotal + deliveryFee + vat
+  const grandTotal = netSubtotal + Number(deliveryFee || 0) + vat
 
   const handleChange = (e) => {
     const { name, value } = e.target
