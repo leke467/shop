@@ -86,7 +86,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            {['🎁 ₦500 Referral Bonus', '📈 20% Commission Share', '🔒 Escrow Protection', '⚡ Instant Monnify Payouts'].map((item) => (
+            {['🎁 ₦500 Referral Bonus', '📈 20% Commission Share', '🔒 Buyer Protection', '⚡ Instant Monnify Payouts'].map((item) => (
               <span key={item} className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-sm font-medium border border-white/20">
                 {item}
               </span>

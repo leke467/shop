@@ -48,7 +48,7 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
         { key1: 'feature1_title', val1: 'Fresh Daily', key2: 'feature1_desc', val2: 'All of our treats are made fresh every morning' },
         { key1: 'feature2_title', val1: 'Quality Ingredients', key2: 'feature2_desc', val2: 'We use only the finest natural ingredients' },
         { key1: 'feature3_title', val1: 'Fast Delivery', key2: 'feature3_desc', val2: 'Doorstep delivery within 30 minutes' },
-        { key1: 'feature4_title', val1: 'Secure Checkout', key2: 'feature4_desc', val2: '100% buyer protection via MultiShop Escrow' },
+        { key1: 'feature4_title', val1: 'Secure Checkout', key2: 'feature4_desc', val2: '100% buyer protection via MultiShop' },
       ]
     },
     palettePresets: [
@@ -748,7 +748,7 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
       hasWelcomePrefix: false,
       hasBadge: true,
       badgeLabel: 'Marketplace Verification Tag',
-      badgeDefault: '100% VERIFIED SELLERS & ESCROW SECURE',
+      badgeDefault: '100% VERIFIED SELLERS & BUYER PROTECTED',
       hasHeadline: true,
       headlineLabel: 'Marketplace Name',
       hasSubtitle: true,

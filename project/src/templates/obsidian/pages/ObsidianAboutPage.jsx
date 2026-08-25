@@ -13,8 +13,8 @@ export default function ObsidianAboutPage({ shop }) {
   const value1Desc = extra.value1_desc || 'Every item is rigorously inspected and verified.'
   const value2Title = extra.value2_title || 'Nationwide Shipping'
   const value2Desc = extra.value2_desc || 'Fast and secure delivery to your doorstep.'
-  const value3Title = extra.value3_title || 'Escrow Protection'
-  const value3Desc = extra.value3_desc || '100% buyer protection via MultiShop Escrow.'
+  const value3Title = extra.value3_title || 'Buyer Protection'
+  const value3Desc = extra.value3_desc || '100% buyer protection via MultiShop verified checkout.'
   const value4Title = extra.value4_title || 'Customer Dedication'
   const value4Desc = extra.value4_desc || '24/7 client support and satisfaction commitment.'
 

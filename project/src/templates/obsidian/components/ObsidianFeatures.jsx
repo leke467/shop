@@ -11,8 +11,8 @@ export default function ObsidianFeatures({ shop }) {
     },
     {
       icon: '🛡️',
-      title: extra.feature2_title || 'Escrow Protection',
-      desc: extra.feature2_desc || 'Funds released only after inspection code is confirmed',
+      title: extra.feature2_title || 'Buyer Protection',
+      desc: extra.feature2_desc || 'Verified delivery with 6-digit confirmation code verification',
     },
     {
       icon: '💎',

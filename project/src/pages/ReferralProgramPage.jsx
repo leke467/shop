@@ -35,7 +35,7 @@ export default function ReferralProgramPage() {
     },
     {
       q: 'How does the 20% sales commission share work?',
-      a: 'MultiShopNG charges a small platform commission on escrow sales. When an order completes on a shop you referred, 20% of MultiShopNG’s platform commission is automatically credited to your wallet.',
+      a: 'MultiShopNG charges a standard platform commission on marketplace sales. When an order completes on a shop you referred, 20% of MultiShopNG’s platform commission is automatically credited to your wallet.',
     },
     {
       q: 'How do payouts work?',
@@ -147,7 +147,7 @@ export default function ReferralProgramPage() {
               Reward #2: 20% Sales Commission Share
             </h3>
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
-              Earn passive income on every product sold by your referred vendors. You receive <strong>20% of MultiShopNG’s platform commission</strong> on every order released from escrow.
+              Earn passive income on every product sold by your referred vendors. You receive <strong>20% of MultiShopNG’s platform commission</strong> on every fulfilled order.
             </p>
             <div className="inline-block px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg">
               Recurring Revenue Per Sale

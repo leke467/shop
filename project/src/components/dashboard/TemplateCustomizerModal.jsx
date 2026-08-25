@@ -136,7 +136,7 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
     feature3_title: pick('feature3_title', schema.features?.defaultCards?.[2]?.val1, 'Fast Delivery'),
     feature3_desc: pick('feature3_desc', schema.features?.defaultCards?.[2]?.val2, 'Swift insured delivery to your location'),
     feature4_title: pick('feature4_title', schema.features?.defaultCards?.[3]?.val1, 'Secure Checkout'),
-    feature4_desc: pick('feature4_desc', schema.features?.defaultCards?.[3]?.val2, 'Buyer protection via MultiShop Escrow'),
+    feature4_desc: pick('feature4_desc', schema.features?.defaultCards?.[3]?.val2, '100% verified MultiShop Buyer Protection'),
 
     // About & Story
     about_hero_title: pick('about_hero_title', schema.about?.aboutHeroTitle, 'Our Story'),
@@ -969,7 +969,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                     { num: 1, titleKey: 'feature1_title', descKey: 'feature1_desc', defaultT: 'Fresh Daily', defaultD: 'All of our treats are made fresh every day' },
                     { num: 2, titleKey: 'feature2_title', descKey: 'feature2_desc', defaultT: 'Quality Ingredients', defaultD: 'We use only the finest ingredients' },
                     { num: 3, titleKey: 'feature3_title', descKey: 'feature3_desc', defaultT: 'Fast Delivery', defaultD: 'Doorstep delivery within 30 minutes' },
-                    { num: 4, titleKey: 'feature4_title', descKey: 'feature4_desc', defaultT: 'Secure Checkout', defaultD: '100% buyer protection via MultiShop Escrow' },
+                    { num: 4, titleKey: 'feature4_title', descKey: 'feature4_desc', defaultT: 'Secure Checkout', defaultD: '100% buyer protection via MultiShop' },
                   ].map(f => (
                     <div key={f.num} className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
                       <span className="text-xs font-bold text-gray-900">Feature Card {f.num}</span>

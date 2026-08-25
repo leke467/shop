@@ -15,13 +15,13 @@ export default function RefundPage() {
         >
           {/* Header */}
           <div className="border-b border-gray-100 pb-6 text-center sm:text-left">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">Refund & Escrow Dispute Policy</h1>
-            <p className="text-sm text-gray-400 mt-2">Last Updated: July 18, 2026</p>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">Refund & Buyer Protection Policy</h1>
+            <p className="text-sm text-gray-400 mt-2">Last Updated: August 20, 2026</p>
           </div>
 
           {/* Quick Summary Alert Box */}
           <div className="p-5 rounded-2xl bg-primary-50 border border-primary-100 text-sm text-primary-800 leading-relaxed">
-            <strong>💡 Quick Summary:</strong> Since funds are protected in escrow, you have the right to request a refund <strong>before</strong> the delivery code is confirmed. Do not share the confirmation code if the items received are incorrect, damaged, or not delivered. If a dispute is raised, funds will remain frozen until an admin conducts a review and issues a payout or buyer refund.
+            <strong>💡 Quick Summary:</strong> Under MultiShop Buyer Protection, you have the right to request a refund <strong>before</strong> the 6-digit delivery confirmation code is confirmed. Do not provide the confirmation code if the items received are incorrect, damaged, or not delivered. If a dispute is raised, order settlement is held pending support review to issue a vendor payout or buyer refund.
           </div>
 
           <div className="space-y-6 text-sm text-gray-600 leading-relaxed">
@@ -29,7 +29,7 @@ export default function RefundPage() {
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">1. Refund Eligibility Period</h3>
               <p>
-                Refunds are strictly eligible and processing is guaranteed only **before** the buyer shares the 6-digit confirmation code with the seller. Once a delivery confirmation code is entered by the seller, the escrow funds are permanently released to the seller's wallet and are no longer refundable by the platform.
+                Refunds are eligible and processing is guaranteed **before** the buyer shares the 6-digit delivery confirmation code with the seller. Once a delivery confirmation code is entered and verified, the order is marked completed and settled to the seller's balance.
               </p>
             </section>
 
@@ -41,8 +41,8 @@ export default function RefundPage() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>The buyer must not share their confirmation code.</li>
-                <li>The buyer can submit a formal refund request to support or open a dispute on the order group.</li>
-                <li>Upon verification of non-delivery, the admin will void the transaction and issue a full refund to the buyer's original payment method (Stripe or Paystack).</li>
+                <li>The buyer can submit a formal refund request to support or open an order dispute.</li>
+                <li>Upon verification of non-delivery, the platform will void the transaction and issue a full refund to the buyer's original payment method (Paystack, Monnify, or Stripe).</li>
               </ul>
             </section>
 
@@ -54,22 +54,22 @@ export default function RefundPage() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>If the products are damaged, fake, or different from the description, **do not share the confirmation code**.</li>
-                <li>Request that the seller take back the goods and issue a return.</li>
+                <li>Request that the seller take back the goods and issue a replacement or return.</li>
                 <li>If the seller refuses to accept a valid return, flag/report the shop and request support intervention.</li>
               </ul>
             </section>
 
             {/* Section 4 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">4. Raising an Escrow Dispute</h3>
+              <h3 className="text-lg font-bold text-gray-900">4. Raising an Order Dispute</h3>
               <p>
                 When a dispute is opened by a buyer:
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>The order group status changes to `Disputed`.</li>
-                <li>The escrow balance is frozen.</li>
+                <li>Order payout settlement is temporarily held.</li>
                 <li>Our support team will request evidence (shipping receipts, product photographs, messaging history) from both parties.</li>
-                <li>Admin review takes up to 5 business days, after which funds will be either refunded to the buyer or released to the seller's payout balance.</li>
+                <li>Admin review takes up to 5 business days, after which funds will be either refunded to the buyer or released to the seller.</li>
               </ul>
             </section>
 
@@ -77,7 +77,7 @@ export default function RefundPage() {
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">5. Manual Delivery Disclaimers</h3>
               <p>
-                For orders placed with "Manual Delivery Arrangement", any shipping fees sent directly to a seller's bank account are handled outside our platform. We cannot reclaim or refund cash sent off-platform. Only the purchase subtotal held in our escrow balance is protected.
+                For orders placed with "Manual Delivery Arrangement", any shipping fees sent directly to a seller's bank account are handled outside our platform. We cannot reclaim or refund cash sent off-platform. Only the purchase subtotal processed through the platform checkout is protected.
               </p>
             </section>
 

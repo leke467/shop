@@ -10,7 +10,7 @@ DEFAULT_FROM_EMAIL = getattr(settings, 'DEFAULT_FROM_EMAIL', 'multishopng@apexla
 
 def send_order_placed_buyer_email(order, order_groups):
     """
-    Send receipt and escrow delivery codes to the buyer via Brevo / EmailService.
+    Send receipt and delivery confirmation codes to the buyer via Brevo / EmailService.
     Supports both registered users and guest checkout (shipping_email).
     """
     buyer_name = (
@@ -36,8 +36,8 @@ def send_order_placed_buyer_email(order, order_groups):
         f"Total Paid: ₦{order.grand_total:,.2f}",
         f"Delivery Address: {order.shipping_line1 or order.shipping_city}, {order.shipping_state}",
         "",
-        "🔒 ESCROW DELIVERY CODES:",
-        "Your payment is safely held in MultiShop escrow. Only provide the 6-digit delivery code to the seller once you have physically received and inspected your items:",
+        "🔒 DELIVERY CONFIRMATION CODES:",
+        "Your purchase is protected by MultiShop Buyer Protection. Provide the 6-digit delivery confirmation code to the courier/seller once you have physically received and inspected your package:",
         "",
     ]
 
@@ -84,9 +84,9 @@ def send_order_placed_buyer_email(order, order_groups):
                 </div>
             </div>
 
-            <h3 style="font-size:15px;color:#0F172A;margin-bottom:8px;">🔒 Your Escrow Delivery Verification Codes</h3>
+            <h3 style="font-size:15px;color:#0F172A;margin-bottom:8px;">🔒 Your Delivery Verification Codes</h3>
             <p style="font-size:13px;color:#64748B;line-height:1.5;margin-bottom:14px;">
-                Funds are protected in escrow. Share this code with the dispatch rider or vendor <strong>ONLY after</strong> you have received your package:
+                Protected by MultiShop Buyer Protection. Share this code with the dispatch courier or vendor <strong>ONLY after</strong> you have received your package:
             </p>
             {codes_html}
 
@@ -144,7 +144,7 @@ def send_order_placed_seller_email(order_group):
         f"Next Steps:\n"
         f"1. Package the items for delivery.\n"
         f"2. Ship to the customer's address.\n"
-        f"3. Ask the customer for their 6-digit delivery code upon handoff and enter it in your Seller Dashboard to release funds instantly to your wallet.\n\n"
+        f"3. Ask the customer for their 6-digit delivery confirmation code upon handoff and enter it in your Seller Dashboard to verify delivery.\n\n"
         f"MultiShop Marketplace"
     )
 
@@ -156,7 +156,7 @@ def send_order_placed_seller_email(order_group):
         </div>
         <div style="padding:24px;">
             <p style="font-size:14px;color:#475569;margin-top:0;">Hello <strong>{seller_name}</strong>,</p>
-            <p style="font-size:14px;color:#475569;">You have received a new order <strong>#{order.public_id}</strong>. Funds are secured in escrow.</p>
+            <p style="font-size:14px;color:#475569;">You have received a new paid order <strong>#{order.public_id}</strong> on MultiShop.</p>
 
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;">
                 <div style="margin-bottom:6px;"><strong>Customer:</strong> {order.shipping_full_name}</div>
@@ -178,7 +178,7 @@ def send_order_placed_seller_email(order_group):
             </table>
 
             <div style="background:#EFF6FF;border:1px solid #BFDBFE;padding:14px;border-radius:10px;font-size:13px;color:#1E40AF;line-height:1.5;">
-                ⚡ <strong>Escrow Release:</strong> When delivering the order, ask the customer for their 6-digit delivery code and enter it in your Seller Dashboard to release funds directly to your wallet.
+                ⚡ <strong>Delivery Verification:</strong> When delivering the order, ask the customer for their 6-digit delivery confirmation code and enter it in your Seller Dashboard to verify delivery completion.
             </div>
         </div>
     </div>
@@ -311,19 +311,19 @@ def send_subscription_expiring_email(user, plan, subscription, days_left):
 
 def send_escrow_released_email(order_group, amount_released):
     """
-    Notify seller that escrow funds have been released to their wallet via Brevo.
+    Notify seller that order delivery has been confirmed and funds credited to their wallet.
     """
     shop = order_group.shop
     if not shop.owner or not shop.owner.email:
         return
 
-    subject = f"Funds Released for Order #{order_group.order.public_id}"
+    subject = f"Order #{order_group.order.public_id} Delivery Confirmed — Funds Credited"
     seller_name = shop.owner.first_name or shop.owner.email.split("@")[0]
     body = (
         f"Hello {seller_name},\n\n"
-        f"The delivery code was successfully confirmed for order #{order_group.order.public_id}.\n"
+        f"The delivery confirmation code was successfully verified for order #{order_group.order.public_id}.\n"
         f"An amount of NGN {amount_released:,.2f} has been credited to your wallet.\n\n"
-        f"Thanks,\nThe Multishop Team"
+        f"Thanks,\nThe MultiShop Team"
     )
 
     try:
@@ -334,7 +334,7 @@ def send_escrow_released_email(order_group, amount_released):
             from_email=DEFAULT_FROM_EMAIL,
         )
     except Exception as e:
-        logger.error("Failed to send escrow release email: %s", e)
+        logger.error("Failed to send delivery payout notification email: %s", e)
 
 
 def send_dispute_opened_email(order_group, reason):

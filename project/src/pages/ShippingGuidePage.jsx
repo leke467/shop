@@ -5,7 +5,7 @@ import SEOHead from '../components/SEOHead'
 const PARTNERS = [
   { name: 'GIG Logistics', desc: 'Nationwide coverage with fast delivery times. Great for parcels of all sizes.', color: 'from-red-500 to-red-700' },
   { name: 'Kwik Delivery', desc: 'On-demand delivery for Lagos and Abuja. Fast dispatch for urgent items.', color: 'from-blue-500 to-blue-700' },
-  { name: 'Sendbox', desc: 'Ideal for e-commerce with built-in escrow and international shipping options.', color: 'from-green-500 to-green-700' },
+  { name: 'Sendbox', desc: 'Ideal for e-commerce with tracking integration and nationwide/international shipping options.', color: 'from-green-500 to-green-700' },
   { name: 'Topship', desc: 'Global and local shipping made easy. Door-to-door delivery.', color: 'from-purple-500 to-purple-700' },
   { name: 'Fez Delivery', desc: 'Reliable last-mile delivery services tailored for businesses.', color: 'from-orange-500 to-orange-700' }
 ]

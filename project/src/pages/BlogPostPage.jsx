@@ -25,8 +25,8 @@ export default function BlogPostPage() {
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">1. Identifying Your High-Demand Niche</h2>
       <p class="leading-relaxed mb-6">Before setting up your shop, analyze consumer demand. Top-performing categories in Nigeria include ready-to-wear African fashion, organic skincare, phone and computing accessories, artisan homeware, and packaged foods. Focus on product categories with repeat purchase cycles and healthy margins.</p>
       
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">2. Building Trust with Escrow Payments</h2>
-      <p class="leading-relaxed mb-6">The biggest historical roadblock to Nigerian e-commerce has been trust between strangers. Our marketplace integrates automated Escrow and verified payment gateways (Moniepoint, Monnify, Cards, and Bank Transfers). The buyer pays into escrow, and funds are disbursed once the delivery code is confirmed.</p>
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">2. Building Trust with Buyer Protection</h2>
+      <p class="leading-relaxed mb-6">The biggest historical roadblock to Nigerian e-commerce has been trust between strangers. Our marketplace integrates automated buyer protection and verified payment gateways (Moniepoint, Monnify, Cards, and Bank Transfers). The order is secured, and settlement is completed once the delivery code is confirmed.</p>
     `
   }
 

@@ -309,7 +309,7 @@ export default function SignUpPage() {
             {[
               { num: '₦500', label: 'Per Referral' },
               { num: '20%', label: 'Commission Share' },
-              { num: '100%', label: 'Escrow Protected' },
+              { num: '100%', label: 'Buyer Protected' },
             ].map(s => (
               <div key={s.label} className="text-center">
                 <div className="text-3xl font-bold">{s.num}</div>

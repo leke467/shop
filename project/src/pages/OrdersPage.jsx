@@ -108,7 +108,7 @@ export default function OrdersPage() {
             <div class="header">
               <div>
                 <div class="logo">MultiShopNG</div>
-                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Official Payment & Escrow Receipt</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Official Order & Payment Receipt</div>
               </div>
               <div class="status-badge">✓ PAYMENT VERIFIED</div>
             </div>
@@ -117,7 +117,7 @@ export default function OrdersPage() {
               <div>
                 <strong>Order Ref:</strong> #${order.public_id.split('-')[0].toUpperCase()}<br/>
                 <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}<br/>
-                <strong>Escrow Status:</strong> Secured
+                <strong>Protection Status:</strong> Verified
               </div>
               <div style="text-align: right;">
                 <strong>Buyer:</strong> ${user?.email || 'Registered Customer'}<br/>
@@ -146,7 +146,7 @@ export default function OrdersPage() {
             </div>
 
             <div class="footer">
-              MultiShopNG — Official Payment Receipt. Funds are securely escrowed until buyer delivery confirmation.
+              MultiShopNG — Official Payment Receipt. Protected by MultiShop Buyer Protection.
             </div>
           </div>
           <script>window.onload = function() { window.print(); }</script>

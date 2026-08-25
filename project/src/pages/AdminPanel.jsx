@@ -413,7 +413,7 @@ export default function AdminPanel() {
                           <th className="px-6 py-4">Shop</th>
                           <th className="px-6 py-4">Total</th>
                           <th className="px-6 py-4">Fulfilment</th>
-                          <th className="px-6 py-4">Escrow</th>
+                          <th className="px-6 py-4">Settlement</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-700">
@@ -691,7 +691,7 @@ export default function AdminPanel() {
 
                 {disputes.length === 0 ? (
                   <div className="bg-gray-800 p-12 text-center rounded-2xl border border-gray-700 text-gray-400">
-                    No active escrow disputes open!
+                    No active order disputes open!
                   </div>
                 ) : (
                   <div className="space-y-4">

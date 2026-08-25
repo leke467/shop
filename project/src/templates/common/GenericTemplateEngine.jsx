@@ -354,7 +354,7 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {(config.features || [
             { icon: '🚀', title: extra.feature1_title || 'Express Delivery', desc: extra.feature1_desc || 'Fast nationwide shipping to your doorstep' },
-            { icon: '🛡️', title: extra.feature2_title || 'Escrow Security', desc: extra.feature2_desc || 'Protected by MultiShop Escrow' },
+            { icon: '🛡️', title: extra.feature2_title || 'Buyer Protection', desc: extra.feature2_desc || '100% verified MultiShop purchase protection' },
             { icon: '💎', title: extra.feature3_title || 'Verified Quality', desc: extra.feature3_desc || 'Authentic products direct from source' },
             { icon: '🎧', title: extra.feature4_title || '24/7 Support', desc: extra.feature4_desc || 'Dedicated customer assistance' },
           ]).map((f, i) => (
@@ -789,8 +789,8 @@ function EngineFooter({ config, shop, shopSlug }) {
           </div>
         </div>
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Buyer Escrow Protection</h4>
-          <p className="text-xs opacity-75 leading-relaxed">Every transaction is secured with MultiShop Escrow. Payments released only after delivery confirmation.</p>
+          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">MultiShop Buyer Protection</h4>
+          <p className="text-xs opacity-75 leading-relaxed">Every transaction is secured with MultiShop Buyer Protection. Verified delivery through secure 6-digit confirmation codes.</p>
         </div>
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Official Store</h4>

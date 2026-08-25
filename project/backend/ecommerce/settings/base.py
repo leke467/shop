@@ -60,7 +60,7 @@ def _bank_transfer_accounts() -> list[dict]:
         if not number:
             continue
         accounts.append({
-            "account_name": env(f"BANK_ACCOUNT_NAME_{i}", "Marketplace Escrow"),
+            "account_name": env(f"BANK_ACCOUNT_NAME_{i}", "MultiShop Marketplace"),
             "account_number": number,
             "bank_name": env(f"BANK_NAME_{i}", ""),
         })
@@ -69,7 +69,7 @@ def _bank_transfer_accounts() -> list[dict]:
     if not accounts:
         legacy_number = env("BANK_ACCOUNT_NUMBER", "")
         accounts.append({
-            "account_name": env("BANK_ACCOUNT_NAME", "Marketplace Escrow"),
+            "account_name": env("BANK_ACCOUNT_NAME", "MultiShop Marketplace"),
             "account_number": legacy_number,
             "bank_name": env("BANK_NAME", ""),
         })

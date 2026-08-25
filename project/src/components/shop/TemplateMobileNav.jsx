@@ -275,7 +275,7 @@ export default function TemplateMobileNav({
               <div className="pt-6 border-t border-black/10 space-y-3 text-center">
                 <div className={`p-3 rounded-xl ${styles.badge}`}>
                   <div className="font-bold flex items-center justify-center gap-1">
-                    <span>🛡️</span> 100% Escrow Protected
+                    <span>🛡️</span> 100% Buyer Protected
                   </div>
                 </div>
 

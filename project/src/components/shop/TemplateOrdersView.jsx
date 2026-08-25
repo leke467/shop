@@ -86,7 +86,7 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
           <div className={`p-8 sm:p-12 rounded-3xl ${cardClass} text-center space-y-4`}>
             <span className="text-5xl block">🔒</span>
             <h2 className="text-xl sm:text-2xl font-bold">Please log in to view your order history</h2>
-            <p className="text-gray-500 text-xs sm:text-sm max-w-md mx-auto">Log in with the account you used during purchase to track your packages and view escrow delivery codes.</p>
+            <p className="text-gray-500 text-xs sm:text-sm max-w-md mx-auto">Log in with the account you used during purchase to track your packages and view delivery confirmation codes.</p>
             <Link to="/login" className="inline-block px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md transition-all">
               Sign In
             </Link>

@@ -46,7 +46,7 @@ export default function PrivacyPage() {
                 The information collected is used strictly to:
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li>Process checkout requests and hold payments securely in the escrow system.</li>
+                <li>Process checkout orders and verify successful delivery through licensed payment partners.</li>
                 <li>Verify shop owners' identities to prevent scam listings and resolve disputes.</li>
                 <li>Track and display order history and transaction records.</li>
                 <li>Send transactional email notifications (order receipts, shipping info, password resets).</li>

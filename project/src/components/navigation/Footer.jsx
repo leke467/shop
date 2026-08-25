@@ -14,7 +14,7 @@ function Footer() {
               <Logo size="md" isDarkBg={true} />
             </Link>
             <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-              The ultimate multi-vendor marketplace with customizable shops and seamless escrow shopping.
+              The ultimate multi-vendor marketplace with customizable shops and verified delivery protection.
             </p>
           </div>
           
@@ -74,7 +74,7 @@ function Footer() {
           <div>
             <h4 className="font-bold text-white mb-2.5 text-sm uppercase tracking-wider">Help & Trust</h4>
             <ul className="space-y-1.5 text-gray-400 text-xs sm:text-sm">
-              <li>🛡️ Escrow Buyer Protection</li>
+              <li>🛡️ MultiShop Buyer Protection</li>
               <li>📍 Lagos, Abuja, Port Harcourt</li>
               <li>✉️ support@multishopng.com</li>
               <li>🌐 www.multishopng.com</li>

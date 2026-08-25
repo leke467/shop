@@ -25,8 +25,8 @@ export const BLOG_POSTS = [
         <p class="text-sm text-primary-800 dark:text-primary-300 mt-1">Bundle complementary products together (e.g., Shea butter + black soap) to increase your Average Order Value (AOV) and offset shipping costs.</p>
       </div>
 
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">2. Building Trust with Escrow Payments</h2>
-      <p class="leading-relaxed mb-6">The biggest historical roadblock to Nigerian e-commerce has been trust between strangers. Our marketplace integrates automated Escrow and verified payment gateways (Moniepoint, Monnify, Cards, and Bank Transfers). The buyer pays into escrow, and funds are disbursed once the delivery code is confirmed.</p>
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">2. Building Trust with Buyer Protection</h2>
+      <p class="leading-relaxed mb-6">The biggest historical roadblock to Nigerian e-commerce has been trust between strangers. Our marketplace integrates automated buyer protection and verified payment gateways (Moniepoint, Monnify, Cards, and Bank Transfers). The order is secured, and funds are disbursed once the delivery code is confirmed.</p>
       
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">3. Configuring Nationwide Shipping Zones</h2>
       <p class="leading-relaxed mb-6">Logistics can make or break your store. Leverage zone-based shipping rules: set instant intrastate rates for intra-city couriers and tiered interstate rates for dispatch to major hubs. Always provide accurate delivery timeframes to delight your customers.</p>
@@ -67,8 +67,8 @@ export const BLOG_POSTS = [
     `
   },
   {
-    slug: 'secure-escrow-payments-explained',
-    title: 'Why Escrow Is Transforming Buyer Confidence in Nigerian Digital Commerce',
+    slug: 'secure-buyer-protection-explained',
+    title: 'Why Buyer Protection Is Transforming Consumer Confidence in Nigerian Digital Commerce',
     excerpt: 'An inside look at how buyer protection, instant fraud prevention, and seller assurance work together seamlessly to eliminate payment friction.',
     image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80',
     date: 'Jul 20, 2026',
@@ -77,7 +77,7 @@ export const BLOG_POSTS = [
     authorRole: 'Fintech & Security Lead',
     tags: ['Fintech', 'Security', 'E-commerce'],
     content: `
-      <p class="text-lg leading-relaxed mb-6">Confidence is the currency of the digital economy. Discover how our escrow engine secures every transaction from checkout to doorstep confirmation.</p>
+      <p class="text-lg leading-relaxed mb-6">Confidence is the currency of the digital economy. Discover how our verified delivery system secures every transaction from checkout to doorstep confirmation.</p>
     `
   },
 ]

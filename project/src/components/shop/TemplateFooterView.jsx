@@ -168,9 +168,9 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           <div className="space-y-2.5">
             <div className={styles.badge}>
               <div className="flex items-center gap-1.5 font-bold mb-0.5">
-                <span>🛡️</span> Escrow Protected
+                <span>🛡️</span> Verified Purchase Protection
               </div>
-              <p className="opacity-75 text-[10px]">Funds stay locked until delivery verification code is confirmed.</p>
+              <p className="opacity-75 text-[10px]">Protected checkout with delivery confirmation code verification.</p>
             </div>
             <Link to="/" className="text-[11px] opacity-75 hover:underline block">← Back to MultiShop Marketplace</Link>
           </div>
@@ -181,7 +181,7 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           <h4 className={styles.heading}>Verified Merchant</h4>
           <div className="space-y-2">
             <p className="text-xs opacity-80 leading-relaxed">
-              Official storefront on <strong className="opacity-100">MultiShop Nigeria</strong>. 100% genuine products with secured escrow checkout.
+              Official storefront on <strong className="opacity-100">MultiShop Nigeria</strong>. 100% genuine products with secured payment checkout.
             </p>
             <div className="flex items-center gap-2 pt-1">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

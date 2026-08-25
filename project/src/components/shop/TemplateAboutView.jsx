@@ -25,8 +25,7 @@ export default function TemplateAboutView({ shop, shopSlug, theme = 'default', p
   const value3Title = extra.value3_title || 'Integrity & Care'
   const value3Desc = extra.value3_desc || 'Committed to responsible, sustainable, and transparent practices in everything we build.'
 
-  const value4Title = extra.value4_title || 'Verified Community'
-  const value4Desc = extra.value4_desc || 'Backed by 100% MultiShop Escrow protection for complete buyer peace of mind.'
+  const value4Desc = extra.value4_desc || 'Backed by 100% MultiShop Buyer Protection for complete shopping confidence.'
 
   const heroBanner = extra.banner_url || shop?.banner || ''
   const shopLogo = extra.logo_url || shop?.logo || ''
@@ -273,13 +272,13 @@ export default function TemplateAboutView({ shop, shopSlug, theme = 'default', p
           </div>
         </div>
 
-        {/* 3. Escrow & Buyer Protection Trust Banner */}
+        {/* 3. Buyer Protection Trust Banner */}
         <div className="p-6 sm:p-8 rounded-2xl bg-black/5 border border-black/10 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
           <div className="flex items-center gap-4">
             <span className="text-4xl">🔐</span>
             <div>
-              <h4 className="font-bold text-base sm:text-lg">MultiShop Escrow Guarantee</h4>
-              <p className="text-xs opacity-75 mt-0.5">Your funds remain safely in escrow until you inspect and verify delivery via security code.</p>
+              <h4 className="font-bold text-base sm:text-lg">MultiShop Buyer Protection</h4>
+              <p className="text-xs opacity-75 mt-0.5">Secure payment processing with package verification via 6-digit delivery confirmation code.</p>
             </div>
           </div>
           <Link to={catalogUrl} className={`shrink-0 ${styles.ctaBtn}`}>

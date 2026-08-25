@@ -689,10 +689,10 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
                     {/* Safety Banner */}
                     <div className="p-3 sm:p-3.5 rounded-xl bg-warning-50 border border-warning-200 space-y-1 overflow-hidden">
                       <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-warning-850 uppercase tracking-wider">
-                        🛡️ Escrow Protected Purchase
+                        🛡️ MultiShop Buyer Protection
                       </div>
                       <p className="text-[11px] sm:text-xs text-warning-700 leading-relaxed">
-                        Your payment is held securely in escrow. Do not share your delivery code with the seller until you have received and inspected the products.
+                        Protected marketplace purchase. Provide your 6-digit delivery confirmation code to the courier or seller only upon physical inspection and receipt of your order.
                       </p>
                     </div>
 

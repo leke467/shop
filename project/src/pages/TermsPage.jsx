@@ -24,7 +24,7 @@ export default function TermsPage() {
 
           {/* Quick Summary Alert Box */}
           <div className="p-5 rounded-2xl bg-primary-50 border border-primary-100 text-sm text-primary-800 leading-relaxed">
-            <strong>💡 Quick Summary:</strong> MultiShopNG is a multi-vendor e-commerce platform and technology provider. We connect independent sellers and buyers with integrated payment gateways (Paystack, Monnify / Moniepoint, Stripe), strict 6-digit confirmation code escrow protection, tiered subscriptions with Custom Shop Themes, and automated identity verification (KYC). Sellers receive escrow payouts only upon buyer delivery confirmation.
+            <strong>💡 Quick Summary:</strong> MultiShopNG is an online multi-vendor marketplace and commerce technology platform. We connect independent sellers and verified buyers with secure payment processing powered by licensed payment partners (Paystack, Monnify, Stripe), delivery verification codes, customizable storefront themes, and automated seller verification.
           </div>
 
           <div className="space-y-6 text-sm text-gray-600 leading-relaxed">
@@ -40,23 +40,22 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">2. Marketplace Platform Role</h3>
               <p>
-                MultiShopNG operates strictly as a technology provider and intermediary platform.
+                MultiShopNG operates strictly as an online technology provider and multi-vendor marketplace platform.
                 <strong> We are not the direct seller of goods unless explicitly marked.</strong> Contracts for purchase are established directly between independent shop owners and buyers. Shop owners are solely responsible for item accuracy, inventory, delivery fulfillment, and customer service.
               </p>
             </section>
 
             {/* Section 3 */}
             <section className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">3. Payment Gateways & Escrow Protection</h3>
+              <h3 className="text-lg font-bold text-gray-900">3. Payment Processing & Buyer Protection</h3>
               <p>
-                To eliminate payment fraud, MultiShopNG enforces a mandatory Payment Escrow Protocol:
+                To provide a trusted e-commerce experience for buyers and sellers across Nigeria, MultiShopNG integrates standard marketplace checkout and buyer protection workflows:
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
-                <li><strong>Supported Payment Providers:</strong> Payments are processed via licensed payment gateways, including <strong>Paystack</strong>, <strong>Monnify (Moniepoint Microfinance Bank)</strong>, and <strong>Stripe</strong>.</li>
-                <li><strong>Escrow Holding:</strong> All buyer payments are securely held in platform-managed escrow holding accounts until delivery completion.</li>
-                <li><strong>6-Digit Confirmation Code:</strong> Upon successful checkout, buyers receive a unique 6-digit delivery confirmation OTP in their order panel and confirmation email.</li>
-                <li><strong>Irreversible Code Release:</strong> Buyers must disclose their 6-digit code to the courier/seller <em>only</em> upon physical receipt and inspection of their items. Inputting the matching code immediately releases escrow funds to the seller's wallet balance.</li>
-                <li><strong>Disputes & Refunds:</strong> If an order is not delivered or fails inspection, buyers may open a dispute before disclosing the confirmation code. Escrowed funds remain locked during investigation.</li>
+                <li><strong>Licensed Payment Providers:</strong> All transactions are processed through CBN-licensed payment gateways, including <strong>Paystack</strong>, <strong>Monnify (Moniepoint Microfinance Bank)</strong>, and <strong>Stripe</strong>. MultiShopNG utilizes marketplace split payment and settlement capabilities provided by our licensed payment partners.</li>
+                <li><strong>Buyer Protection & Delivery Verification:</strong> Upon successful checkout, buyers receive a unique 6-digit delivery confirmation code in their order panel and confirmation receipt.</li>
+                <li><strong>Delivery Confirmation:</strong> Buyers provide their 6-digit delivery confirmation code to the courier or seller upon physical receipt and inspection of their items. Entering this confirmation code verifies successful package delivery.</li>
+                <li><strong>Disputes & Refunds:</strong> If an order is not delivered, incorrect, or defective, buyers may open a dispute before confirming delivery. Customer support and vendor resolution will evaluate the order for return or refund in accordance with the Refund Policy.</li>
               </ul>
             </section>
 
@@ -95,7 +94,7 @@ export default function TermsPage() {
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>Unverified shops face restricted listing limits and withdrawal limits.</li>
                 <li><strong>Automated Suspension:</strong> If a storefront accumulates <strong>3 or more verified scam reports</strong> within 7 days, the system initiates an automated temporary suspension.</li>
-                <li>Verified fraudulent accounts forfeit escrowed balances, which are refunded to impacted buyers.</li>
+                <li>Verified fraudulent accounts forfeit pending settlement balances, which are refunded to impacted buyers.</li>
               </ul>
             </section>
 
@@ -116,7 +115,7 @@ export default function TermsPage() {
               <ul className="list-disc pl-5 space-y-1.5">
                 <li><strong>Subscription Referral Reward:</strong> Referrers earn <strong>20% of the actual net amount paid</strong> when a referred user activates or renews a paid subscription tier, capped at a maximum of <strong>₦500.00</strong> per plan payment.</li>
                 <li><strong>Coupons & Discounts:</strong> If the referred user applies a promotional coupon or discount, the 20% referral reward is calculated strictly against the <em>net amount actually paid</em> after discounts. For example, if a coupon reduces the subscription price to ₦300.00, the referrer receives 20% of ₦300.00 (₦60.00). Subscriptions activated under a 100% free coupon or trial tier yield ₦0.00 referral reward.</li>
-                <li><strong>Sales Commission Share:</strong> Referrers earn a <strong>20% recurring share</strong> of MultiShopNG's platform commission on orders successfully fulfilled and released from escrow by shops they referred.</li>
+                <li><strong>Sales Commission Share:</strong> Referrers earn a <strong>20% recurring share</strong> of MultiShopNG's platform commission on orders successfully fulfilled and completed by shops they referred.</li>
                 <li><strong>Payouts & Wallet Balances:</strong> Referral earnings are credited to the user's available wallet balance and can be withdrawn directly to verified Nigerian bank accounts via Monnify.</li>
                 <li><strong>Anti-Abuse & Prohibited Conduct:</strong> Self-referrals (referring one's own secondary accounts or creating fictitious shops) and fraudulent redemptions are strictly prohibited. MultiShopNG reserves the right to void illegitimate referral earnings and suspend violating accounts.</li>
               </ul>

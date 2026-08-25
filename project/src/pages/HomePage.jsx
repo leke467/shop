@@ -280,7 +280,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <SEOHead 
         title="Home" 
-        description="Discover unique products from independent sellers across Nigeria. Secure escrow, fast delivery, and verified shops." 
+        description="Discover unique products from independent sellers across Nigeria. Secure buyer protection, fast delivery, and verified shops." 
       />
       <Hero onSearch={handleSearch} />
 
@@ -475,7 +475,7 @@ export default function HomePage() {
               <div className="text-center">
                 <div className="w-16 h-16 bg-success-50 text-success-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">🎉</div>
                 <h3 className="text-2xl font-bold text-gray-900">Order Placed!</h3>
-                <p className="text-sm text-gray-500 mt-2">Your payment is secured safely in escrow.</p>
+                <p className="text-sm text-gray-500 mt-2">Your payment is protected with MultiShop Buyer Protection.</p>
               </div>
 
               <div className="mt-6 p-4 rounded-2xl bg-warning-50 border border-warning-200">

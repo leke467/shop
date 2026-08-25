@@ -477,7 +477,7 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
                   <input type="radio" name="provider" value="bank_transfer" checked={form.provider === 'bank_transfer'} onChange={handleChange} className="text-primary-600 focus:ring-primary-500" />
                   <div>
                     <span className="font-bold text-gray-900 block text-sm">Direct Bank Transfer</span>
-                    <span className="text-xs text-gray-500">Manual transfer to escrow account</span>
+                    <span className="text-xs text-gray-500">Manual transfer to marketplace settlement account</span>
                   </div>
                 </div>
                 <span className="text-xs font-black uppercase text-gray-600 bg-gray-100 px-2 py-1 rounded-md">Manual</span>

@@ -260,9 +260,9 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
 
           {orderComplete.delivery_code && (
             <div className="p-6 rounded-2xl bg-purple-500/10 border border-purple-500/30 space-y-2">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Escrow Delivery Confirmation Code</span>
+              <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Delivery Confirmation Code</span>
               <div className="text-4xl font-black tracking-widest text-white">{orderComplete.delivery_code}</div>
-              <p className="text-xs text-slate-400">Share this 6-digit code with the dispatch rider upon delivery to confirm release.</p>
+              <p className="text-xs text-slate-400">Share this 6-digit code with the dispatch courier upon delivery to verify receipt.</p>
             </div>
           )}
 

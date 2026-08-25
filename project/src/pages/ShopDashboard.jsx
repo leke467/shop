@@ -612,7 +612,7 @@ export default function ShopDashboard() {
 
     try {
       const res = await orderAPI.confirmDelivery(groupId, code)
-      toast(res.detail || 'Delivery confirmed! Escrow released.')
+      toast(res.detail || 'Delivery confirmed! Payout credited to wallet.')
       loadOrders(shop.slug)
       loadWallet(shop.slug)
     } catch (err) {
@@ -879,7 +879,7 @@ export default function ShopDashboard() {
                             order.escrow_status === 'disputed' ? 'bg-error-100 text-error-700 font-bold animate-pulse' :
                             'bg-warning-100 text-warning-700'
                           }`}>
-                            Escrow: {order.escrow_status}
+                            Status: {order.escrow_status === 'released' ? 'Delivered & Paid' : order.escrow_status === 'held' ? 'Processing Delivery' : order.escrow_status}
                           </span>
                         </div>
                       </div>
@@ -937,7 +937,7 @@ export default function ShopDashboard() {
                             disabled={codeConfirming[order.group_id]}
                             className="px-5 py-2 rounded-xl bg-success-600 hover:bg-success-700 text-white text-sm font-semibold transition-all shadow-md shadow-success-500/10 whitespace-nowrap disabled:opacity-50"
                           >
-                            {codeConfirming[order.group_id] ? 'Confirming…' : 'Release Escrow'}
+                            {codeConfirming[order.group_id] ? 'Confirming…' : 'Verify & Complete Delivery'}
                           </button>
                         </form>
                       )}
@@ -961,7 +961,7 @@ export default function ShopDashboard() {
                     <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-3xl p-6 text-white shadow-lg">
                       <p className="text-xs font-bold uppercase tracking-wider opacity-75">Available Balance</p>
                       <h4 className="text-3xl font-black mt-2">₦{Number(wallet?.balance || 0).toLocaleString()}</h4>
-                      <p className="text-[10px] opacity-75 mt-3">Released escrow funds ready for payout</p>
+                      <p className="text-[10px] opacity-75 mt-3">Verified completed order earnings ready for payout</p>
                     </div>
                     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Earned (Lifetime)</p>
