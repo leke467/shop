@@ -6,11 +6,40 @@ import { useUser } from '../../../context/UserContext'
 import { orderAPI, payoutAPI, shopAPI, couponAPI, paymentSettingsAPI } from '../../../services/api'
 
 const NIGERIAN_STATES = [
-  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
-  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT - Abuja', 'Gombe',
-  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos',
-  'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto',
-  'Taraba', 'Yobe', 'Zamfara'
+  { value: 'lagos', label: 'Lagos' },
+  { value: 'fct', label: 'Abuja (FCT)' },
+  { value: 'rivers', label: 'Rivers' },
+  { value: 'ogun', label: 'Ogun' },
+  { value: 'oyo', label: 'Oyo' },
+  { value: 'anambra', label: 'Anambra' },
+  { value: 'enugu', label: 'Enugu' },
+  { value: 'delta', label: 'Delta' },
+  { value: 'edo', label: 'Edo' },
+  { value: 'kano', label: 'Kano' },
+  { value: 'kaduna', label: 'Kaduna' },
+  { value: 'abia', label: 'Abia' },
+  { value: 'akwa_ibom', label: 'Akwa Ibom' },
+  { value: 'bayelsa', label: 'Bayelsa' },
+  { value: 'benue', label: 'Benue' },
+  { value: 'borno', label: 'Borno' },
+  { value: 'cross_river', label: 'Cross River' },
+  { value: 'ebonyi', label: 'Ebonyi' },
+  { value: 'ekiti', label: 'Ekiti' },
+  { value: 'gombe', label: 'Gombe' },
+  { value: 'imo', label: 'Imo' },
+  { value: 'jigawa', label: 'Jigawa' },
+  { value: 'katsina', label: 'Katsina' },
+  { value: 'kebbi', label: 'Kebbi' },
+  { value: 'kogi', label: 'Kogi' },
+  { value: 'kwara', label: 'Kwara' },
+  { value: 'nasarawa', label: 'Nasarawa' },
+  { value: 'niger', label: 'Niger' },
+  { value: 'osun', label: 'Osun' },
+  { value: 'plateau', label: 'Plateau' },
+  { value: 'sokoto', label: 'Sokoto' },
+  { value: 'taraba', label: 'Taraba' },
+  { value: 'yobe', label: 'Yobe' },
+  { value: 'zamfara', label: 'Zamfara' }
 ]
 
 export default function ObsidianCheckout({ shop, shopSlug }) {
@@ -21,7 +50,7 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
   const cartList = Array.isArray(cart) && cart.length > 0 ? cart : (cart?.items || [])
   const subtotal = cartList.reduce((sum, item) => sum + Number(item.unit_price || item.price || item.base_price || 0) * (item.quantity || 1), 0)
 
-  const [selectedState, setSelectedState] = useState('Lagos')
+  const [selectedState, setSelectedState] = useState('lagos')
   const [deliveryZones, setDeliveryZones] = useState([])
   const [bankAccounts, setBankAccounts] = useState([])
 
@@ -351,7 +380,7 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
                     onChange={e => setSelectedState(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#121826] border border-white/10 text-white outline-none focus:border-purple-500 text-sm"
                   >
-                    {NIGERIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                    {NIGERIAN_STATES.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                   </select>
                 </div>
               </div>

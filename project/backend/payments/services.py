@@ -131,9 +131,22 @@ def checkout(
                     shipping_fee = Decimal("0")
                     markup_amount = Decimal("0")
                 else:
-                    zone = DeliveryZone.objects.filter(shop=shop, state=delivery_state, is_active=True).first()
-                    if not zone:
-                        zone = DeliveryZone.objects.filter(shop=shop, state__iexact=delivery_state, is_active=True).first()
+                    norm_state = str(delivery_state or "lagos").strip().lower().replace(" ", "_").replace("-", "_")
+                    alias_map = {
+                        "abuja": "fct",
+                        "abuja_(fct)": "fct",
+                        "fct_(abuja)": "fct",
+                        "federal_capital_territory": "fct",
+                        "akwa_ibom": "akwa_ibom",
+                        "cross_river": "cross_river",
+                    }
+                    lookup_state = alias_map.get(norm_state, norm_state)
+
+                    zone = (
+                        DeliveryZone.objects.filter(shop=shop, state=lookup_state, is_active=True).first()
+                        or DeliveryZone.objects.filter(shop=shop, state__iexact=lookup_state, is_active=True).first()
+                        or DeliveryZone.objects.filter(shop=shop, state__iexact=delivery_state, is_active=True).first()
+                    )
 
                     if zone:
                         from shops.logistics import calculate_shipping_quote
@@ -144,7 +157,16 @@ def checkout(
                         shipping_fee = Decimal("0")
                         markup_amount = Decimal("0")
                     else:
-                        raise CheckoutError(f"Delivery is not available to {delivery_state} for shop: {shop.name}")
+                        # Fallback to shop's active zone fee if configured or 0
+                        fallback_zone = DeliveryZone.objects.filter(shop=shop, is_active=True).first()
+                        if fallback_zone:
+                            from shops.logistics import calculate_shipping_quote
+                            quote = calculate_shipping_quote(fallback_zone.fee)
+                            shipping_fee = quote["final_shipping_fee"]
+                            markup_amount = quote["markup_amount"]
+                        else:
+                            shipping_fee = Decimal("0")
+                            markup_amount = Decimal("0")
 
                 group = OrderGroup.objects.create(
                     order=order,
