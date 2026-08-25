@@ -34,7 +34,7 @@ export function CartProvider({ children }) {
     setTotal(cartItems.reduce((sum, i) => sum + Number(i.unit_price || 0) * i.quantity, 0))
   }, [])
 
-  const refreshCart = useCallback(() => {
+  const refreshCart = useCallback((silent = false) => {
     if (userLoading) return
 
     if (!isAuthenticated) {
@@ -43,7 +43,7 @@ export function CartProvider({ children }) {
       return
     }
 
-    setLoading(true)
+    if (!silent) setLoading(true)
     orderAPI.cart()
       .then(data => {
         updateCartState(data?.items || data || [])
@@ -51,7 +51,9 @@ export function CartProvider({ children }) {
       .catch(() => {
         updateCartState([])
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!silent) setLoading(false)
+      })
   }, [isAuthenticated, userLoading, updateCartState])
 
   // Sync guest cart to API when user logs in
@@ -99,7 +101,7 @@ export function CartProvider({ children }) {
     if (isAuthenticated) {
       try {
         await orderAPI.addToCart({ variant_id, product_id, quantity })
-        await refreshCart()
+        await refreshCart(true)
         backendSuccess = true
       } catch (err) {
         console.error('Backend cart sync error', err)
@@ -136,7 +138,7 @@ export function CartProvider({ children }) {
   const updateQty = async (itemId, qty) => {
     if (qty < 1) return removeItem(itemId)
 
-    // Optimistically update local state for snappy UI
+    // Optimistically update local state for instantaneous, smooth UI
     setItems(prevItems => {
       const updated = prevItems.map(it => {
         if (it.id === itemId) {
@@ -150,6 +152,7 @@ export function CartProvider({ children }) {
         return it
       })
       const newTotal = updated.reduce((sum, item) => sum + (Number(item.line_total) || 0), 0)
+      setItemCount(updated.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0))
       setTotal(newTotal)
       return updated
     })
@@ -157,10 +160,10 @@ export function CartProvider({ children }) {
     if (isAuthenticated) {
       try {
         await orderAPI.updateCartItem(itemId, { quantity: qty })
-        refreshCart()
+        refreshCart(true)
       } catch (err) {
         console.error('Failed to update cart item on server', err)
-        refreshCart()
+        refreshCart(true)
       }
     } else {
       const currentCart = getGuestCart()
@@ -179,6 +182,7 @@ export function CartProvider({ children }) {
     setItems(prevItems => {
       const updated = prevItems.filter(it => it.id !== itemId)
       const newTotal = updated.reduce((sum, item) => sum + (Number(item.line_total) || 0), 0)
+      setItemCount(updated.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0))
       setTotal(newTotal)
       return updated
     })
@@ -186,10 +190,10 @@ export function CartProvider({ children }) {
     if (isAuthenticated) {
       try {
         await orderAPI.removeCartItem(itemId)
-        refreshCart()
+        refreshCart(true)
       } catch (err) {
         console.error('Failed to remove cart item on server', err)
-        refreshCart()
+        refreshCart(true)
       }
     } else {
       let currentCart = getGuestCart()

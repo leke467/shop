@@ -228,16 +228,12 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
   const unresolvedShops = unavailableShops.filter(slug => !manualDeliverySelected[slug])
   const canCheckout = selectedState && unresolvedShops.length === 0 && !deliveryLoading
 
-  const handleUpdateQty = async (itemId, qty) => {
-    setUpdating(itemId)
-    await updateQty(itemId, qty)
-    setUpdating(null)
+  const handleUpdateQty = (itemId, qty) => {
+    updateQty(itemId, qty)
   }
 
-  const handleRemoveItem = async (itemId) => {
-    setUpdating(itemId)
-    await removeItem(itemId)
-    setUpdating(null)
+  const handleRemoveItem = (itemId) => {
+    removeItem(itemId)
   }
 
   const handleCheckout = async (e) => {
@@ -426,7 +422,7 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 w-full box-border">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Your Cart</h1>
 
-        {loading ? (
+        {loading && items.length === 0 ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-2xl p-3.5 sm:p-6 animate-pulse flex gap-3 sm:gap-5">
