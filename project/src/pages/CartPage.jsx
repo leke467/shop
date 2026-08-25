@@ -53,13 +53,13 @@ function generateIdempotencyKey() {
   })
 }
 
-export default function CartPage() {
+export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false }) {
   const { user, isAuthenticated } = useUser()
   const { items, updateQty, removeItem, total, loading, refreshCart } = useCart()
 
   const navigate = useNavigate()
   const [updating, setUpdating] = useState(null)
-  const [showCheckout, setShowCheckout] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(isStorefrontCheckout)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
   const [checkoutForm, setCheckoutForm] = useState({
@@ -122,8 +122,8 @@ export default function CartPage() {
     setApplyingCoupon(true)
     setCouponError('')
     try {
-      const shopSlug = shopSlugs[0]
-      const result = await couponAPI.apply({ code: couponCode, shop_slug: shopSlug })
+      const shopSlugToApply = (shopSlugs && shopSlugs[0]) || shopSlug || shop?.slug || ''
+      const result = await couponAPI.apply({ code: couponCode, shop_slug: shopSlugToApply })
       setAppliedCoupon(result)
     } catch (err) {
       setCouponError(err.response?.data?.detail || err.response?.data?.error || 'Invalid coupon code')
@@ -142,16 +142,21 @@ export default function CartPage() {
     const slugs = new Set()
     const settings = {}
     items.forEach(item => {
-      const slug = item.variant?.product?.shop_slug || item.shop_slug || item.shopSlug
+      const slug = item.variant?.product?.shop_slug || item.shop_slug || item.shopSlug || shopSlug || shop?.slug
       if (slug) {
         slugs.add(slug)
         settings[slug] = {
-          allow_manual_delivery: item.allow_manual_delivery || false
+          allow_manual_delivery: item.allow_manual_delivery ?? shop?.allow_manual_delivery ?? false
         }
       }
     })
+    if (slugs.size === 0 && (shopSlug || shop?.slug)) {
+      const s = shopSlug || shop?.slug
+      slugs.add(s)
+      settings[s] = { allow_manual_delivery: shop?.allow_manual_delivery ?? false }
+    }
     return { shopSlugs: [...slugs], shopSettings: settings }
-  }, [items])
+  }, [items, shopSlug, shop])
 
   // Fetch delivery fees when state changes
   useEffect(() => {
@@ -226,12 +231,17 @@ export default function CartPage() {
     setCheckoutError('')
     setCheckoutLoading(true)
     try {
+      const targetSlug = shopSlug || shop?.slug || (shopSlugs.length > 0 ? shopSlugs[0] : undefined)
+      const successRoute = (shopSlug || shop?.slug) ? `/shop/${shopSlug || shop?.slug}` : '/'
+
       const result = await orderAPI.checkout({
         ...checkoutForm,
         state: selectedState,
         delivery_state: selectedState,
         manual_delivery_shops: Object.keys(manualDeliverySelected).filter(s => manualDeliverySelected[s]),
         bank_index: selectedBankIndex,
+        coupon_code: appliedCoupon?.code || couponCode || undefined,
+        shop_slug: targetSlug,
         idempotency_key: generateIdempotencyKey(),
       })
 
@@ -257,7 +267,7 @@ export default function CartPage() {
               orderAPI.verifyMonnify(reference)
                 .then(() => {
                   refreshCart()
-                  navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+                  navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
                 })
 
                 .catch((verifyErr) => {
@@ -298,7 +308,7 @@ export default function CartPage() {
                 const verifyRef = reference || transaction.reference
                 await orderAPI.verifyPaystack(verifyRef)
                 refreshCart()
-                navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+                navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
 
               } catch (verifyErr) {
                 setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
@@ -327,7 +337,7 @@ export default function CartPage() {
         setTransferStatus(result.payment.status)
         return
       }
-      navigate('/', { state: { orderSuccess: true, orderId: result.order?.public_id } })
+      navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
     } catch (err) {
       setCheckoutError(err.response?.data?.detail || 'Checkout failed. Please try again.')
     } finally {

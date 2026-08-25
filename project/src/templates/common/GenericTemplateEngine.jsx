@@ -6,6 +6,11 @@ import { useUser } from '../../context/UserContext'
 import { getImageUrl, orderAPI } from '../../services/api'
 import Logo from '../../components/Logo'
 import BrandLogoRenderer from '../../components/shop/BrandLogoRenderer'
+import CartPage from '../../pages/CartPage'
+import TemplateOrdersView from '../../components/shop/TemplateOrdersView'
+import TemplateReviewsView from '../../components/shop/TemplateReviewsView'
+import TemplateAboutView from '../../components/shop/TemplateAboutView'
+import TemplateFooterView from '../../components/shop/TemplateFooterView'
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
@@ -34,80 +39,105 @@ export default function GenericTemplateEngine({ config, shop, products = [], rev
     }
   }, [fontChoice])
 
+  const primaryAccent = extra.primary_color || config.primaryColor || '#2563eb'
+
   return (
     <div
+      className="min-h-screen flex flex-col transition-colors duration-300"
       style={{
-        backgroundColor: extra.background_color || shop?.theme?.background_color || config.bgColor || '#ffffff',
-        color: extra.text_color || shop?.theme?.text_color || config.textColor || '#111827',
-        fontFamily: fontChoice ? `"${fontChoice}", ${config.fontFamily || 'Inter, sans-serif'}` : (config.fontFamily || 'Inter, sans-serif'),
-        minHeight: '100vh',
+        backgroundColor: extra.background_color || config.bgColor,
+        color: extra.text_color || config.textColor,
+        fontFamily: fontChoice ? `"${fontChoice}", ${config.fontFamily || 'sans-serif'}` : config.fontFamily,
       }}
     >
       <EngineNavbar config={config} shop={shop} shopSlug={shopSlug} />
       <EngineCartDrawer config={config} shop={shop} shopSlug={shopSlug} />
 
-      <Routes>
-        <Route
-          index
-          element={
-            <EngineHome
-              config={config}
-              shop={shop}
-              products={products}
-              shopSlug={shopSlug}
-              onQuickView={setQuickViewProduct}
-            />
-          }
-        />
-        <Route
-          path="catalog"
-          element={
-            <EngineCatalogPage
-              config={config}
-              shop={shop}
-              products={products}
-              shopSlug={shopSlug}
-              onQuickView={setQuickViewProduct}
-            />
-          }
-        />
-        <Route
-          path="menu"
-          element={
-            <EngineCatalogPage
-              config={config}
-              shop={shop}
-              products={products}
-              shopSlug={shopSlug}
-              onQuickView={setQuickViewProduct}
-            />
-          }
-        />
-        <Route
-          path="about"
-          element={<EngineAboutPage config={config} shop={shop} shopSlug={shopSlug} />}
-        />
-        <Route
-          path="contact"
-          element={<EngineContactPage config={config} shop={shop} shopSlug={shopSlug} />}
-        />
-        <Route
-          path="checkout"
-          element={<EngineCheckoutPage config={config} shop={shop} shopSlug={shopSlug} />}
-        />
-        <Route
-          path="*"
-          element={
-            <EngineHome
-              config={config}
-              shop={shop}
-              products={products}
-              shopSlug={shopSlug}
-              onQuickView={setQuickViewProduct}
-            />
-          }
-        />
-      </Routes>
+      <main className="flex-1">
+        <Routes>
+          <Route
+            index
+            element={
+              <EngineHome
+                config={config}
+                shop={shop}
+                products={products}
+                shopSlug={shopSlug}
+                onQuickView={setQuickViewProduct}
+              />
+            }
+          />
+          <Route
+            path="catalog"
+            element={
+              <EngineCatalogPage
+                config={config}
+                shop={shop}
+                products={products}
+                shopSlug={shopSlug}
+                onQuickView={setQuickViewProduct}
+              />
+            }
+          />
+          <Route
+            path="menu"
+            element={
+              <EngineCatalogPage
+                config={config}
+                shop={shop}
+                products={products}
+                shopSlug={shopSlug}
+                onQuickView={setQuickViewProduct}
+              />
+            }
+          />
+          <Route
+            path="reviews"
+            element={
+              <TemplateReviewsView
+                reviews={reviews}
+                shop={shop}
+                shopSlug={shopSlug}
+                theme="default"
+              />
+            }
+          />
+          <Route
+            path="orders"
+            element={
+              <TemplateOrdersView
+                shop={shop}
+                shopSlug={shopSlug}
+                theme="default"
+              />
+            }
+          />
+          <Route
+            path="about"
+            element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="default" products={products} />}
+          />
+          <Route
+            path="contact"
+            element={<EngineContactPage config={config} shop={shop} shopSlug={shopSlug} />}
+          />
+          <Route
+            path="checkout"
+            element={<CartPage shop={shop} shopSlug={shopSlug} isStorefrontCheckout={true} />}
+          />
+          <Route
+            path="*"
+            element={
+              <EngineHome
+                config={config}
+                shop={shop}
+                products={products}
+                shopSlug={shopSlug}
+                onQuickView={setQuickViewProduct}
+              />
+            }
+          />
+        </Routes>
+      </main>
 
       {quickViewProduct && (
         <EngineQuickViewModal
