@@ -269,6 +269,8 @@ class OrderGroup(TimeStampedModel):
         DELIVERED = "delivered", _("Delivered")
         CANCELLED = "cancelled", _("Cancelled")
 
+    Status = FulfilmentStatus  # Convenient alias
+
     class EscrowStatus(models.TextChoices):
         PENDING = "pending", _("Pending payment")
         HELD = "held", _("Held in escrow")

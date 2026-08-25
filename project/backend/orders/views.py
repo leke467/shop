@@ -190,7 +190,7 @@ class CancelOrderView(APIView):
 
             # Cancel order groups and release reserved inventory
             for group in order.groups.all():
-                group.status = OrderGroup.Status.CANCELLED
+                group.status = OrderGroup.FulfilmentStatus.CANCELLED
                 group.save(update_fields=["status", "updated_at"])
 
                 for item in group.items.all():

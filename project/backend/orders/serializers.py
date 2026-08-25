@@ -83,7 +83,7 @@ class OrderGroupSerializer(serializers.ModelSerializer):
 
     def get_delivery_code(self, obj):
         # Only expose delivery code once the vendor has marked the order as SHIPPED or DELIVERED
-        if obj.status not in (OrderGroup.Status.SHIPPED, OrderGroup.Status.DELIVERED):
+        if obj.status not in (OrderGroup.FulfilmentStatus.SHIPPED, OrderGroup.FulfilmentStatus.DELIVERED, 'shipped', 'delivered'):
             return ""
 
         request = self.context.get("request")
