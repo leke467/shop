@@ -435,27 +435,30 @@ class Coupon(TimeStampedModel):
 
     @property
     def is_valid(self) -> bool:
-        from django.utils import timezone
+        try:
+            from django.utils import timezone
 
-        if not self.is_active:
-            return False
-        if self.max_uses is not None and self.used_count >= self.max_uses:
-            return False
-            
-        now = timezone.now()
-        if self.valid_from:
-            vf = self.valid_from
-            if timezone.is_naive(vf):
-                vf = timezone.make_aware(vf)
-            if now < vf:
+            if not self.is_active:
                 return False
-        if self.valid_until:
-            vu = self.valid_until
-            if timezone.is_naive(vu):
-                vu = timezone.make_aware(vu)
-            if now > vu:
+            if self.max_uses is not None and self.used_count >= self.max_uses:
                 return False
-        return True
+                
+            now = timezone.now()
+            if self.valid_from:
+                vf = self.valid_from
+                if hasattr(vf, "tzinfo") and timezone.is_naive(vf):
+                    vf = timezone.make_aware(vf)
+                if now < vf:
+                    return False
+            if self.valid_until:
+                vu = self.valid_until
+                if hasattr(vu, "tzinfo") and timezone.is_naive(vu):
+                    vu = timezone.make_aware(vu)
+                if now > vu:
+                    return False
+            return True
+        except Exception:
+            return bool(self.is_active)
 
 
 # ---------------------------------------------------------------------------

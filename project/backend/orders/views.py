@@ -597,67 +597,79 @@ class CouponApplyView(APIView):
     throttle_scope = "coupon"
 
     def post(self, request):
-        code = request.data.get("code")
-        shop_slug = request.data.get("shop_slug")
-        passed_subtotal = request.data.get("subtotal")
+        try:
+            code = request.data.get("code")
+            shop_slug = request.data.get("shop_slug") or request.data.get("shop")
+            passed_subtotal = request.data.get("subtotal")
 
-        if not code or not str(code).strip():
-            return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
+            if not code or not str(code).strip():
+                return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        code_clean = str(code).strip()
+            code_clean = str(code).strip()
 
-        # Find coupon matching code, prioritizing shop-specific coupons then global
-        coupons = Coupon.objects.filter(code__iexact=code_clean)
-        if not coupons.exists():
-            return Response({"detail": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)
+            # Find coupon matching code, prioritizing shop-specific coupons then global
+            coupons = Coupon.objects.filter(code__iexact=code_clean)
+            if not coupons.exists():
+                return Response({"detail": f"Invalid coupon code '{code_clean}'."}, status=status.HTTP_404_NOT_FOUND)
 
-        if shop_slug:
-            coupon = coupons.filter(shop__slug=shop_slug).first() or coupons.filter(shop__isnull=True).first() or coupons.first()
-        else:
-            coupon = coupons.first()
+            if shop_slug:
+                coupon = coupons.filter(shop__slug=shop_slug).first() or coupons.filter(shop__isnull=True).first() or coupons.first()
+            else:
+                coupon = coupons.first()
 
-        if not coupon:
-            return Response({"detail": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)
+            if not coupon:
+                return Response({"detail": f"Invalid coupon code '{code_clean}'."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not coupon.is_valid:
-            return Response({"detail": "Coupon is expired or inactive."}, status=status.HTTP_400_BAD_REQUEST)
+            if not coupon.is_valid:
+                return Response({"detail": "Coupon is expired or inactive."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if shop_slug and coupon.shop and coupon.shop.slug != shop_slug:
-            return Response({"detail": "Coupon is not valid for this shop."}, status=status.HTTP_400_BAD_REQUEST)
+            if shop_slug and coupon.shop and coupon.shop.slug != shop_slug:
+                return Response({"detail": f"Coupon is only valid for {coupon.shop.name}."}, status=status.HTTP_400_BAD_REQUEST)
 
-        total = Decimal("0.00")
-        if passed_subtotal is not None:
-            try:
-                total = Decimal(str(passed_subtotal))
-            except Exception:
-                total = Decimal("0.00")
-        elif request.user and request.user.is_authenticated:
-            try:
-                cart = Cart.objects.filter(user=request.user).first()
-                if cart:
-                    total = cart.total or Decimal("0.00")
-            except Exception:
-                total = Decimal("0.00")
+            total = Decimal("0.00")
+            if passed_subtotal is not None:
+                try:
+                    total = Decimal(str(passed_subtotal))
+                except Exception:
+                    total = Decimal("0.00")
+            elif request.user and request.user.is_authenticated:
+                try:
+                    cart = Cart.objects.filter(user=request.user).first()
+                    if cart and hasattr(cart, "total"):
+                        total = cart.total or Decimal("0.00")
+                except Exception:
+                    total = Decimal("0.00")
 
-        min_val = coupon.minimum_order_value or Decimal("0.00")
-        if min_val > 0 and total < min_val:
-            return Response({"detail": f"Minimum order value of ₦{min_val:,.2f} required."}, status=status.HTTP_400_BAD_REQUEST)
+            min_val = coupon.minimum_order_value or Decimal("0.00")
+            if min_val > 0 and total > 0 and total < min_val:
+                return Response({"detail": f"Minimum order value of ₦{min_val:,.2f} required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        coupon_val = coupon.value or Decimal("0.00")
-        if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount_amount = (total * coupon_val) / Decimal("100.0")
-        else:
-            discount_amount = coupon_val
-            
-        discount_amount = min(discount_amount, total) if total > 0 else discount_amount
+            coupon_val = coupon.value or Decimal("0.00")
+            if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
+                discount_amount = (total * coupon_val) / Decimal("100.0") if total > 0 else Decimal("0.00")
+            else:
+                discount_amount = coupon_val
+                
+            discount_amount = min(discount_amount, total) if total > 0 else discount_amount
 
-        return Response({
-            "code": coupon.code,
-            "discount_amount": str(discount_amount),
-            "discount_type": coupon.discount_type,
-            "value": str(coupon_val),
-            "coupon_details": CouponSerializer(coupon).data
-        })
+            return Response({
+                "code": coupon.code,
+                "discount_amount": str(discount_amount),
+                "discount_type": coupon.discount_type,
+                "value": str(coupon_val),
+                "coupon_details": {
+                    "id": coupon.id,
+                    "code": coupon.code,
+                    "discount_type": coupon.discount_type,
+                    "value": str(coupon_val),
+                    "is_active": coupon.is_active,
+                    "minimum_order_value": str(min_val),
+                }
+            })
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).exception("CouponApplyView error: %s", exc)
+            return Response({"detail": f"Failed to apply coupon: {str(exc)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CouponListCreateView(generics.ListCreateAPIView):
