@@ -1,5 +1,6 @@
 """Orders views."""
 import logging
+from decimal import Decimal
 
 from django.core.cache import cache
 from rest_framework import generics, serializers, status
