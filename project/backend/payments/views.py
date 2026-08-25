@@ -118,8 +118,11 @@ class CheckoutView(APIView):
         except InsufficientStockError as e:
             return Response({"detail": str(e)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         except CheckoutError as e:
-            print("CHECKOUT ERROR:", str(e))
+            logger.warning("Checkout error: %s", e)
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception("Checkout unexpected error: %s", e)
+            return Response({"detail": f"Checkout error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         response_data = {
             "detail": "Order placed successfully.",

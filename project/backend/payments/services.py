@@ -199,8 +199,10 @@ def checkout(
                 raise CheckoutError("Invalid coupon code.")
             if not coupon.is_valid:
                 raise CheckoutError("This coupon is expired or inactive.")
-            if coupon.minimum_order_value > Decimal("0") and subtotal < coupon.minimum_order_value:
-                raise CheckoutError(f"Minimum order value of {coupon.minimum_order_value} required for this coupon.")
+            
+            min_val = coupon.minimum_order_value or Decimal("0.00")
+            if min_val > Decimal("0.00") and subtotal < min_val:
+                raise CheckoutError(f"Minimum order value of ₦{min_val:,.2f} required for this coupon.")
 
             applicable_subtotal = subtotal
             if coupon.shop:
@@ -209,10 +211,11 @@ def checkout(
                     raise CheckoutError("Coupon is only valid for items from a specific shop.")
                 applicable_subtotal = shop_group.subtotal
 
+            coupon_val = coupon.value or Decimal("0.00")
             if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-                discount_amount = (applicable_subtotal * coupon.value) / Decimal("100.0")
+                discount_amount = (applicable_subtotal * coupon_val) / Decimal("100.0") if applicable_subtotal > Decimal("0.00") else Decimal("0.00")
             else:
-                discount_amount = coupon.value
+                discount_amount = coupon_val
             discount_amount = min(discount_amount, subtotal).quantize(Decimal("0.01"))
             applied_coupon_id = coupon.pk
 

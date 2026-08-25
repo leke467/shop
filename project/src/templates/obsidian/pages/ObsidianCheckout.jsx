@@ -153,14 +153,17 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
       setCouponDiscount(disc)
       setCouponApplied(res.code || couponCode.trim())
     } catch (err) {
-      const errorMsg = typeof err.response?.data?.detail === 'string'
-        ? err.response.data.detail
-        : typeof err.response?.data?.error?.detail === 'string'
-        ? err.response.data.error.detail
-        : typeof err.response?.data?.error === 'string'
-        ? err.response.data.error
-        : typeof err.response?.data?.message === 'string'
-        ? err.response.data.message
+      const data = err?.response?.data
+      const errorMsg = typeof data === 'string'
+        ? data
+        : typeof data?.detail === 'string'
+        ? data.detail
+        : typeof data?.detail?.detail === 'string'
+        ? data.detail.detail
+        : typeof data?.error === 'string'
+        ? data.error
+        : typeof data?.message === 'string'
+        ? data.message
         : 'Invalid or expired coupon.'
       setCouponError(errorMsg)
       setCouponDiscount(0)
@@ -288,7 +291,19 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
       setOrderComplete({ ...orderData, delivery_code: deliveryCode })
     } catch (err) {
       console.error('Checkout failed:', err)
-      setError(err.response?.data?.detail || err.response?.data?.error || 'Failed to place order. Please try again.')
+      const data = err?.response?.data
+      const errorMsg = typeof data === 'string'
+        ? data
+        : typeof data?.detail === 'string'
+        ? data.detail
+        : typeof data?.detail?.detail === 'string'
+        ? data.detail.detail
+        : typeof data?.error === 'string'
+        ? data.error
+        : typeof data?.message === 'string'
+        ? data.message
+        : (err?.message || 'Failed to place order. Please try again.')
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
