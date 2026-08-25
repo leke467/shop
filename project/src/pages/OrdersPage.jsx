@@ -29,6 +29,11 @@ export default function OrdersPage() {
   const [withdrawGroup, setWithdrawGroup] = useState(null)
   const [withdrawing, setWithdrawing] = useState(false)
 
+  // Cancel order modal state
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelOrderTarget, setCancelOrderTarget] = useState(null)
+  const [cancellingOrder, setCancellingOrder] = useState(false)
+
   // Delivery codes state: { orderId: { groupId: "code" } }
   const [deliveryCodes, setDeliveryCodes] = useState({})
   const [loadingCodes, setLoadingCodes] = useState({})
@@ -205,6 +210,22 @@ export default function OrdersPage() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    if (!cancelOrderTarget) return
+    setCancellingOrder(true)
+    try {
+      const res = await orderAPI.cancel(cancelOrderTarget.public_id)
+      setShowCancelModal(false)
+      setCancelOrderTarget(null)
+      loadData()
+      toast(res.detail || 'Order cancelled successfully.', 'success')
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Failed to cancel order.', 'error')
+    } finally {
+      setCancellingOrder(false)
+    }
+  }
+
   const handleRequestRefund = async (e) => {
     e.preventDefault()
     if (!refundGroup) return
@@ -307,12 +328,27 @@ export default function OrdersPage() {
                           {/* Actions for this group */}
                           <div className="flex flex-wrap items-center gap-2">
                             {order.status === 'pending' && (
-                              <Link
-                                to="/cart"
-                                className="px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-sm hover:opacity-95 transition-all"
-                              >
-                                💳 Complete Payment
-                              </Link>
+                              <>
+                                <Link
+                                  to="/cart"
+                                  className="px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-sm hover:opacity-95 transition-all flex items-center gap-1"
+                                >
+                                  <span>💳</span>
+                                  <span>Complete Payment</span>
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCancelOrderTarget(order)
+                                    setShowCancelModal(true)
+                                  }}
+                                  className="px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all flex items-center gap-1"
+                                  title="Cancel this unpaid order"
+                                >
+                                  <span>✕</span>
+                                  <span>Cancel Order</span>
+                                </button>
+                              </>
                             )}
 
                             {group.status !== 'delivered' && group.status !== 'cancelled' && (
@@ -606,6 +642,56 @@ export default function OrdersPage() {
                   className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
                 >
                   {withdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Order Confirmation Modal */}
+      <AnimatePresence>
+        {showCancelModal && cancelOrderTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+              onClick={() => !cancellingOrder && setShowCancelModal(false)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 15 }} 
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 p-6 sm:p-7 text-center"
+            >
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-red-100 flex items-center justify-center text-2xl mb-4 text-red-600 shadow-inner">
+                🛑
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Cancel Unpaid Order?</h3>
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                Are you sure you want to cancel Order <strong>#{cancelOrderTarget.public_id?.slice(0, 8)?.toUpperCase()}</strong>?
+                <br /><br />
+                This unpaid order will be closed and any reserved inventory will be released.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  type="button"
+                  disabled={cancellingOrder}
+                  onClick={() => setShowCancelModal(false)}
+                  className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="button"
+                  disabled={cancellingOrder}
+                  onClick={handleCancelOrder}
+                  className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {cancellingOrder ? 'Cancelling...' : 'Yes, Cancel Order'}
                 </button>
               </div>
             </motion.div>

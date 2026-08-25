@@ -164,6 +164,48 @@ class OrderDetailView(generics.RetrieveAPIView):
         )
 
 
+class CancelOrderView(APIView):
+    """Buyer cancels an unpaid pending order."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, public_id):
+        from django.db import transaction
+        from django.utils import timezone
+        from products.models import Inventory
+        from django.db.models import F as models_F
+
+        order = generics.get_object_or_404(
+            Order, public_id=public_id, user=request.user
+        )
+        if order.status != Order.Status.PENDING:
+            return Response(
+                {"detail": f"Cannot cancel order: current status is {order.get_status_display()}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            order.status = Order.Status.CANCELLED
+            order.cancelled_at = timezone.now()
+            order.save(update_fields=["status", "cancelled_at", "updated_at"])
+
+            # Cancel order groups and release reserved inventory
+            for group in order.groups.all():
+                group.status = OrderGroup.Status.CANCELLED
+                group.save(update_fields=["status", "updated_at"])
+
+                for item in group.items.all():
+                    if item.variant_id:
+                        Inventory.objects.filter(
+                            variant_id=item.variant_id, track_inventory=True
+                        ).update(reserved=models_F("reserved") - item.quantity)
+
+        return Response({
+            "detail": "Order cancelled successfully.",
+            "status": order.status,
+            "order_id": str(order.public_id),
+        })
+
+
 # ---------------------------------------------------------------------------
 # Escrow & Delivery Code
 # ---------------------------------------------------------------------------

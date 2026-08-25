@@ -401,6 +401,8 @@ export const orderAPI = {
     api.post(`/orders/groups/${groupId}/confirm-delivery/`, { code }).then(r => r.data),
   disputeOrder: (groupId, reason) =>
     api.post(`/orders/groups/${groupId}/dispute/`, { reason }).then(r => r.data),
+  cancel: (publicId) =>
+    api.post(`/orders/${publicId}/cancel/`).then(r => r.data),
   withdrawDispute: (groupId) =>
     api.delete(`/orders/groups/${groupId}/dispute/`).then(r => r.data),
 

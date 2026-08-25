@@ -157,8 +157,27 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="font-bold text-xs sm:text-sm">Status: <span className="text-amber-500 capitalize">{group.status || 'Processing'}</span></span>
                             
+                            {order.status === 'pending' && (
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm(`Cancel unpaid order #${order.public_id?.slice(0, 8)?.toUpperCase()}?`)) return
+                                  try {
+                                    await orderAPI.cancel(order.public_id)
+                                    setOrders(prev => prev.map(o => o.public_id === order.public_id ? { ...o, status: 'cancelled' } : o))
+                                    alert('Order cancelled successfully.')
+                                  } catch (err) {
+                                    alert(err.response?.data?.detail || 'Failed to cancel order.')
+                                  }
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 transition-all flex items-center gap-1"
+                              >
+                                <span>✕</span>
+                                <span>Cancel Order</span>
+                              </button>
+                            )}
+
                             {/* Delivery Code Button */}
-                            {group.status !== 'delivered' && group.status !== 'cancelled' && (
+                            {group.status !== 'delivered' && group.status !== 'cancelled' && order.status !== 'cancelled' && (
                               <button
                                 onClick={() => {
                                   if (!code) {
