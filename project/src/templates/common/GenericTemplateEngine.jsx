@@ -282,7 +282,7 @@ function EngineHome({ config, shop, products, shopSlug, onQuickView }) {
 
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
-  const bannerImage = extra.banner_url || shop?.banner
+  const bannerImage = extra.banner_url !== undefined ? extra.banner_url : (shop?.banner || '')
 
   const welcomePrefix = extra.hero_welcome_prefix !== undefined ? extra.hero_welcome_prefix : (config.badgeText || 'Exclusive Selection')
   const cta1 = extra.hero_cta_primary || config.ctaPrimary || 'Explore Catalog ➔'

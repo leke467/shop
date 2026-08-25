@@ -30,7 +30,7 @@ export default function ObsidianHero({ shop, shopSlug }) {
 
   const baseSlug = shopSlug || shop?.slug || ''
   const catalogUrl = baseSlug ? `/shop/${baseSlug}/catalog` : '/catalog'
-  const bannerImage = extra.banner_url || shop?.banner
+  const bannerImage = extra.banner_url !== undefined ? extra.banner_url : (shop?.banner || '')
 
   return (
     <section className="relative pt-12 pb-24 overflow-hidden">

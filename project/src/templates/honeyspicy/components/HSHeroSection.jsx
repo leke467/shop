@@ -44,7 +44,7 @@ export default function HSHeroSection({ shop, products, shopSlug }) {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   }
   const welcomePrefix = extra.hero_welcome_prefix !== undefined ? extra.hero_welcome_prefix : 'Welcome to'
-  const bannerImage = extra.banner_url || shop?.banner
+  const bannerImage = extra.banner_url !== undefined ? extra.banner_url : (shop?.banner || '')
 
   return (
     <section 

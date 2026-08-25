@@ -154,8 +154,12 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
     value4_title: pick('value4_title', 'Community'),
     value4_desc: pick('value4_desc', 'We believe in empowering and supporting our community.'),
 
-    banner_url: tokens[`${currentTemplateId}_banner_url`] || (tokens.template_id === currentTemplateId ? (shop?.banner || tokens.banner_url) : '') || '',
-    logo_url: tokens[`${currentTemplateId}_logo_url`] || (tokens.template_id === currentTemplateId ? (shop?.logo || tokens.logo_url) : '') || '',
+    banner_url: tokens[`${currentTemplateId}_banner_url`] !== undefined 
+      ? tokens[`${currentTemplateId}_banner_url`] 
+      : (tokens.banner_url !== undefined ? tokens.banner_url : (shop?.banner || '')),
+    logo_url: tokens[`${currentTemplateId}_logo_url`] !== undefined 
+      ? tokens[`${currentTemplateId}_logo_url`] 
+      : (tokens.logo_url !== undefined ? tokens.logo_url : (shop?.logo || '')),
     logo_position: tokens[`${currentTemplateId}_logo_position`] || tokens.logo_position || 'left',
     footer_note: tokens[`${currentTemplateId}_footer_note`] || (tokens.template_id === currentTemplateId ? tokens.footer_note : '') || '',
   }
@@ -252,6 +256,24 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
           if (brandingRes?.logo) finalLogoUrl = brandingRes.logo
         } catch (bErr) {
           console.warn('Branding upload note:', bErr)
+        }
+      }
+
+      // If user cleared banner, notify backend to remove it from database
+      if (!finalBannerUrl && !bannerFile) {
+        try {
+          await shopAPI.uploadBranding(shop.slug, { remove_banner: true })
+        } catch (err) {
+          console.warn('Clear banner note:', err)
+        }
+      }
+
+      // If user cleared logo, notify backend to remove it from database
+      if (!finalLogoUrl && !logoFile) {
+        try {
+          await shopAPI.uploadBranding(shop.slug, { remove_logo: true })
+        } catch (err) {
+          console.warn('Clear logo note:', err)
         }
       }
 
@@ -365,8 +387,8 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
 
       const fullShop = {
         ...updatedShop,
-        banner: finalBannerUrl || updatedShop?.banner,
-        logo: finalLogoUrl || updatedShop?.logo,
+        banner: finalBannerUrl || null,
+        logo: finalLogoUrl || null,
         template_id: targetTemplate,
         theme: updatedTheme,
       }

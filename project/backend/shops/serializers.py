@@ -215,6 +215,21 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
         )
         return shop
 
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+        if request:
+            if "banner" in request.data and (request.data.get("banner") in (None, "", "null") or request.data.get("remove_banner")):
+                if instance.banner:
+                    instance.banner.delete(save=False)
+                instance.banner = None
+                validated_data.pop("banner", None)
+            if "logo" in request.data and (request.data.get("logo") in (None, "", "null") or request.data.get("remove_logo")):
+                if instance.logo:
+                    instance.logo.delete(save=False)
+                instance.logo = None
+                validated_data.pop("logo", None)
+        return super().update(instance, validated_data)
+
 
 class ShopKYCSerializer(serializers.ModelSerializer):
     """Write serializer for submitting KYC details."""

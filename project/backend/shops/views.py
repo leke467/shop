@@ -5,7 +5,7 @@ All shop management views (CRUD, theme, layout, branding).  Auth views have
 moved to the ``accounts`` app where they belong.
 """
 from rest_framework import generics, status
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -453,12 +453,13 @@ class LayoutBulkReorderView(APIView):
 class ShopBrandingUploadView(APIView):
     """
     POST /api/shops/<slug>/branding/
+    DELETE /api/shops/<slug>/branding/
 
-    Multipart form with optional fields: logo, banner.
-    Only the shop owner can upload branding assets.
+    Multipart form or JSON with optional fields: logo, banner, remove_logo, remove_banner.
+    Only the shop owner can upload or remove branding assets.
     """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, slug):
         shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
@@ -466,13 +467,24 @@ class ShopBrandingUploadView(APIView):
         if "logo" in request.FILES:
             shop.logo = request.FILES["logo"]
             updated.append("logo")
+        elif request.data.get("remove_logo") in (True, "true", "1") or ("logo" in request.data and not request.data.get("logo")):
+            if shop.logo:
+                shop.logo.delete(save=False)
+            shop.logo = None
+            updated.append("logo")
+
         if "banner" in request.FILES:
             shop.banner = request.FILES["banner"]
+            updated.append("banner")
+        elif request.data.get("remove_banner") in (True, "true", "1") or ("banner" in request.data and not request.data.get("banner")):
+            if shop.banner:
+                shop.banner.delete(save=False)
+            shop.banner = None
             updated.append("banner")
 
         if not updated:
             return Response(
-                {"detail": "No files provided. Send 'logo' and/or 'banner'."},
+                {"detail": "No files or removal flags provided."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -484,6 +496,22 @@ class ShopBrandingUploadView(APIView):
                 "banner": request.build_absolute_uri(shop.banner.url) if shop.banner else None,
             }
         )
+
+    def delete(self, request, slug):
+        shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
+        target = request.query_params.get("target", "all")
+        updated = []
+        if target in ("banner", "all") and shop.banner:
+            shop.banner.delete(save=False)
+            shop.banner = None
+            updated.append("banner")
+        if target in ("logo", "all") and shop.logo:
+            shop.logo.delete(save=False)
+            shop.logo = None
+            updated.append("logo")
+        if updated:
+            shop.save(update_fields=updated + ["updated_at"])
+        return Response({"detail": "Branding cleared successfully", "logo": None, "banner": None})
 
 
 # ---------------------------------------------------------------------------
