@@ -136,7 +136,7 @@ def send_order_placed_seller_email(order_group):
         f"Hello {seller_name},\n\n"
         f"Congratulations! You have received a new paid order for {shop.name}.\n\n"
         f"Order ID: #{order.public_id}\n"
-        f"Customer: {order.shipping_full_name} ({order.shipping_phone or order.shipping_phone_number})\n"
+        f"Customer: {order.shipping_full_name} ({order.shipping_phone or getattr(order, 'shipping_phone_number', '')})\n"
         f"Delivery Address: {order.shipping_line1}, {order.shipping_state}\n"
         f"Subtotal: ₦{order_group.subtotal:,.2f}\n"
         f"Shipping Fee: ₦{order_group.shipping_total:,.2f}\n\n"
@@ -160,7 +160,7 @@ def send_order_placed_seller_email(order_group):
 
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;">
                 <div style="margin-bottom:6px;"><strong>Customer:</strong> {order.shipping_full_name}</div>
-                <div style="margin-bottom:6px;"><strong>Phone:</strong> {order.shipping_phone or order.shipping_phone_number}</div>
+                <div style="margin-bottom:6px;"><strong>Phone:</strong> {order.shipping_phone or getattr(order, 'shipping_phone_number', '')}</div>
                 <div><strong>Address:</strong> {order.shipping_line1}, {order.shipping_state}</div>
             </div>
 

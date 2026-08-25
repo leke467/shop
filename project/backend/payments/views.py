@@ -145,22 +145,22 @@ class CheckoutView(APIView):
 
             # Build items list for email templates
             email_items = []
-            for group in order.groups.prefetch_related("items__product"):
+            for group in order.groups.prefetch_related("items__variant__product"):
                 for item in group.items.all():
                     email_items.append({
-                        "product_name": item.product.name if item.product else "Product",
-                        "variant_name": getattr(item, "variant_label", "Default"),
+                        "product_name": item.product_name or "Product",
+                        "variant_name": item.variant_name or "Default",
                         "quantity": item.quantity,
                         "line_total": str(item.line_total),
                     })
 
             first_group = order.groups.first()
-            is_confirmed = order.status == Order.Status.CONFIRMED
+            is_confirmed = order.status == 'confirmed'
             buyer_context = {
                 "buyer_name": request.user.first_name or request.user.email.split("@")[0],
                 "order_id": str(order.public_id),
                 "items": email_items,
-                "total": str(order.total),
+                "total": str(order.grand_total),
                 "delivery_code": (first_group.delivery_code if first_group and is_confirmed else ""),
                 "shipping_name": shipping_data.get("full_name", ""),
                 "shipping_address": f"{shipping_data.get('line1', '')}, {shipping_data.get('city', '')}, {shipping_data.get('state', '')}",
@@ -169,8 +169,31 @@ class CheckoutView(APIView):
             if request.user.email:
                 send_order_confirmation_email.delay(request.user.email, buyer_context)
 
-        except Exception:
-            pass  # Never block the checkout response on email failures
+            # Notify each seller
+            for group in order.groups.select_related("shop__owner").all():
+                if group.shop and group.shop.owner and group.shop.owner.email:
+                    seller_items = []
+                    for item in group.items.all():
+                        seller_items.append({
+                            "product_name": item.product_name or "Product",
+                            "variant_name": item.variant_name or "Default",
+                            "quantity": item.quantity,
+                            "line_total": str(item.line_total),
+                        })
+                    seller_context = {
+                        "shop_name": group.shop.name,
+                        "order_id": str(order.public_id),
+                        "items": seller_items,
+                        "total": str(group.subtotal),
+                        "buyer_name": shipping_data.get("full_name", ""),
+                        "buyer_email": request.user.email or "",
+                        "shipping_address": f"{shipping_data.get('line1', '')}, {shipping_data.get('city', '')}, {shipping_data.get('state', '')}",
+                        "shipping_phone": shipping_data.get("phone", ""),
+                    }
+                    send_new_order_alert_to_seller.delay(group.shop.owner.email, seller_context)
+
+        except Exception as email_err:
+            logger.warning("Checkout email dispatch error (non-blocking): %s", email_err)
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 

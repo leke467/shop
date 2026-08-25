@@ -274,7 +274,7 @@ export default function OrdersPage() {
                           
                           {/* Actions for this group */}
                           <div className="flex flex-wrap items-center gap-2">
-                            {(order.status === 'pending' || group.escrow_status === 'pending') && (
+                            {order.status === 'pending' && (
                               <Link
                                 to="/cart"
                                 className="px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-sm hover:opacity-95 transition-all"
