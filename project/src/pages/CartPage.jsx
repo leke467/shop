@@ -118,17 +118,32 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
       : Number(appliedCoupon?.discount || 0)
 
   const handleApplyCoupon = async () => {
-    if (!couponCode) return
+    if (!couponCode || !couponCode.trim()) return
     setApplyingCoupon(true)
     setCouponError('')
     try {
       const shopSlugToApply = (shopSlugs && shopSlugs[0]) || shopSlug || shop?.slug || ''
-      const result = await couponAPI.apply({ code: couponCode, shop_slug: shopSlugToApply })
+      const result = await couponAPI.apply({ 
+        code: couponCode.trim(), 
+        shop_slug: shopSlugToApply,
+        subtotal: subtotal 
+      })
       setAppliedCoupon(result)
     } catch (err) {
-      setCouponError(err.response?.data?.detail || err.response?.data?.error || 'Invalid coupon code')
+      const errorMsg = typeof err.response?.data?.detail === 'string'
+        ? err.response.data.detail
+        : typeof err.response?.data?.error?.detail === 'string'
+        ? err.response.data.error.detail
+        : typeof err.response?.data?.error === 'string'
+        ? err.response.data.error
+        : typeof err.response?.data?.message === 'string'
+        ? err.response.data.message
+        : 'Invalid or expired coupon code.'
+      setCouponError(errorMsg)
+      setAppliedCoupon(null)
+    } finally {
+      setApplyingCoupon(false)
     }
-    setApplyingCoupon(false)
   }
 
   const handleRemoveCoupon = () => {

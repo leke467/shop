@@ -118,7 +118,16 @@ export default function HSCheckout({ shop, shopSlug }) {
       setCouponDiscount(disc)
       setCouponApplied(res.code || couponCode.trim())
     } catch (err) {
-      setCouponError(err.response?.data?.detail || 'Invalid or expired coupon.')
+      const errorMsg = typeof err.response?.data?.detail === 'string'
+        ? err.response.data.detail
+        : typeof err.response?.data?.error?.detail === 'string'
+        ? err.response.data.error.detail
+        : typeof err.response?.data?.error === 'string'
+        ? err.response.data.error
+        : typeof err.response?.data?.message === 'string'
+        ? err.response.data.message
+        : 'Invalid or expired coupon.'
+      setCouponError(errorMsg)
       setCouponDiscount(0)
       setCouponApplied(null)
     } finally {

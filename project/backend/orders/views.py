@@ -580,9 +580,18 @@ class CouponApplyView(APIView):
             return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
 
         code_clean = str(code).strip()
-        try:
-            coupon = Coupon.objects.get(code__iexact=code_clean)
-        except Coupon.DoesNotExist:
+
+        # Find coupon matching code, prioritizing shop-specific coupons then global
+        coupons = Coupon.objects.filter(code__iexact=code_clean)
+        if not coupons.exists():
+            return Response({"detail": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)
+
+        if shop_slug:
+            coupon = coupons.filter(shop__slug=shop_slug).first() or coupons.filter(shop__isnull=True).first() or coupons.first()
+        else:
+            coupon = coupons.first()
+
+        if not coupon:
             return Response({"detail": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)
 
         if not coupon.is_valid:
@@ -598,17 +607,22 @@ class CouponApplyView(APIView):
             except Exception:
                 total = Decimal("0.00")
         elif request.user and request.user.is_authenticated:
-            cart = Cart.objects.filter(user=request.user).first()
-            if cart:
-                total = cart.total
+            try:
+                cart = Cart.objects.filter(user=request.user).first()
+                if cart:
+                    total = cart.total or Decimal("0.00")
+            except Exception:
+                total = Decimal("0.00")
 
-        if coupon.minimum_order_value > 0 and total < coupon.minimum_order_value:
-            return Response({"detail": f"Minimum order value of ₦{coupon.minimum_order_value:,.2f} required."}, status=status.HTTP_400_BAD_REQUEST)
+        min_val = coupon.minimum_order_value or Decimal("0.00")
+        if min_val > 0 and total < min_val:
+            return Response({"detail": f"Minimum order value of ₦{min_val:,.2f} required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        coupon_val = coupon.value or Decimal("0.00")
         if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount_amount = (total * coupon.value) / Decimal("100.0")
+            discount_amount = (total * coupon_val) / Decimal("100.0")
         else:
-            discount_amount = coupon.value
+            discount_amount = coupon_val
             
         discount_amount = min(discount_amount, total) if total > 0 else discount_amount
 
@@ -616,7 +630,7 @@ class CouponApplyView(APIView):
             "code": coupon.code,
             "discount_amount": str(discount_amount),
             "discount_type": coupon.discount_type,
-            "value": str(coupon.value),
+            "value": str(coupon_val),
             "coupon_details": CouponSerializer(coupon).data
         })
 

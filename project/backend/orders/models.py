@@ -411,7 +411,7 @@ class Coupon(TimeStampedModel):
     )
     max_uses = models.PositiveIntegerField(null=True, blank=True)
     used_count = models.PositiveIntegerField(default=0)
-    valid_from = models.DateTimeField()
+    valid_from = models.DateTimeField(default=timezone.now)
     valid_until = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     # Optionally restrict to a single shop.
@@ -436,15 +436,24 @@ class Coupon(TimeStampedModel):
     def is_valid(self) -> bool:
         from django.utils import timezone
 
-        now = timezone.now()
         if not self.is_active:
             return False
         if self.max_uses is not None and self.used_count >= self.max_uses:
             return False
-        if now < self.valid_from:
-            return False
-        if self.valid_until and now > self.valid_until:
-            return False
+            
+        now = timezone.now()
+        if self.valid_from:
+            vf = self.valid_from
+            if timezone.is_naive(vf):
+                vf = timezone.make_aware(vf)
+            if now < vf:
+                return False
+        if self.valid_until:
+            vu = self.valid_until
+            if timezone.is_naive(vu):
+                vu = timezone.make_aware(vu)
+            if now > vu:
+                return False
         return True
 
 
