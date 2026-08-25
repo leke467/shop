@@ -127,8 +127,7 @@ export default function HSCheckout({ shop, shopSlug }) {
         const activeZone = zones.find(z => z.is_active !== false)
         if (activeZone && activeZone.fee !== null && activeZone.fee !== undefined) {
           const rawFee = parseFloat(activeZone.fee)
-          const markup = Math.round(rawFee * 0.15)
-          setDeliveryFee(rawFee + markup)
+          setDeliveryFee(rawFee)
           setDeliveryAvailable(true)
         } else {
           setDeliveryFee(0)

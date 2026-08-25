@@ -116,19 +116,11 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
         const activeZone = zones.find(z => z.is_active !== false)
         if (activeZone && activeZone.fee !== null && activeZone.fee !== undefined) {
           const rawFee = parseFloat(activeZone.fee)
-          // 15% logistics markup matching backend shops.logistics
-          const markup = Math.round(rawFee * 0.15)
-          setDeliveryFee(rawFee + markup)
+          setDeliveryFee(rawFee)
           setDeliveryAvailable(true)
         } else {
-          // If no zones configured in database at all, free delivery (0)
-          if (zones.length === 0 && !data?.count) {
-            setDeliveryFee(0)
-            setDeliveryAvailable(true)
-          } else {
-            setDeliveryFee(null)
-            setDeliveryAvailable(false)
-          }
+          setDeliveryFee(0)
+          setDeliveryAvailable(true)
         }
       })
       .catch(() => {

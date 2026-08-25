@@ -109,21 +109,30 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
     }
   }, [shop, shopSlug])
 
-  // Calculate dynamic delivery fee
-  const deliveryFee = (() => {
-    if (!deliveryZones || deliveryZones.length === 0) {
-      return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
-    }
-    const matchedZone = deliveryZones.find(z => z.state?.toLowerCase() === selectedState.toLowerCase() && z.is_active !== false)
-    if (matchedZone) return Number(matchedZone.fee || 0)
-    return selectedState.toLowerCase() === 'lagos' ? 2000 : 4000
-  })()
+  const [deliveryFee, setDeliveryFee] = useState(0)
+
+  useEffect(() => {
+    const slug = shop?.slug || shopSlug
+    if (!slug || !selectedState) return
+
+    shopAPI.deliveryZoneForState(slug, selectedState)
+      .then(data => {
+        const zones = Array.isArray(data) ? data : (data?.results || [])
+        const activeZone = zones.find(z => z.is_active !== false)
+        if (activeZone && activeZone.fee !== null && activeZone.fee !== undefined) {
+          setDeliveryFee(parseFloat(activeZone.fee))
+        } else {
+          setDeliveryFee(0)
+        }
+      })
+      .catch(() => setDeliveryFee(0))
+  }, [shop, shopSlug, selectedState])
 
   // Calculate financial totals
   const discount = Number(couponDiscount || 0)
   const netSubtotal = Math.max(0, subtotal - discount)
   const vat = Math.round(netSubtotal * 0.075)
-  const grandTotal = netSubtotal + deliveryFee + vat
+  const grandTotal = netSubtotal + Number(deliveryFee || 0) + vat
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))

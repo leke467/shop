@@ -149,24 +149,11 @@ def checkout(
                     )
 
                     if zone:
-                        from shops.logistics import calculate_shipping_quote
-                        quote = calculate_shipping_quote(zone.fee)
-                        shipping_fee = quote["final_shipping_fee"]
-                        markup_amount = quote["markup_amount"]
-                    elif not DeliveryZone.objects.filter(shop=shop, is_active=True).exists():
-                        shipping_fee = Decimal("0")
+                        shipping_fee = Decimal(str(zone.fee))
                         markup_amount = Decimal("0")
                     else:
-                        # Fallback to shop's active zone fee if configured or 0
-                        fallback_zone = DeliveryZone.objects.filter(shop=shop, is_active=True).first()
-                        if fallback_zone:
-                            from shops.logistics import calculate_shipping_quote
-                            quote = calculate_shipping_quote(fallback_zone.fee)
-                            shipping_fee = quote["final_shipping_fee"]
-                            markup_amount = quote["markup_amount"]
-                        else:
-                            shipping_fee = Decimal("0")
-                            markup_amount = Decimal("0")
+                        shipping_fee = Decimal("0")
+                        markup_amount = Decimal("0")
 
                 group = OrderGroup.objects.create(
                     order=order,
