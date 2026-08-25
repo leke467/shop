@@ -73,7 +73,7 @@ class Cart(TimeStampedModel):
 
     @property
     def total(self) -> Decimal:
-        return sum(item.line_total for item in self.items.select_related("variant"))
+        return sum(((item.line_total if item else None) or Decimal("0.00")) for item in self.items.select_related("variant"))
 
     @property
     def item_count(self) -> int:
@@ -100,10 +100,12 @@ class CartItem(TimeStampedModel):
         ordering = ("id",)
 
     def __str__(self) -> str:
-        return f"{self.quantity}× {self.variant}"
+        return f"{self.quantity or 0}× {self.variant}"
 
     @property
     def line_total(self) -> Decimal:
+        if self.unit_price is None or self.quantity is None:
+            return Decimal("0.00")
         return self.unit_price * self.quantity
 
 
@@ -309,7 +311,7 @@ class OrderGroup(TimeStampedModel):
 
     @property
     def total_price(self) -> Decimal:
-        return self.subtotal + self.shipping_total
+        return (self.subtotal or Decimal("0.00")) + (self.shipping_total or Decimal("0.00"))
     escrow_status = models.CharField(
         max_length=16,
         choices=EscrowStatus.choices,
@@ -334,7 +336,9 @@ class OrderGroup(TimeStampedModel):
         ordering = ("id",)
 
     def __str__(self) -> str:
-        return f"Group<{self.shop.name}> in Order #{self.order.public_id}"
+        shop_name = getattr(self.shop, "name", "Shop") if self.shop_id else "Shop"
+        order_id = getattr(self.order, "public_id", self.order_id) if self.order_id else "Order"
+        return f"Group<{shop_name}> in Order #{order_id}"
 
     @staticmethod
     def generate_delivery_code() -> str:
@@ -378,10 +382,12 @@ class OrderItem(TimeStampedModel):
         ordering = ("id",)
 
     def __str__(self) -> str:
-        return f"{self.quantity}× {self.product_name} ({self.variant_name})"
+        return f"{self.quantity or 0}× {self.product_name or 'Item'} ({self.variant_name or 'Default'})"
 
     @property
     def line_total(self) -> Decimal:
+        if self.unit_price is None or self.quantity is None:
+            return Decimal("0.00")
         return self.unit_price * self.quantity
 
 
