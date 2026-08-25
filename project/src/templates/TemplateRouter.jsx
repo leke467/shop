@@ -34,15 +34,32 @@ function TemplateLoading() {
   )
 }
 
+function lazyWithRetry(componentImport) {
+  return lazy(async () => {
+    try {
+      return await componentImport()
+    } catch (error) {
+      console.warn('Failed to load template chunk, reloading latest version...', error)
+      const lastReload = sessionStorage.getItem('chunk_reload_' + window.location.pathname)
+      const now = Date.now()
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        sessionStorage.setItem('chunk_reload_' + window.location.pathname, String(now))
+        window.location.reload()
+      }
+      throw error
+    }
+  })
+}
+
 export default function TemplateRouter({ shop, products, reviews, shopSlug }) {
   const templateId = shop?.template_id
 
-  // Lazy-load the template component
+  // Lazy-load the template component with retry on stale hashes
   const TemplateComponent = useMemo(() => {
     if (!templateId) return null
     const tpl = getTemplate(templateId)
     if (!tpl) return null
-    return lazy(tpl.component)
+    return lazyWithRetry(tpl.component)
   }, [templateId])
 
   if (!TemplateComponent) return null
