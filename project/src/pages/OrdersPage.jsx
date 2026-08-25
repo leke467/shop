@@ -47,20 +47,31 @@ export default function OrdersPage() {
   }, [])
 
   const fetchDeliveryCodes = async (orderId) => {
-    if (deliveryCodes[orderId] || loadingCodes[orderId]) return
+    if (loadingCodes[orderId]) return
     setLoadingCodes(prev => ({ ...prev, [orderId]: true }))
     try {
       const data = await orderAPI.deliveryCodes(orderId)
       const codeMap = {}
       const list = data?.codes || (Array.isArray(data) ? data : [])
       list.forEach(item => {
-        if (item.group_id && item.delivery_code) {
-          codeMap[item.group_id] = item.delivery_code
+        if (item.delivery_code) {
+          if (item.group_id) {
+            codeMap[item.group_id] = item.delivery_code
+            codeMap[String(item.group_id)] = item.delivery_code
+          }
+          if (item.shop_slug) {
+            codeMap[item.shop_slug] = item.delivery_code
+          }
+          codeMap.latest = item.delivery_code
         }
       })
       setDeliveryCodes(prev => ({ ...prev, [orderId]: codeMap }))
+      if (list.length > 0 && list[0]?.delivery_code) {
+        toast(`🔑 Delivery Code: ${list[0].delivery_code}`, 'info')
+      }
     } catch (err) {
       console.error('Failed to load delivery codes', err)
+      toast(err.response?.data?.detail || 'Could not fetch delivery code.', 'error')
     } finally {
       setLoadingCodes(prev => ({ ...prev, [orderId]: false }))
     }
@@ -283,16 +294,37 @@ export default function OrdersPage() {
                               </Link>
                             )}
 
-                            {(group.escrow_status === 'held' || group.escrow_status === 'disputed') && (
+                            {group.status !== 'delivered' && group.status !== 'cancelled' && (
                               <button 
                                 onClick={() => {
-                                  if (!deliveryCodes[order.public_id]) {
+                                  const code = group.delivery_code 
+                                    || deliveryCodes[order.public_id]?.[group.id] 
+                                    || deliveryCodes[order.public_id]?.[String(group.id)] 
+                                    || deliveryCodes[order.public_id]?.[group.shop_slug]
+                                    || deliveryCodes[order.public_id]?.latest
+                                  if (!code) {
                                     fetchDeliveryCodes(order.public_id)
+                                  } else {
+                                    navigator?.clipboard?.writeText(code)
+                                    toast(`Copied code ${code} to clipboard!`, 'success')
                                   }
                                 }}
-                                className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 ${
+                                  (group.delivery_code || deliveryCodes[order.public_id]?.[group.id] || deliveryCodes[order.public_id]?.[String(group.id)] || deliveryCodes[order.public_id]?.[group.shop_slug] || deliveryCodes[order.public_id]?.latest)
+                                    ? 'bg-amber-50 border-2 border-amber-400 text-amber-900 hover:bg-amber-100' 
+                                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-95'
+                                }`}
                               >
-                                {loadingCodes[order.public_id] ? 'Loading...' : 'Show Delivery Code'}
+                                {loadingCodes[order.public_id] ? (
+                                  'Fetching...'
+                                ) : (group.delivery_code || deliveryCodes[order.public_id]?.[group.id] || deliveryCodes[order.public_id]?.[String(group.id)] || deliveryCodes[order.public_id]?.[group.shop_slug] || deliveryCodes[order.public_id]?.latest) ? (
+                                  <>
+                                    <span>🔑 Code: <strong>{group.delivery_code || deliveryCodes[order.public_id]?.[group.id] || deliveryCodes[order.public_id]?.[String(group.id)] || deliveryCodes[order.public_id]?.[group.shop_slug] || deliveryCodes[order.public_id]?.latest}</strong></span>
+                                    <span className="text-[10px] bg-amber-200 px-1.5 py-0.5 rounded font-normal text-amber-900">Copy</span>
+                                  </>
+                                ) : (
+                                  '🔑 Show Delivery Code'
+                                )}
                               </button>
                             )}
                             
@@ -360,19 +392,42 @@ export default function OrdersPage() {
                         </div>
 
                         {/* Delivery Code Display */}
-                        {deliveryCodes[order.public_id]?.[group.id] && (
-                          <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-primary-50 border border-primary-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-                            <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-semibold text-primary-900 mb-1">Delivery Confirmation Code</p>
-                              <p className="text-xs text-primary-700 max-w-sm leading-relaxed">
-                                Give this code to the seller ONLY after you have received and inspected your items.
-                              </p>
+                        {(() => {
+                          const code = group.delivery_code 
+                            || deliveryCodes[order.public_id]?.[group.id] 
+                            || deliveryCodes[order.public_id]?.[String(group.id)] 
+                            || deliveryCodes[order.public_id]?.[group.shop_slug]
+                            || deliveryCodes[order.public_id]?.latest
+                          if (!code) return null
+                          return (
+                            <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-dashed border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                              <div className="min-w-0">
+                                <p className="text-xs sm:text-sm font-bold text-amber-900 mb-0.5 flex items-center gap-1.5">
+                                  <span>🔐 Delivery Confirmation Code</span>
+                                  <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase">Buyer Protection</span>
+                                </p>
+                                <p className="text-xs text-amber-700 max-w-sm leading-relaxed">
+                                  Give this 6-digit code to the seller/rider <strong>ONLY after</strong> you have received and inspected your order.
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-amber-950 bg-white px-5 py-2.5 rounded-xl border border-amber-200 shadow-sm text-center">
+                                  {code}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    navigator?.clipboard?.writeText(code)
+                                    toast(`Copied code ${code} to clipboard!`, 'success')
+                                  }}
+                                  className="px-3 py-2.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 text-xs font-bold rounded-xl transition-all"
+                                  title="Copy Delivery Code"
+                                >
+                                  📋 Copy
+                                </button>
+                              </div>
                             </div>
-                            <div className="text-xl sm:text-2xl font-mono font-bold tracking-widest text-primary-700 bg-white px-4 py-2 rounded-lg shadow-sm text-center flex-shrink-0">
-                              {deliveryCodes[order.public_id][group.id]}
-                            </div>
-                          </div>
-                        )}
+                          )
+                        })()}
                       </div>
                     ))}
                   </div>

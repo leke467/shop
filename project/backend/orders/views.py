@@ -179,16 +179,13 @@ class DeliveryCodeView(APIView):
         groups = order.groups.select_related("shop").all()
         codes = []
         for g in groups:
-            is_funded = g.escrow_status in (
-                OrderGroup.EscrowStatus.HELD,
-                OrderGroup.EscrowStatus.RELEASED,
-            )
             codes.append({
                 "group_id": g.id,
                 "shop_name": g.shop.name,
                 "shop_slug": g.shop.slug,
-                "delivery_code": g.delivery_code if is_funded else "",
+                "delivery_code": g.delivery_code or "",
                 "escrow_status": g.escrow_status,
+                "status": g.status,
                 "subtotal": str(g.subtotal),
                 "shipping_total": str(g.shipping_total),
             })

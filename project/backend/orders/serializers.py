@@ -72,13 +72,24 @@ class OrderGroupSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     shop_name = serializers.CharField(source="shop.name", read_only=True)
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
+    delivery_code = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderGroup
         fields = (
             "id", "shop", "shop_name", "shop_slug", "status", "escrow_status", "subtotal",
-            "commission_fee", "tracking_number", "tracking_url", "items",
+            "commission_fee", "tracking_number", "tracking_url", "items", "delivery_code",
         )
+
+    def get_delivery_code(self, obj):
+        request = self.context.get("request")
+        if request and request.user and request.user.is_authenticated:
+            if request.user.is_staff or request.user == obj.order.user:
+                return obj.delivery_code or ""
+        # If no request context, but order belongs to user
+        if hasattr(obj, 'order') and obj.order and obj.delivery_code:
+            return obj.delivery_code
+        return ""
 
 
 class OrderSerializer(serializers.ModelSerializer):

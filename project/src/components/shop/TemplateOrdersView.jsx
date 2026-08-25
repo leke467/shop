@@ -39,15 +39,22 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
   }, [baseSlug, isAuthenticated])
 
   const fetchDeliveryCodes = async (orderId) => {
-    if (deliveryCodes[orderId] || loadingCodes[orderId]) return
+    if (loadingCodes[orderId]) return
     setLoadingCodes(prev => ({ ...prev, [orderId]: true }))
     try {
       const data = await orderAPI.deliveryCodes(orderId)
       const codeMap = {}
       const list = data?.codes || (Array.isArray(data) ? data : [])
       list.forEach(item => {
-        if (item.group_id && item.delivery_code) {
-          codeMap[item.group_id] = item.delivery_code
+        if (item.delivery_code) {
+          if (item.group_id) {
+            codeMap[item.group_id] = item.delivery_code
+            codeMap[String(item.group_id)] = item.delivery_code
+          }
+          if (item.shop_slug) {
+            codeMap[item.shop_slug] = item.delivery_code
+          }
+          codeMap.latest = item.delivery_code
         }
       })
       setDeliveryCodes(prev => ({ ...prev, [orderId]: codeMap }))
@@ -139,7 +146,11 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
                   {/* Groups & Items */}
                   <div className="space-y-4">
                     {displayGroups.map(group => {
-                      const code = deliveryCodes[order.public_id]?.[group.id] || group.delivery_code
+                      const code = group.delivery_code 
+                        || deliveryCodes[order.public_id]?.[group.id] 
+                        || deliveryCodes[order.public_id]?.[String(group.id)] 
+                        || deliveryCodes[order.public_id]?.[group.shop_slug]
+                        || deliveryCodes[order.public_id]?.latest
 
                       return (
                         <div key={group.id} className="p-4 rounded-2xl bg-gray-500/5 border border-gray-500/10 space-y-3">
@@ -149,10 +160,21 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
                             {/* Delivery Code Button */}
                             {group.status !== 'delivered' && group.status !== 'cancelled' && (
                               <button
-                                onClick={() => fetchDeliveryCodes(order.public_id)}
-                                className="px-3 py-1 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-xs font-bold transition-all"
+                                onClick={() => {
+                                  if (!code) {
+                                    fetchDeliveryCodes(order.public_id)
+                                  } else {
+                                    navigator?.clipboard?.writeText(code)
+                                    alert(`Copied code ${code} to clipboard!`)
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                  code 
+                                    ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/30' 
+                                    : 'bg-amber-500 text-black hover:bg-amber-400 font-extrabold'
+                                }`}
                               >
-                                {code ? `🔑 Code: ${code}` : (loadingCodes[order.public_id] ? 'Fetching...' : 'Show Delivery Code')}
+                                {loadingCodes[order.public_id] ? 'Fetching...' : (code ? `🔑 Code: ${code} (Copy)` : '🔑 Show Delivery Code')}
                               </button>
                             )}
                           </div>
