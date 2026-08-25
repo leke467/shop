@@ -24,6 +24,11 @@ export default function OrdersPage() {
   const [disputeReason, setDisputeReason] = useState('')
   const [disputing, setDisputing] = useState(false)
 
+  // Withdraw dispute modal state
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawGroup, setWithdrawGroup] = useState(null)
+  const [withdrawing, setWithdrawing] = useState(false)
+
   // Delivery codes state: { orderId: { groupId: "code" } }
   const [deliveryCodes, setDeliveryCodes] = useState({})
   const [loadingCodes, setLoadingCodes] = useState({})
@@ -184,14 +189,19 @@ export default function OrdersPage() {
     }
   }
 
-  const handleWithdrawDispute = async (groupId) => {
-    if (!window.confirm('Are you sure you want to cancel and withdraw this dispute? Your order escrow will return to normal buyer protection.')) return
+  const handleWithdrawDispute = async () => {
+    if (!withdrawGroup) return
+    setWithdrawing(true)
     try {
-      const res = await orderAPI.withdrawDispute(groupId)
+      const res = await orderAPI.withdrawDispute(withdrawGroup.id)
+      setShowWithdrawModal(false)
+      setWithdrawGroup(null)
       loadData()
       toast(res.detail || 'Dispute withdrawn successfully.', 'success')
     } catch (err) {
       toast(err.response?.data?.detail || 'Failed to withdraw dispute.', 'error')
+    } finally {
+      setWithdrawing(false)
     }
   }
 
@@ -356,11 +366,15 @@ export default function OrdersPage() {
                                   Disputed
                                 </span>
                                 <button
-                                  onClick={() => handleWithdrawDispute(group.id)}
-                                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors border border-gray-200"
+                                  onClick={() => {
+                                    setWithdrawGroup(group)
+                                    setShowWithdrawModal(true)
+                                  }}
+                                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors border border-gray-200 flex items-center gap-1"
                                   title="Cancel dispute"
                                 >
-                                  ✕ Withdraw Dispute
+                                  <span>✕</span>
+                                  <span>Withdraw Dispute</span>
                                 </button>
                               </div>
                             )}
@@ -543,6 +557,56 @@ export default function OrdersPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Withdraw Dispute Confirmation Modal */}
+      <AnimatePresence>
+        {showWithdrawModal && withdrawGroup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+              onClick={() => !withdrawing && setShowWithdrawModal(false)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 15 }} 
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 p-6 sm:p-7 text-center"
+            >
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center text-2xl mb-4 text-amber-800 shadow-inner">
+                🛡️
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Withdraw Dispute?</h3>
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                Are you sure you want to cancel and withdraw the dispute for your order from <strong>{withdrawGroup.shop_name}</strong>?
+                <br /><br />
+                Your escrow funds will return to active <strong>MultiShop Buyer Protection</strong>.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  type="button"
+                  disabled={withdrawing}
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Keep Dispute
+                </button>
+                <button
+                  type="button"
+                  disabled={withdrawing}
+                  onClick={handleWithdrawDispute}
+                  className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {withdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
+                </button>
               </div>
             </motion.div>
           </div>
