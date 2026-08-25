@@ -234,10 +234,11 @@ def checkout(
                 inv.reserved += item.quantity
                 inv.save(update_fields=["reserved"])
 
-    # Attach coupon metadata to payment kwargs if used
+    # Attach metadata cleanly without duplicate keyword argument collisions
+    metadata = dict(provider_kwargs.pop("metadata", {}) or {})
+    metadata["order_id"] = str(order.public_id)
     if applied_coupon_id:
-        provider_kwargs.setdefault("metadata", {})
-        provider_kwargs["metadata"]["coupon_id"] = applied_coupon_id
+        metadata["coupon_id"] = applied_coupon_id
 
     # --- Charge payment (outside the inventory lock) ---
     gateway = get_gateway(provider)
@@ -245,7 +246,7 @@ def checkout(
         amount=order.grand_total,
         currency=order.currency,
         idempotency_key=str(idempotency_key),
-        metadata={"order_id": str(order.public_id)},
+        metadata=metadata,
         **provider_kwargs,
     )
 
