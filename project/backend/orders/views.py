@@ -473,12 +473,67 @@ class UpdateFulfillmentStatusView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Sellers must confirm delivery with the 6-digit delivery code to mark DELIVERED
-        if new_status == OrderGroup.FulfilmentStatus.DELIVERED:
-            return Response(
-                {"detail": "To mark an order as delivered and release escrow funds, please confirm delivery using the buyer's 6-digit delivery code."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Handle Vendor Cancellation & Customer Refund
+        if new_status == OrderGroup.FulfilmentStatus.CANCELLED:
+            from django.db import transaction
+            from payments.models import Payment
+            from payments.services import process_refund, CheckoutError
+            from products.models import Inventory
+            from django.db.models import F as models_F
+
+            refund_amount = group.subtotal + group.shipping_total
+
+            with transaction.atomic():
+                group.status = OrderGroup.FulfilmentStatus.CANCELLED
+                
+                # If escrow funds are held or disputed, refund the customer
+                if group.escrow_status in (OrderGroup.EscrowStatus.HELD, OrderGroup.EscrowStatus.DISPUTED):
+                    group.escrow_status = OrderGroup.EscrowStatus.REFUNDED
+
+                    payment = Payment.objects.filter(
+                        order=group.order, status=Payment.Status.CAPTURED
+                    ).first()
+                    if payment:
+                        try:
+                            process_refund(
+                                payment,
+                                amount=refund_amount,
+                                reason="Cancelled by vendor",
+                                notes=f"Order group #{group.id} cancelled by store {group.shop.name}",
+                            )
+                        except CheckoutError as e:
+                            logger.error("Failed to process gateway refund on seller cancellation: %s", e)
+
+                group.save(update_fields=["status", "escrow_status", "updated_at"])
+
+                # Restock inventory
+                for item in group.items.all():
+                    if item.variant_id:
+                        Inventory.objects.filter(
+                            variant_id=item.variant_id, track_inventory=True
+                        ).update(quantity=models_F("quantity") + item.quantity)
+
+                # Check if all groups in the order are cancelled
+                all_cancelled = not group.order.groups.exclude(
+                    status=OrderGroup.FulfilmentStatus.CANCELLED
+                ).exists()
+                if all_cancelled:
+                    group.order.status = Order.Status.CANCELLED
+                    group.order.cancelled_at = timezone.now()
+                    group.order.save(update_fields=["status", "cancelled_at", "updated_at"])
+
+            # Send email notification to customer
+            try:
+                from core.emails import send_order_cancelled_by_vendor_email
+                send_order_cancelled_by_vendor_email(group, refund_amount)
+            except Exception as email_err:
+                logger.error("Failed to send vendor cancellation email: %s", email_err)
+
+            return Response({
+                "detail": "Order group cancelled and customer refund initiated.",
+                "status": group.status,
+                "escrow_status": group.escrow_status,
+            })
 
         group.status = new_status
         group.save(update_fields=["status", "updated_at"])

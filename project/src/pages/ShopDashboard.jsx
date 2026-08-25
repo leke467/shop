@@ -661,10 +661,16 @@ export default function ShopDashboard() {
   }
 
   const handleStatusChange = async (groupId, newStatus) => {
+    if (newStatus === 'cancelled') {
+      if (!window.confirm('Are you sure you want to cancel this order? The buyer will be refunded automatically.')) return
+    }
     try {
-      await orderAPI.updateFulfillmentStatus(groupId, newStatus)
-      setShopOrders(prev => prev.map(o => o.group_id === groupId ? { ...o, status: newStatus } : o))
-      toast(`Order status updated to ${newStatus}`)
+      const res = await orderAPI.updateFulfillmentStatus(groupId, newStatus)
+      setShopOrders(prev => prev.map(o => o.group_id === groupId ? { ...o, status: newStatus, escrow_status: res.escrow_status || (newStatus === 'cancelled' ? 'refunded' : o.escrow_status) } : o))
+      toast(res.detail || `Order status updated to ${newStatus}`, 'success')
+      if (newStatus === 'cancelled') {
+        loadWallet(shop.slug)
+      }
     } catch (err) {
       toast(err.response?.data?.detail || 'Failed to update order status.', 'error')
     }

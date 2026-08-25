@@ -176,6 +176,79 @@ The MultiShopNG Team
         logger.error("Failed to send order shipped email: %s", e)
 
 
+def send_order_cancelled_by_vendor_email(order_group, refund_amount):
+    """
+    Notify buyer that the vendor cancelled the order and money was refunded.
+    """
+    buyer = order_group.order.user
+    if not buyer or not buyer.email:
+        return
+
+    buyer_email = buyer.email
+    buyer_name = buyer.first_name or buyer.username or "Shopper"
+    shop_name = order_group.shop.name if order_group.shop else "Vendor"
+    subject = f"⚠️ Order Cancelled & Refunded — Order #{order_group.order.public_id} ({shop_name})"
+
+    text_content = f"""Hi {buyer_name},
+
+We are writing to let you know that {shop_name} was unable to fulfill your order #{order_group.order.public_id} and has cancelled it.
+
+Refund Amount: ₦{refund_amount:,.2f}
+Status: Refunded
+
+Your payment has been released from escrow and credited back to your original payment method / wallet.
+
+Need help? Contact support@multishopng.com.
+
+The MultiShopNG Team
+"""
+
+    html_content = f"""
+    <div style="font-family:'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;color:#1E293B;">
+        <div style="background:linear-gradient(135deg,#DC2626,#991B1B);padding:24px;text-align:center;color:#FFFFFF;">
+            <h1 style="margin:0;font-size:20px;font-weight:800;">Order Cancelled & Refunded</h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#FECACA;">Store: {shop_name}</p>
+        </div>
+        <div style="padding:28px 24px;">
+            <h2 style="font-size:18px;margin-top:0;color:#0F172A;">Hello {buyer_name},</h2>
+            <p style="font-size:14px;line-height:1.6;color:#475569;">
+                The vendor (<strong>{shop_name}</strong>) was unable to fulfill your order <strong>#{order_group.order.public_id}</strong> and has cancelled it.
+            </p>
+
+            <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:18px;margin:20px 0;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;">
+                    <span style="color:#64748B;">Refunded Amount:</span>
+                    <strong style="color:#DC2626;font-size:18px;">₦{refund_amount:,.2f}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748B;">
+                    <span>Refund Status:</span>
+                    <span style="color:#059669;font-weight:700;">✅ Credited / Refunded</span>
+                </div>
+            </div>
+
+            <p style="font-size:13px;line-height:1.5;color:#64748B;">
+                Because of MultiShop Buyer Protection, your payment was safely held in escrow and has now been returned to you.
+            </p>
+
+            <p style="font-size:13px;color:#94A3B8;margin-top:24px;border-top:1px solid #E2E8F0;padding-top:16px;text-align:center;">
+                MultiShopNG Marketplace • Buyer Protection
+            </p>
+        </div>
+    </div>
+    """
+
+    try:
+        EmailService.send_raw_email(
+            subject=subject,
+            text_content=text_content,
+            recipient_list=[buyer_email],
+            html_content=html_content,
+            from_email=DEFAULT_FROM_EMAIL,
+        )
+    except Exception as e:
+        logger.error("Failed to send vendor cancellation email: %s", e)
+
+
 def send_order_placed_seller_email(order_group):
     """
     Notify seller of a new paid order in their shop.
