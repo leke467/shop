@@ -136,9 +136,32 @@ export function CartProvider({ children }) {
   const updateQty = async (itemId, qty) => {
     if (qty < 1) return removeItem(itemId)
 
+    // Optimistically update local state for snappy UI
+    setItems(prevItems => {
+      const updated = prevItems.map(it => {
+        if (it.id === itemId) {
+          const newQty = Number(qty)
+          return {
+            ...it,
+            quantity: newQty,
+            line_total: Number(it.unit_price) * newQty
+          }
+        }
+        return it
+      })
+      const newTotal = updated.reduce((sum, item) => sum + (Number(item.line_total) || 0), 0)
+      setTotal(newTotal)
+      return updated
+    })
+
     if (isAuthenticated) {
-      await orderAPI.updateCartItem(itemId, { quantity: qty })
-      refreshCart()
+      try {
+        await orderAPI.updateCartItem(itemId, { quantity: qty })
+        refreshCart()
+      } catch (err) {
+        console.error('Failed to update cart item on server', err)
+        refreshCart()
+      }
     } else {
       const currentCart = getGuestCart()
       const item = currentCart.find(i => i.id === itemId)
@@ -152,9 +175,22 @@ export function CartProvider({ children }) {
   }
 
   const removeItem = async (itemId) => {
+    // Optimistically remove from state
+    setItems(prevItems => {
+      const updated = prevItems.filter(it => it.id !== itemId)
+      const newTotal = updated.reduce((sum, item) => sum + (Number(item.line_total) || 0), 0)
+      setTotal(newTotal)
+      return updated
+    })
+
     if (isAuthenticated) {
-      await orderAPI.removeCartItem(itemId)
-      refreshCart()
+      try {
+        await orderAPI.removeCartItem(itemId)
+        refreshCart()
+      } catch (err) {
+        console.error('Failed to remove cart item on server', err)
+        refreshCart()
+      }
     } else {
       let currentCart = getGuestCart()
       currentCart = currentCart.filter(i => i.id !== itemId)

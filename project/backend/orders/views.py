@@ -96,15 +96,40 @@ class CartView(APIView):
 
 
 class CartItemDeleteView(APIView):
-    """Remove a single item from the cart."""
+    """Update quantity or remove a single item from the cart."""
     permission_classes = [IsAuthenticated]
 
+    def patch(self, request, item_id):
+        quantity = request.data.get("quantity")
+        if quantity is None:
+            return Response({"detail": "Quantity required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            qty_int = int(quantity)
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid quantity."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if qty_int <= 0:
+            CartItem.objects.filter(cart__user=request.user, id=item_id).delete()
+            cart = Cart.objects.filter(user=request.user).first()
+            return Response(CartSerializer(cart).data if cart else {}, status=status.HTTP_200_OK)
+
+        item = CartItem.objects.filter(cart__user=request.user, id=item_id).first()
+        if not item:
+            return Response({"detail": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        item.quantity = qty_int
+        item.save()
+
+        cart = Cart.objects.filter(user=request.user).first()
+        return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+
+    def put(self, request, item_id):
+        return self.patch(request, item_id)
+
     def delete(self, request, item_id):
-        deleted, _ = CartItem.objects.filter(
+        CartItem.objects.filter(
             cart__user=request.user, id=item_id
         ).delete()
-        if not deleted:
-            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

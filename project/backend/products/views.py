@@ -1,10 +1,12 @@
 """Products views."""
-from rest_framework import generics
+from rest_framework import generics, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from core.permissions import IsOwnerOrReadOnly
 
-from .models import Category, Product, ProductReview, FlashSale, FlashSaleItem
+from .models import Category, Product, ProductReview, FlashSale, FlashSaleItem, Inventory, ProductVariant
 from .serializers import (
     CategorySerializer,
     ProductCreateUpdateSerializer,
@@ -169,6 +171,75 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         self.check_object_permissions(self.request, obj)
         return obj
+
+
+class ProductRestockView(APIView):
+    """Owner endpoint to quickly restock a product or update inventory."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lookup):
+        import uuid
+        user = request.user
+        qs = Product.objects.filter(shop__owner=user) if not user.is_staff else Product.objects.all()
+        try:
+            val = uuid.UUID(lookup)
+            product = qs.filter(public_id=val).first()
+        except ValueError:
+            product = qs.filter(slug=lookup).first()
+
+        if not product:
+            return Response(
+                {"detail": "Product not found or you do not have permission to edit it."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        variant = product.variants.filter(is_default=True).first() or product.variants.first()
+        if not variant:
+            import uuid as _uuid
+            variant = ProductVariant.objects.create(
+                product=product,
+                name="Default",
+                sku=f"SKU-{str(_uuid.uuid4())[:8].upper()}",
+                price=product.base_price,
+                is_default=True,
+                is_active=True,
+            )
+
+        inv, _ = Inventory.objects.get_or_create(
+            variant=variant,
+            defaults={"quantity": 0, "reserved": 0}
+        )
+
+        quantity_to_add = request.data.get("quantity_to_add")
+        set_stock = request.data.get("stock")
+
+        if quantity_to_add is not None:
+            try:
+                add_int = int(quantity_to_add)
+                current_avail = max(0, inv.quantity - inv.reserved)
+                new_total = max(0, current_avail + add_int)
+                inv.quantity = new_total
+                inv.reserved = 0
+            except (ValueError, TypeError):
+                return Response({"detail": "Invalid quantity_to_add value."}, status=status.HTTP_400_BAD_REQUEST)
+        elif set_stock is not None:
+            try:
+                stock_int = max(0, int(set_stock))
+                inv.quantity = stock_int
+                inv.reserved = 0
+            except (ValueError, TypeError):
+                return Response({"detail": "Invalid stock value."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"detail": "Provide either 'quantity_to_add' or 'stock'."}, status=status.HTTP_400_BAD_REQUEST)
+
+        inv.save()
+
+        return Response({
+            "detail": f"Stock updated successfully to {inv.quantity} units.",
+            "stock": inv.quantity,
+            "inventory_quantity": inv.quantity,
+            "is_out_of_stock": inv.quantity <= 0,
+        })
 
 
 # ---------------------------------------------------------------------------

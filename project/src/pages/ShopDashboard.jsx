@@ -178,6 +178,12 @@ export default function ShopDashboard() {
   const [kycStatus, setKycStatus] = useState('unverified')
   const [kycForm, setKycForm] = useState({ verification_legal_name: '', id_number: '', document: null })
   const [kycSubmitting, setKycSubmitting] = useState(false)
+
+  // Quick Restock State
+  const [restockProduct, setRestockProduct] = useState(null)
+  const [restockAmount, setRestockAmount] = useState(10)
+  const [restockMode, setRestockMode] = useState('add') // 'add' or 'set'
+  const [restocking, setRestocking] = useState(false)
   const [kycLoading, setKycLoading] = useState(false)
 
   // Payout & Bank States
@@ -453,6 +459,38 @@ export default function ShopDashboard() {
     } catch (err) {
       console.error('Failed to delete product', err)
       toast('Failed to delete product.', 'error')
+    }
+  }
+
+  const handleQuickRestock = async (e) => {
+    if (e) e.preventDefault()
+    if (!restockProduct) return
+    const targetSlug = restockProduct.slug || restockProduct.public_id
+    setRestocking(true)
+    try {
+      const payload = restockMode === 'add'
+        ? { quantity_to_add: Number(restockAmount) }
+        : { stock: Number(restockAmount) }
+      const res = await productAPI.restock(targetSlug, payload)
+      toast(res.detail || 'Stock updated successfully!')
+      setProducts(prev => prev.map(p => {
+        if ((p.slug || p.public_id) === targetSlug) {
+          return {
+            ...p,
+            stock: res.stock,
+            inventory_quantity: res.inventory_quantity,
+            is_out_of_stock: res.is_out_of_stock
+          }
+        }
+        return p
+      }))
+      setRestockProduct(null)
+      if (shop?.slug) loadProducts(shop.slug)
+    } catch (err) {
+      console.error('Failed to restock product', err)
+      toast(err.response?.data?.detail || 'Failed to update stock.', 'error')
+    } finally {
+      setRestocking(false)
     }
   }
 
@@ -1249,7 +1287,17 @@ export default function ShopDashboard() {
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
                               }`}>{p.status}</span>
                           </td>
-                          <td className="px-6 py-4 text-right space-x-4">
+                          <td className="px-6 py-4 text-right space-x-3">
+                            <button
+                              onClick={() => {
+                                setRestockProduct(p)
+                                setRestockAmount(10)
+                                setRestockMode('add')
+                              }}
+                              className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors inline-flex items-center gap-1"
+                            >
+                              <span>+</span> Restock
+                            </button>
                             <Link to={`/product/${p.slug || p.public_id}`} target="_blank" className="text-sm text-gray-500 hover:text-gray-700 font-medium">View</Link>
                             <button onClick={() => handleEditProduct(p)} className="text-sm text-primary-600 hover:text-primary-700 font-medium">Edit</button>
                             <button onClick={() => handleDeleteProduct(p)} className="text-sm text-red-600 hover:text-red-700 font-medium">Delete</button>
@@ -1890,6 +1938,140 @@ export default function ShopDashboard() {
           setShops(prev => prev.map(s => s.slug === updated.slug ? updated : s))
         }}
       />
+
+      {/* Quick Restock Modal */}
+      {restockProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-gray-100 shadow-2xl space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Restock Product</h3>
+                <p className="text-xs text-gray-500 truncate max-w-[260px]">{restockProduct.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRestockProduct(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 flex items-center justify-center font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Current stock status */}
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-emerald-800">Current Stock</span>
+                <div className="text-2xl font-black text-emerald-950">
+                  {restockProduct.inventory_quantity ?? restockProduct.stock ?? 0} units
+                </div>
+              </div>
+              <span className="text-3xl">📦</span>
+            </div>
+
+            {/* Restock Mode Toggle */}
+            <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setRestockMode('add')}
+                className={`flex-1 py-2 rounded-lg transition-all ${
+                  restockMode === 'add'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                ➕ Add to Current Stock
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRestockMode('set')
+                  setRestockAmount(restockProduct.inventory_quantity ?? restockProduct.stock ?? 100)
+                }}
+                className={`flex-1 py-2 rounded-lg transition-all ${
+                  restockMode === 'set'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                ✏️ Set Exact Stock
+              </button>
+            </div>
+
+            {/* Quick Increment Pills */}
+            {restockMode === 'add' && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Quick Add Chips</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[5, 10, 25, 50, 100].map(qty => (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => setRestockAmount(qty)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                        Number(restockAmount) === qty
+                          ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-primary-400'
+                      }`}
+                    >
+                      +{qty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input Field */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                {restockMode === 'add' ? 'Quantity to Add (+)' : 'New Total Stock (=)'}
+              </label>
+              <input
+                type="number"
+                min={restockMode === 'add' ? '1' : '0'}
+                required
+                value={restockAmount}
+                onChange={e => setRestockAmount(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={restockMode === 'add' ? '10' : '100'}
+              />
+            </div>
+
+            {/* Preview calculation */}
+            <div className="text-xs text-gray-500 flex justify-between items-center py-2 px-3 rounded-xl bg-gray-50">
+              <span>New Available Total:</span>
+              <strong className="text-sm font-black text-gray-900">
+                {restockMode === 'add'
+                  ? (Number(restockProduct.inventory_quantity ?? restockProduct.stock ?? 0) + Number(restockAmount || 0))
+                  : Number(restockAmount || 0)}{' '}
+                units
+              </strong>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRestockProduct(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={restocking || (restockMode === 'add' ? Number(restockAmount) <= 0 : Number(restockAmount) < 0)}
+                onClick={handleQuickRestock}
+                className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm shadow-lg shadow-primary-500/25 disabled:opacity-50 transition-all"
+              >
+                {restocking ? 'Updating…' : 'Save Stock'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

@@ -245,7 +245,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
 
     def _sync_inventory(self, product, stock):
         try:
-            stock_int = int(stock)
+            stock_int = max(0, int(stock))
         except (ValueError, TypeError):
             stock_int = 100
 
@@ -265,6 +265,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             defaults={"quantity": stock_int, "reserved": 0}
         )
         inv.quantity = stock_int
+        inv.reserved = 0
         inv.save()
 
 

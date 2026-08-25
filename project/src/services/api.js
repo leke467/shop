@@ -273,6 +273,8 @@ export const productAPI = {
       : {}
     return api.patch(`/products/${slug}/`, data, config).then(r => r.data)
   },
+  restock: (slug, data) =>
+    api.post(`/products/${slug}/restock/`, data).then(r => r.data),
   delete: (slug) =>
     api.delete(`/products/${slug}/`).then(r => r.data),
   reviews: (slug) =>
