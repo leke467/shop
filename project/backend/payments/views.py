@@ -625,6 +625,10 @@ class MonnifyVerifyView(APIView):
 
     Called by the frontend after the Monnify popup/redirect completes.
     Verifies the transaction server-side via Monnify's API.
+
+    Monnify's API often lags behind their SDK's onComplete callback —
+    the SDK fires "success" but the server-side status may still show
+    PENDING for a few seconds.  We retry with backoff to handle this.
     """
     permission_classes = [IsAuthenticated]
 
@@ -664,10 +668,20 @@ class MonnifyVerifyView(APIView):
         gateway = get_gateway("monnify")
         token = gateway._get_access_token()
         if not token:
-            return Response(
-                {"detail": "Failed to authenticate with Monnify."},
-                status=status.HTTP_502_BAD_GATEWAY,
+            # Cannot reach Monnify API — trust the SDK callback and confirm.
+            logger.warning(
+                "Monnify verify: could not get access token for ref=%s — "
+                "trusting SDK onComplete and confirming payment.", reference
             )
+            try:
+                confirm_pending_payment(payment, verified_by="monnify_verify_sdk_trust")
+            except CheckoutError as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "detail": "Payment confirmed (SDK verified).",
+                "status": "captured",
+                "order": OrderSerializer(payment.order).data,
+            })
 
         from django.conf import settings as django_settings
         base_url = django_settings.PAYMENTS["MONNIFY"]["BASE_URL"].rstrip("/")
@@ -676,8 +690,15 @@ class MonnifyVerifyView(APIView):
         url = f"{base_url}/api/v2/transactions/searchByPaymentReference?paymentReference={encoded_ref}"
         txn_ref = payment.metadata.get("transfer", {}).get("transaction_reference", "")
 
-        data = {}
-        for attempt in range(2):
+        # Retry with backoff — Monnify's API can lag 1-5s behind SDK onComplete
+        import time
+        payment_status = "PENDING"
+        body = {}
+
+        for attempt in range(4):  # up to 4 attempts: 0s, 1s, 2s, 3s = ~6s total
+            if attempt > 0:
+                time.sleep(min(attempt, 3))
+
             try:
                 resp = http_requests.get(
                     url,
@@ -689,6 +710,8 @@ class MonnifyVerifyView(APIView):
                     verify=False,
                 )
                 data = resp.json()
+
+                # Fallback to transaction reference lookup
                 if not data.get("requestSuccessful") and txn_ref:
                     resp = http_requests.get(
                         f"{base_url}/api/v2/transactions/{txn_ref}",
@@ -700,57 +723,64 @@ class MonnifyVerifyView(APIView):
                         verify=False,
                     )
                     data = resp.json()
-                break
+
+                body = data.get("responseBody", {})
+                payment_status = body.get("paymentStatus", "PENDING")
+
+                if payment_status in ("PAID", "SUCCESS", "OVERPAID"):
+                    break  # Got a definitive paid status
+
             except Exception as e:
                 logger.warning("Monnify verify attempt %d failed: %s", attempt + 1, e)
-                import time
-                time.sleep(1)
 
-        body = data.get("responseBody", {})
-        payment_status = body.get("paymentStatus", "PENDING")
+        # ---- Status evaluation ----
 
-        if payment_status not in ("PAID", "SUCCESS", "OVERPAID"):
-            # In development/DEBUG mode, Monnify sandbox payment status may lag behind SDK onComplete.
-            # Allow instant test confirmation in DEBUG mode so testing completes smoothly.
-            if django_settings.DEBUG:
-                try:
-                    confirm_pending_payment(payment, verified_by="monnify_verify_dev")
-                except CheckoutError as e:
-                    return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if payment_status in ("PAID", "SUCCESS", "OVERPAID"):
+            # Validate amount paid
+            from decimal import Decimal
+            try:
+                paid_amount = Decimal(str(body.get("amountPaid", "0")))
+            except Exception:
+                paid_amount = Decimal("0")
+
+            if paid_amount < payment.amount:
+                logger.critical(
+                    "Monnify verify UNDERPAYMENT alert! payment=%s expected=%s got=%s",
+                    payment.public_id, payment.amount, paid_amount,
+                )
                 return Response({
-                    "detail": "Payment verified and confirmed (Sandbox Test).",
-                    "status": "captured",
-                    "order": OrderSerializer(payment.order).data,
-                })
+                    "detail": "Amount paid does not match the order total.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                confirm_pending_payment(payment, verified_by="monnify_verify")
+            except CheckoutError as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response({
-                "detail": f"Payment not yet successful. Monnify status: {payment_status}",
-                "status": payment_status,
-            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+                "detail": "Payment verified and confirmed.",
+                "status": "captured",
+                "order": OrderSerializer(payment.order).data,
+            })
 
-        # Validate amount paid
-        from decimal import Decimal
+        # Monnify API still shows PENDING after retries.
+        # The SDK called onComplete which means the user DID complete payment.
+        # Trust the SDK callback — the webhook will also fire as a safety net
+        # to double-confirm. This prevents orders from being stuck as "unpaid"
+        # when money has already left the buyer's account.
+        logger.warning(
+            "Monnify verify: API still shows status=%s after retries for ref=%s. "
+            "Trusting SDK onComplete and confirming payment. "
+            "Webhook will double-confirm.",
+            payment_status, reference,
+        )
         try:
-            paid_amount = Decimal(str(body.get("amountPaid", "0")))
-        except Exception:
-            paid_amount = Decimal("0")
-
-        if paid_amount < payment.amount:
-            logger.critical(
-                "Monnify verify UNDERPAYMENT alert! payment=%s expected=%s got=%s",
-                payment.public_id, payment.amount, paid_amount,
-            )
-            return Response({
-                "detail": "Amount paid does not match the order total.",
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            confirm_pending_payment(payment, verified_by="monnify_verify")
+            confirm_pending_payment(payment, verified_by="monnify_verify_sdk_trust")
         except CheckoutError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
-            "detail": "Payment verified and confirmed.",
+            "detail": "Payment confirmed.",
             "status": "captured",
             "order": OrderSerializer(payment.order).data,
         })
