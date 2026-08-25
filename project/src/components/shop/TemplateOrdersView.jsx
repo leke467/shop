@@ -176,8 +176,8 @@ export default function TemplateOrdersView({ shop, shopSlug, theme = 'default' }
                               </button>
                             )}
 
-                            {/* Delivery Code Button */}
-                            {group.status !== 'delivered' && group.status !== 'cancelled' && order.status !== 'cancelled' && (
+                            {/* Delivery Code Button - Only when Shipped or Delivered */}
+                            {(group.status === 'shipped' || group.status === 'delivered') && (
                               <button
                                 onClick={() => {
                                   if (!code) {

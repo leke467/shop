@@ -351,7 +351,8 @@ export default function OrdersPage() {
                               </>
                             )}
 
-                            {group.status !== 'delivered' && group.status !== 'cancelled' && (
+                            {/* Delivery Code Button - Only when Shipped or Delivered */}
+                            {(group.status === 'shipped' || group.status === 'delivered') && (
                               <button 
                                 onClick={() => {
                                   const code = group.delivery_code 
@@ -461,42 +462,58 @@ export default function OrdersPage() {
                           ))}
                         </div>
 
-                        {/* Delivery Code Display */}
+                        {/* Delivery Code Display - Only when Shipped or Delivered */}
                         {(() => {
-                          const code = group.delivery_code 
+                          const isShippedOrDelivered = group.status === 'shipped' || group.status === 'delivered'
+                          const code = isShippedOrDelivered && (
+                            group.delivery_code 
                             || deliveryCodes[order.public_id]?.[group.id] 
                             || deliveryCodes[order.public_id]?.[String(group.id)] 
                             || deliveryCodes[order.public_id]?.[group.shop_slug]
                             || deliveryCodes[order.public_id]?.latest
-                          if (!code) return null
-                          return (
-                            <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-dashed border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-                              <div className="min-w-0">
-                                <p className="text-xs sm:text-sm font-bold text-amber-900 mb-0.5 flex items-center gap-1.5">
-                                  <span>🔐 Delivery Confirmation Code</span>
-                                  <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase">Buyer Protection</span>
-                                </p>
-                                <p className="text-xs text-amber-700 max-w-sm leading-relaxed">
-                                  Give this 6-digit code to the seller/rider <strong>ONLY after</strong> you have received and inspected your order.
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-amber-950 bg-white px-5 py-2.5 rounded-xl border border-amber-200 shadow-sm text-center">
-                                  {code}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    navigator?.clipboard?.writeText(code)
-                                    toast(`Copied code ${code} to clipboard!`, 'success')
-                                  }}
-                                  className="px-3 py-2.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 text-xs font-bold rounded-xl transition-all"
-                                  title="Copy Delivery Code"
-                                >
-                                  📋 Copy
-                                </button>
-                              </div>
-                            </div>
                           )
+
+                          if (isShippedOrDelivered && code) {
+                            return (
+                              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-dashed border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                                <div className="min-w-0">
+                                  <p className="text-xs sm:text-sm font-bold text-amber-900 mb-0.5 flex items-center gap-1.5">
+                                    <span>🔐 Delivery Confirmation Code</span>
+                                    <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase">Buyer Protection</span>
+                                  </p>
+                                  <p className="text-xs text-amber-700 max-w-sm leading-relaxed">
+                                    Give this 6-digit code to the seller/rider <strong>ONLY after</strong> you have received and inspected your order.
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-amber-950 bg-white px-5 py-2.5 rounded-xl border border-amber-200 shadow-sm text-center">
+                                    {code}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      navigator?.clipboard?.writeText(code)
+                                      toast(`Copied code ${code} to clipboard!`, 'success')
+                                    }}
+                                    className="px-3 py-2.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 text-xs font-bold rounded-xl transition-all"
+                                    title="Copy Delivery Code"
+                                  >
+                                    📋 Copy
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (order.status !== 'pending' && group.status !== 'cancelled' && (group.status === 'accepted' || group.status === 'processing')) {
+                            return (
+                              <div className="mt-3.5 p-3 sm:p-3.5 rounded-xl bg-blue-50/80 border border-blue-200/70 flex items-center gap-2 text-xs text-blue-800">
+                                <span className="text-base flex-shrink-0">📦</span>
+                                <span>Your <strong>6-digit Delivery Confirmation Code</strong> will be sent to your email and displayed here as soon as the vendor marks this order as <strong>Shipped</strong>.</span>
+                              </div>
+                            )
+                          }
+
+                          return null
                         })()}
                       </div>
                     ))}

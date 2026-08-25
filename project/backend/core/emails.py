@@ -36,31 +36,15 @@ def send_order_placed_buyer_email(order, order_groups):
         f"Total Paid: ₦{order.grand_total:,.2f}",
         f"Delivery Address: {order.shipping_line1 or order.shipping_city}, {order.shipping_state}",
         "",
-        "🔒 DELIVERY CONFIRMATION CODES:",
-        "Your purchase is protected by MultiShop Buyer Protection. Provide the 6-digit delivery confirmation code to the courier/seller once you have physically received and inspected your package:",
+        "🔒 BUYER PROTECTION NOTICE:",
+        "Your order is protected by MultiShop Escrow. Once the vendor packages and ships your order, you will receive a shipping notification containing your 6-digit delivery confirmation code.",
         "",
-    ]
-
-    for og in order_groups:
-        body_lines.append(f"• Shop: {og.shop.name} | Delivery Code: {og.delivery_code}")
-
-    body_lines.extend([
-        "",
-        "You can track your order status anytime from your account or the store's order tracking page.",
+        "You can track your order status anytime from your account at https://multishopng.com/orders.",
         "",
         "Need help? Contact support@multishopng.com.",
         "The MultiShopNG Team",
-    ])
+    ]
     text_content = "\n".join(body_lines)
-
-    # Build HTML content
-    codes_html = "".join([
-        f"""<div style="background:#F0FDF4;border:1.5px dashed #16A34A;padding:12px 16px;border-radius:10px;margin-bottom:10px;">
-            <div style="font-size:13px;color:#166534;font-weight:bold;">Vendor: {og.shop.name}</div>
-            <div style="font-size:22px;color:#15803D;font-weight:800;letter-spacing:4px;margin-top:4px;">{og.delivery_code}</div>
-        </div>"""
-        for og in order_groups
-    ])
 
     html_content = f"""
     <div style="font-family:'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;color:#1E293B;">
@@ -84,11 +68,14 @@ def send_order_placed_buyer_email(order, order_groups):
                 </div>
             </div>
 
-            <h3 style="font-size:15px;color:#0F172A;margin-bottom:8px;">🔒 Your Delivery Verification Codes</h3>
-            <p style="font-size:13px;color:#64748B;line-height:1.5;margin-bottom:14px;">
-                Protected by MultiShop Buyer Protection. Share this code with the dispatch courier or vendor <strong>ONLY after</strong> you have received your package:
-            </p>
-            {codes_html}
+            <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;padding:16px;border-radius:12px;margin:20px 0;">
+                <h3 style="font-size:14px;color:#1E40AF;margin:0 0 6px 0;display:flex;align-items:center;gap:6px;">
+                    🛡️ MultiShop Buyer Protection
+                </h3>
+                <p style="font-size:13px;color:#3B82F6;line-height:1.5;margin:0;">
+                    Your funds are held securely in escrow. As soon as the vendor dispatches your order and updates the status to <strong>Shipped</strong>, you will receive an email with your <strong>6-digit Delivery Confirmation Code</strong>.
+                </p>
+            </div>
 
             <p style="font-size:13px;color:#94A3B8;margin-top:24px;border-top:1px solid #E2E8F0;padding-top:16px;text-align:center;">
                 Thank you for shopping on MultiShop! If you have any inquiries, reply directly to this email.
@@ -107,6 +94,86 @@ def send_order_placed_buyer_email(order, order_groups):
         )
     except Exception as e:
         logger.error("Failed to send buyer order confirmation email: %s", e)
+
+
+def send_order_shipped_buyer_email(order_group):
+    """
+    Send shipping notification to buyer with their 6-digit delivery confirmation code.
+    """
+    buyer = order_group.order.user
+    if not buyer or not buyer.email:
+        return
+
+    buyer_email = buyer.email
+    buyer_name = buyer.first_name or buyer.username or "Shopper"
+    shop_name = order_group.shop.name if order_group.shop else "Seller"
+    delivery_code = order_group.delivery_code or ""
+    subject = f"🚚 Your Order #{order_group.order.public_id} Has Shipped! — Delivery Code Inside"
+
+    text_content = f"""Hi {buyer_name},
+
+Great news! Your package from {shop_name} has been shipped!
+
+Order ID: #{order_group.order.public_id}
+Store: {shop_name}
+
+🔐 YOUR 6-DIGIT DELIVERY CONFIRMATION CODE:
+{delivery_code}
+
+IMPORTANT: Please inspect your order when the dispatch courier arrives. Only give this 6-digit code to the rider/seller AFTER you have received and inspected your package.
+
+Track your order anytime at: https://multishopng.com/orders
+
+The MultiShopNG Team
+"""
+
+    html_content = f"""
+    <div style="font-family:'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;color:#1E293B;">
+        <div style="background:linear-gradient(135deg,#059669,#047857);padding:28px 24px;text-align:center;color:#FFFFFF;">
+            <h1 style="margin:0;font-size:22px;font-weight:800;">🚚 Your Order is on the Way!</h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#A7F3D0;">Package dispatched by {shop_name}</p>
+        </div>
+        <div style="padding:28px 24px;">
+            <h2 style="font-size:18px;margin-top:0;color:#0F172A;">Hello {buyer_name},</h2>
+            <p style="font-size:14px;line-height:1.6;color:#475569;">
+                Your items from <strong>{shop_name}</strong> (Order #{order_group.order.public_id}) have been dispatched and are on their way to you!
+            </p>
+
+            <div style="background:#FEF3C7;border:2px dashed #F59E0B;padding:20px;border-radius:14px;margin:24px 0;text-align:center;">
+                <p style="font-size:12px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">
+                    🔐 Your Delivery Confirmation Code
+                </p>
+                <div style="font-size:32px;font-weight:900;letter-spacing:8px;color:#78350F;font-family:'Courier New',monospace;margin:8px 0;">
+                    {delivery_code}
+                </div>
+                <p style="font-size:12px;color:#92400E;margin:6px 0 0 0;line-height:1.4;">
+                    Give this 6-digit code to the delivery courier <strong>ONLY after</strong> you have physically received and inspected your order.
+                </p>
+            </div>
+
+            <div style="text-align:center;margin:28px 0 10px 0;">
+                <a href="https://multishopng.com/orders" style="display:inline-block;background:#059669;color:#FFFFFF;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+                    View Order Details →
+                </a>
+            </div>
+
+            <p style="font-size:13px;color:#94A3B8;margin-top:24px;border-top:1px solid #E2E8F0;padding-top:16px;text-align:center;">
+                MultiShopNG Marketplace • Buyer Protection Escrow
+            </p>
+        </div>
+    </div>
+    """
+
+    try:
+        EmailService.send_raw_email(
+            subject=subject,
+            text_content=text_content,
+            recipient_list=[buyer_email],
+            html_content=html_content,
+            from_email=DEFAULT_FROM_EMAIL,
+        )
+    except Exception as e:
+        logger.error("Failed to send order shipped email: %s", e)
 
 
 def send_order_placed_seller_email(order_group):

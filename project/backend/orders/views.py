@@ -221,11 +221,15 @@ class DeliveryCodeView(APIView):
         groups = order.groups.select_related("shop").all()
         codes = []
         for g in groups:
+            can_show_code = g.status in (
+                OrderGroup.FulfilmentStatus.SHIPPED,
+                OrderGroup.FulfilmentStatus.DELIVERED,
+            )
             codes.append({
                 "group_id": g.id,
                 "shop_name": g.shop.name,
                 "shop_slug": g.shop.slug,
-                "delivery_code": g.delivery_code or "",
+                "delivery_code": (g.delivery_code if can_show_code else ""),
                 "escrow_status": g.escrow_status,
                 "status": g.status,
                 "subtotal": str(g.subtotal),
@@ -479,21 +483,13 @@ class UpdateFulfillmentStatusView(APIView):
         group.status = new_status
         group.save(update_fields=["status", "updated_at"])
 
-        # --- Email: Shipping Update to Buyer ---
+        # --- Email: Shipping Update to Buyer with Delivery Code ---
         try:
-            from notifications.tasks import send_shipping_update_email
-            buyer = group.order.user
-            if buyer and buyer.email:
-                is_funded = group.escrow_status in (OrderGroup.EscrowStatus.HELD, OrderGroup.EscrowStatus.RELEASED)
-                send_shipping_update_email.delay(buyer.email, {
-                    "buyer_name": buyer.first_name or buyer.email.split("@")[0],
-                    "order_id": str(group.order.public_id),
-                    "status": new_status,
-                    "shop_name": group.shop.name if group.shop else "Seller",
-                    "delivery_code": group.delivery_code if is_funded else "",
-                })
-        except Exception:
-            pass  # Never block the response on email failure
+            from core.emails import send_order_shipped_buyer_email
+            if new_status == OrderGroup.FulfilmentStatus.SHIPPED:
+                send_order_shipped_buyer_email(group)
+        except Exception as e:
+            logger.error("Failed to send shipping email: %s", e)
 
         return Response({
             "detail": f"Order status updated to {new_status}.",
