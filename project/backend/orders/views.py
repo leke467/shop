@@ -265,7 +265,7 @@ class ConfirmDeliveryView(APIView):
 
 
 class DisputeOrderView(APIView):
-    """Buyer opens a dispute on an order group."""
+    """Buyer opens or withdraws a dispute on an order group."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, group_id):
@@ -287,6 +287,26 @@ class DisputeOrderView(APIView):
 
         return Response({
             "detail": "Dispute opened. Our team will review this.",
+            "escrow_status": group.escrow_status,
+        })
+
+    def delete(self, request, group_id):
+        from .escrow import withdraw_dispute, EscrowError
+
+        group = generics.get_object_or_404(
+            OrderGroup.objects.select_related("order"),
+            id=group_id,
+        )
+        try:
+            withdraw_dispute(group, request.user)
+        except EscrowError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({
+            "detail": "Dispute withdrawn. Escrow restored to protected held status.",
             "escrow_status": group.escrow_status,
         })
 

@@ -216,3 +216,29 @@ def dispute_order(
     # --- Send Notification Email ---
     from core.emails import send_dispute_opened_email
     send_dispute_opened_email(order_group, reason)
+
+
+def withdraw_dispute(
+    order_group: OrderGroup,
+    buyer,
+) -> None:
+    """
+    Buyer withdraws/cancels an active dispute on an order group.
+    Restores escrow to HELD status.
+    """
+    if order_group.order.user != buyer:
+        raise EscrowError("Only the buyer who opened the dispute can withdraw it.")
+
+    if order_group.escrow_status != OrderGroup.EscrowStatus.DISPUTED:
+        raise EscrowError(
+            f"Cannot withdraw dispute: order status is currently {order_group.get_escrow_status_display()}."
+        )
+
+    order_group.escrow_status = OrderGroup.EscrowStatus.HELD
+    order_group.dispute_reason = ""
+    order_group.save(update_fields=["escrow_status", "dispute_reason", "updated_at"])
+
+    logger.info(
+        "Dispute withdrawn by buyer: group=%s buyer=%s",
+        order_group.pk, buyer.email,
+    )

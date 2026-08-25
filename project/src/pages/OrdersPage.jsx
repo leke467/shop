@@ -184,6 +184,17 @@ export default function OrdersPage() {
     }
   }
 
+  const handleWithdrawDispute = async (groupId) => {
+    if (!window.confirm('Are you sure you want to cancel and withdraw this dispute? Your order escrow will return to normal buyer protection.')) return
+    try {
+      const res = await orderAPI.withdrawDispute(groupId)
+      loadData()
+      toast(res.detail || 'Dispute withdrawn successfully.', 'success')
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Failed to withdraw dispute.', 'error')
+    }
+  }
+
   const handleRequestRefund = async (e) => {
     e.preventDefault()
     if (!refundGroup) return
@@ -340,9 +351,18 @@ export default function OrdersPage() {
                               </button>
                             )}
                             {group.escrow_status === 'disputed' && (
-                              <span className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-error-100 text-error-700">
-                                Disputed
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-error-100 text-error-700">
+                                  Disputed
+                                </span>
+                                <button
+                                  onClick={() => handleWithdrawDispute(group.id)}
+                                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors border border-gray-200"
+                                  title="Cancel dispute"
+                                >
+                                  ✕ Withdraw Dispute
+                                </button>
+                              </div>
                             )}
 
                             {/* Refund Request button / status badge */}
