@@ -184,6 +184,8 @@ export const shopAPI = {
     api.post(`/shops/${slug}/branding/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data),
+  removeBranding: (slug, target = 'all') =>
+    api.delete(`/shops/${slug}/branding/`, { params: { target } }).then(r => r.data),
 
   // Custom domain (feature-gated by the subscription plan)
   getCustomDomain: (slug) =>

@@ -262,7 +262,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
       // If user cleared banner, notify backend to remove it from database
       if (!finalBannerUrl && !bannerFile) {
         try {
-          await shopAPI.uploadBranding(shop.slug, { remove_banner: true })
+          await shopAPI.removeBranding(shop.slug, 'banner')
         } catch (err) {
           console.warn('Clear banner note:', err)
         }
@@ -271,7 +271,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
       // If user cleared logo, notify backend to remove it from database
       if (!finalLogoUrl && !logoFile) {
         try {
-          await shopAPI.uploadBranding(shop.slug, { remove_logo: true })
+          await shopAPI.removeBranding(shop.slug, 'logo')
         } catch (err) {
           console.warn('Clear logo note:', err)
         }
