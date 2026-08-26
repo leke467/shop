@@ -199,6 +199,8 @@ export default function ShopDashboard() {
   const [restockAmount, setRestockAmount] = useState(10)
   const [restockMode, setRestockMode] = useState('add') // 'add' or 'set'
   const [restocking, setRestocking] = useState(false)
+  const [showCouponsModal, setShowCouponsModal] = useState(false)
+  const [storefrontSubTab, setStorefrontSubTab] = useState('templates') // 'templates' | 'customizer'
   const [kycLoading, setKycLoading] = useState(false)
 
   // Payout & Bank States
@@ -863,13 +865,10 @@ export default function ShopDashboard() {
     { key: 'overview', label: 'Overview', icon: '📊' },
     { key: 'orders', label: 'Orders', icon: '📥' },
     { key: 'products', label: 'Products', icon: '📦' },
-    { key: 'add-product', label: 'Add Product', icon: '➕' },
-    { key: 'coupons', label: 'Coupons', icon: '🎟️' },
+    { key: 'storefront', label: 'Storefront Design', icon: '🎨' },
     { key: 'analytics', label: 'Analytics', icon: '📈' },
     { key: 'blog', label: 'Blog', icon: '📝' },
     { key: 'messages', label: 'Messages', icon: '💬' },
-    { key: 'theme', label: 'Theme Builder', icon: '🎨' },
-    { key: 'templates', label: 'Templates', icon: '✨' },
     { key: 'wallet', label: 'Wallet', icon: '💳' },
     { key: 'settings', label: 'Settings', icon: '⚙️' },
   ]
@@ -961,7 +960,28 @@ export default function ShopDashboard() {
               <div className="bg-white rounded-2xl p-8 border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="grid sm:grid-cols-3 gap-4">
-                  <button onClick={() => setTab('add-product')} className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
+                  <button
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setProductForm({
+                        name: '',
+                        description: '',
+                        base_price: '',
+                        stock: 100,
+                        status: 'active',
+                        has_variants: false,
+                        variant_attributes: [],
+                        variants_data: [],
+                        allow_custom_measurements: false,
+                        custom_measurement_type: 'fashion',
+                        custom_measurement_prompt: '',
+                        custom_measurement_required: false,
+                        imageFiles: []
+                      });
+                      setTab('add-product');
+                    }}
+                    className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-left"
+                  >
                     <span className="text-2xl">➕</span>
                     <h4 className="font-semibold text-gray-900 mt-2">Add Product</h4>
                     <p className="text-xs text-gray-500 mt-1">List a new item for sale</p>
@@ -971,10 +991,10 @@ export default function ShopDashboard() {
                     <h4 className="font-semibold text-gray-900 mt-2">Manage Products</h4>
                     <p className="text-xs text-gray-500 mt-1">Edit prices, stock, and details</p>
                   </button>
-                  <button onClick={() => setTab('theme')} className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
+                  <button onClick={() => { setTab('storefront'); setStorefrontSubTab('customizer'); }} className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
                     <span className="text-2xl">🎨</span>
-                    <h4 className="font-semibold text-gray-900 mt-2">Theme Builder</h4>
-                    <p className="text-xs text-gray-500 mt-1">Theme, branding, and info</p>
+                    <h4 className="font-semibold text-gray-900 mt-2">Storefront & Theme</h4>
+                    <p className="text-xs text-gray-500 mt-1">Templates, colors, and branding</p>
                   </button>
                 </div>
               </div>
@@ -1382,9 +1402,12 @@ export default function ShopDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="font-bold text-gray-900">Your Products</h3>
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">Your Products</h3>
+                      <p className="text-xs text-gray-500">{products.length} item{products.length === 1 ? '' : 's'} in catalog</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button onClick={() => {
                         const csvContent = "data:text/csv;charset=utf-8,Name,Description,Price,Status\nExample Product,Great description,15000,active";
                         const encodedUri = encodeURI(csvContent);
@@ -1394,11 +1417,43 @@ export default function ShopDashboard() {
                         document.body.appendChild(link);
                         link.click();
                         link.remove();
-                      }} className="text-sm text-primary-600 hover:underline font-medium">Download Template</button>
-                      <label className="cursor-pointer px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-sm transition-colors">
-                        {bulkImporting ? 'Importing...' : 'Bulk Import CSV'}
+                      }} className="text-xs text-gray-600 hover:text-gray-900 px-3 py-2 border border-gray-200 hover:bg-gray-50 rounded-xl font-medium transition-colors">
+                        📄 Template
+                      </button>
+                      <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-xs transition-colors">
+                        {bulkImporting ? 'Importing...' : '📥 Bulk Import'}
                         <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} disabled={bulkImporting} />
                       </label>
+                      <button
+                        onClick={() => setShowCouponsModal(true)}
+                        className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                      >
+                        <span>🎟️</span> Coupons
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingProduct(null);
+                          setProductForm({
+                            name: '',
+                            description: '',
+                            base_price: '',
+                            stock: 100,
+                            status: 'active',
+                            has_variants: false,
+                            variant_attributes: [],
+                            variants_data: [],
+                            allow_custom_measurements: false,
+                            custom_measurement_type: 'fashion',
+                            custom_measurement_prompt: '',
+                            custom_measurement_required: false,
+                            imageFiles: []
+                          });
+                          setTab('add-product');
+                        }}
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary-500/20"
+                      >
+                        <span>➕</span> Add Product
+                      </button>
                     </div>
                   </div>
                   <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
@@ -1466,8 +1521,20 @@ export default function ShopDashboard() {
 
           {tab === 'add-product' && (
             <motion.div key="add-product" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="bg-white rounded-2xl p-8 border border-gray-100 max-w-2xl">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 max-w-3xl">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+                    <p className="text-xs text-gray-500">Configure item details, price, inventory, variants & bespoke options</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setTab('products'); setEditingProduct(null); }}
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <span>←</span> Back to Products
+                  </button>
+                </div>
                 <form onSubmit={handleCreateProduct} className="space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Product Name</label>
@@ -1789,285 +1856,317 @@ export default function ShopDashboard() {
             </motion.div>
           )}
 
-          {tab === 'theme' && (
-            <motion.div key="theme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="grid lg:grid-cols-12 gap-8">
-                {/* Customizer form */}
-                <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">Theme Builder</h3>
-                    <p className="text-sm text-gray-500 mb-4">Design your shop's look, colors, and content</p>
+          {(tab === 'storefront' || tab === 'theme' || tab === 'templates') && (
+            <motion.div key="storefront" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Unified Storefront Design Header Switcher */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg sm:text-xl flex items-center gap-2">
+                    <span>🎨</span> Storefront Design & Templates
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Choose from 20 high-converting storefront templates or customize your brand colors</p>
+                </div>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setStorefrontSubTab('templates')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      storefrontSubTab === 'templates'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    ✨ 20 Store Templates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStorefrontSubTab('customizer')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      storefrontSubTab === 'customizer'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    🎨 Colors & Theme Customizer
+                  </button>
+                </div>
+              </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setShowManageModal(true)}
-                      className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-2 mb-2"
-                    >
-                      <span>⚙️</span> Manage Storefront Content & Texts
-                    </button>
-                  </div>
+              {storefrontSubTab === 'templates' ? (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                  <TemplatesTab shop={shop} onShopUpdate={setShop} />
+                </div>
+              ) : (
+                <div className="grid lg:grid-cols-12 gap-8">
+                  {/* Customizer form */}
+                  <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">Theme Builder</h3>
+                      <p className="text-sm text-gray-500 mb-4">Design your shop's look, colors, and content</p>
 
-                  {/* Presets */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Color Presets</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {COLOR_PRESETS.map((preset) => (
-                        <button
-                          key={preset.name}
-                          type="button"
-                          onClick={() => applyPreset(preset)}
-                          className="px-3 py-2 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-gray-50 text-xs font-semibold text-gray-700 flex items-center gap-2 transition-all"
-                        >
-                          <span className="w-3.5 h-3.5 rounded-full border border-gray-300" style={{ backgroundColor: preset.primary_color }} />
-                          {preset.name}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setShowManageModal(true)}
+                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-2 mb-2"
+                      >
+                        <span>⚙️</span> Manage Storefront Content & Texts
+                      </button>
                     </div>
-                  </div>
 
-                  <form onSubmit={handleSaveTheme} className="space-y-4">
-                    {/* Brand Colors */}
-                    <div className="border-t border-gray-100 pt-4">
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Color Palette</label>
-                      <div className="grid grid-cols-2 gap-3.5">
-                        {[
-                          { key: 'primary_color', label: 'Primary' },
-                          { key: 'secondary_color', label: 'Secondary' },
-                          { key: 'accent_color', label: 'Accent' },
-                          { key: 'background_color', label: 'Background' },
-                          { key: 'surface_color', label: 'Surface' },
-                          { key: 'text_color', label: 'Text' },
-                        ].map((c) => (
-                          <div key={c.key} className="flex flex-col gap-1.5">
-                            <span className="text-xs font-medium text-gray-600">{c.label}</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                value={themeForm[c.key]}
-                                onChange={e => setThemeForm(prev => ({ ...prev, [c.key]: e.target.value }))}
-                                className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 overflow-hidden"
-                              />
-                              <input
-                                type="text"
-                                maxLength={7}
-                                value={themeForm[c.key]}
-                                onChange={e => setThemeForm(prev => ({ ...prev, [c.key]: e.target.value }))}
-                                className="w-20 px-2 py-1 text-xs border border-gray-200 bg-white text-gray-900 rounded-lg uppercase"
-                              />
-                            </div>
-                          </div>
+                    {/* Presets */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Color Presets</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {COLOR_PRESETS.map((preset) => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => applyPreset(preset)}
+                            className="px-3 py-2 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-gray-50 text-xs font-semibold text-gray-700 flex items-center gap-2 transition-all"
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full border border-gray-300" style={{ backgroundColor: preset.primary_color }} />
+                            {preset.name}
+                          </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* Layouts & Density */}
-                    <div className="border-t border-gray-100 pt-4 space-y-3">
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Layout & Style</label>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Layout Option</label>
-                          <select
-                            value={themeForm.layout_style}
-                            onChange={e => setThemeForm(prev => ({ ...prev, layout_style: e.target.value }))}
-                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          >
-                            <option value="modern">Modern</option>
-                            <option value="classic">Classic</option>
-                            <option value="minimal">Minimal</option>
-                            <option value="bold">Bold</option>
-                            <option value="magazine">Magazine</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Product Card Style</label>
-                          <select
-                            value={themeForm.product_card_style}
-                            onChange={e => setThemeForm(prev => ({ ...prev, product_card_style: e.target.value }))}
-                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          >
-                            <option value="standard">Standard</option>
-                            <option value="compact">Compact</option>
-                            <option value="overlay">Overlay</option>
-                            <option value="detailed">Detailed</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Border Radius (px)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="24"
-                            value={themeForm.border_radius}
-                            onChange={e => setThemeForm(prev => ({ ...prev, border_radius: Number(e.target.value) }))}
-                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Button Style</label>
-                          <select
-                            value={themeForm.button_style}
-                            onChange={e => setThemeForm(prev => ({ ...prev, button_style: e.target.value }))}
-                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          >
-                            <option value="solid">Solid</option>
-                            <option value="outline">Outline</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Font & Custom CSS */}
-                    <div className="border-t border-gray-100 pt-4 space-y-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Heading Font</label>
-                        <input
-                          type="text"
-                          value={themeForm.heading_font}
-                          onChange={e => setThemeForm(prev => ({ ...prev, heading_font: e.target.value }))}
-                          className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          placeholder="Inter, Montserrat, etc."
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Custom CSS</label>
-                        <textarea
-                          rows={3}
-                          value={themeForm.custom_css}
-                          onChange={e => setThemeForm(prev => ({ ...prev, custom_css: e.target.value }))}
-                          className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none font-mono"
-                          placeholder="/* Custom CSS */"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2.5 pt-4">
-                      <motion.button
-                        type="submit"
-                        disabled={themeSaving}
-                        className="flex-1 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-xs transition-all"
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {themeSaving ? 'Saving…' : 'Save Theme'}
-                      </motion.button>
-                      <button
-                        type="button"
-                        onClick={handleResetTheme}
-                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs font-semibold transition-all"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Theme Live Preview */}
-                <div className="lg:col-span-7 space-y-4">
-                  <div className="sticky top-24">
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Live Storefront Preview</label>
-                    <div
-                      className="border border-gray-100 rounded-2xl shadow-md overflow-hidden transition-all duration-300"
-                      style={{ backgroundColor: themeForm.background_color }}
-                    >
-                      {/* Shop Banner preview */}
-                      <div
-                        className="h-28 flex items-center justify-center relative transition-all"
-                        style={{ background: `linear-gradient(135deg, ${themeForm.primary_color}, ${themeForm.secondary_color})` }}
-                      >
-                        <span className="text-white text-lg font-bold tracking-wide drop-shadow-sm">{shop.name}</span>
-                      </div>
-
-                      {/* Header Navbar preview */}
-                      <div
-                        className="px-4 py-3 flex items-center justify-between border-b border-gray-200/20"
-                        style={{ backgroundColor: themeForm.surface_color }}
-                      >
-                        <span className="text-xs font-bold" style={{ color: themeForm.text_color }}>🏪 Store</span>
-                        <div className="flex gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.primary_color }} />
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.accent_color }} />
-                        </div>
-                      </div>
-
-                      {/* Store Mock Content */}
-                      <div className="p-5 space-y-4">
-                        <div className="space-y-1.5">
-                          <h4 className="text-sm font-bold" style={{ color: themeForm.text_color, fontFamily: themeForm.heading_font }}>
-                            Welcome to our premium storefront
-                          </h4>
-                          <p className="text-xs leading-relaxed" style={{ color: themeForm.muted_text_color, fontFamily: themeForm.body_font }}>
-                            This preview instantly renders according to the chosen style tokens. Edit choices on the left to see modifications.
-                          </p>
-                        </div>
-
-                        {/* Product Card Mock Grid */}
-                        <div className="grid grid-cols-2 gap-3 pt-2">
+                    <form onSubmit={handleSaveTheme} className="space-y-4">
+                      {/* Brand Colors */}
+                      <div className="border-t border-gray-100 pt-4">
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Color Palette</label>
+                        <div className="grid grid-cols-2 gap-3.5">
                           {[
-                            { name: 'Classic Leather Watch', price: '$120.00' },
-                            { name: 'Minimalist Sunglasses', price: '$45.00' }
-                          ].map((item, index) => (
-                            <div
-                              key={index}
-                              className="border border-gray-200/50 shadow-sm overflow-hidden"
-                              style={{
-                                borderRadius: `${themeForm.border_radius}px`,
-                                backgroundColor: themeForm.surface_color
-                              }}
-                            >
-                              <div className="h-20 bg-gray-200/50 flex items-center justify-center text-xs text-gray-400">
-                                📷 Product Image
-                              </div>
-                              <div className="p-3 space-y-2">
-                                <h5 className="text-[11px] font-bold truncate" style={{ color: themeForm.text_color }}>{item.name}</h5>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-extrabold" style={{ color: themeForm.primary_color }}>{item.price}</span>
-                                  {themeForm.button_style === 'solid' ? (
-                                    <button
-                                      type="button"
-                                      className="text-[9px] px-2 py-1 text-white font-semibold shadow-sm"
-                                      style={{
-                                        borderRadius: `${themeForm.border_radius}px`,
-                                        backgroundColor: themeForm.primary_color
-                                      }}
-                                    >
-                                      Buy
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="text-[9px] px-2 py-1 font-semibold border"
-                                      style={{
-                                        borderRadius: `${themeForm.border_radius}px`,
-                                        borderColor: themeForm.primary_color,
-                                        color: themeForm.primary_color
-                                      }}
-                                    >
-                                      Buy
-                                    </button>
-                                  )}
-                                </div>
+                            { key: 'primary_color', label: 'Primary' },
+                            { key: 'secondary_color', label: 'Secondary' },
+                            { key: 'accent_color', label: 'Accent' },
+                            { key: 'background_color', label: 'Background' },
+                            { key: 'surface_color', label: 'Surface' },
+                            { key: 'text_color', label: 'Text' },
+                          ].map((c) => (
+                            <div key={c.key} className="flex flex-col gap-1.5">
+                              <span className="text-xs font-medium text-gray-600">{c.label}</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={themeForm[c.key]}
+                                  onChange={e => setThemeForm(prev => ({ ...prev, [c.key]: e.target.value }))}
+                                  className="w-8 h-8 rounded-lg cursor-pointer border border-gray-200 overflow-hidden"
+                                />
+                                <input
+                                  type="text"
+                                  maxLength={7}
+                                  value={themeForm[c.key]}
+                                  onChange={e => setThemeForm(prev => ({ ...prev, [c.key]: e.target.value }))}
+                                  className="w-20 px-2 py-1 text-xs border border-gray-200 bg-white text-gray-900 rounded-lg uppercase"
+                                />
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
+
+                      {/* Layouts & Density */}
+                      <div className="border-t border-gray-100 pt-4 space-y-3">
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Layout & Style</label>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Layout Option</label>
+                            <select
+                              value={themeForm.layout_style}
+                              onChange={e => setThemeForm(prev => ({ ...prev, layout_style: e.target.value }))}
+                              className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            >
+                              <option value="modern">Modern</option>
+                              <option value="classic">Classic</option>
+                              <option value="minimal">Minimal</option>
+                              <option value="bold">Bold</option>
+                              <option value="magazine">Magazine</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Product Card Style</label>
+                            <select
+                              value={themeForm.product_card_style}
+                              onChange={e => setThemeForm(prev => ({ ...prev, product_card_style: e.target.value }))}
+                              className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            >
+                              <option value="standard">Standard</option>
+                              <option value="compact">Compact</option>
+                              <option value="overlay">Overlay</option>
+                              <option value="detailed">Detailed</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Border Radius (px)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="24"
+                              value={themeForm.border_radius}
+                              onChange={e => setThemeForm(prev => ({ ...prev, border_radius: Number(e.target.value) }))}
+                              className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Button Style</label>
+                            <select
+                              value={themeForm.button_style}
+                              onChange={e => setThemeForm(prev => ({ ...prev, button_style: e.target.value }))}
+                              className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            >
+                              <option value="solid">Solid</option>
+                              <option value="outline">Outline</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Font & Custom CSS */}
+                      <div className="border-t border-gray-100 pt-4 space-y-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Heading Font</label>
+                          <input
+                            type="text"
+                            value={themeForm.heading_font}
+                            onChange={e => setThemeForm(prev => ({ ...prev, heading_font: e.target.value }))}
+                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            placeholder="Inter, Montserrat, etc."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Custom CSS</label>
+                          <textarea
+                            rows={3}
+                            value={themeForm.custom_css}
+                            onChange={e => setThemeForm(prev => ({ ...prev, custom_css: e.target.value }))}
+                            className="w-full text-xs px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none font-mono"
+                            placeholder="/* Custom CSS */"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2.5 pt-4">
+                        <motion.button
+                          type="submit"
+                          disabled={themeSaving}
+                          className="flex-1 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold text-xs transition-all"
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {themeSaving ? 'Saving…' : 'Save Theme'}
+                        </motion.button>
+                        <button
+                          type="button"
+                          onClick={handleResetTheme}
+                          className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs font-semibold transition-all"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Theme Live Preview */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="sticky top-24">
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Live Storefront Preview</label>
+                      <div
+                        className="border border-gray-100 rounded-2xl shadow-md overflow-hidden transition-all duration-300"
+                        style={{ backgroundColor: themeForm.background_color }}
+                      >
+                        {/* Shop Banner preview */}
+                        <div
+                          className="h-28 flex items-center justify-center relative transition-all"
+                          style={{ background: `linear-gradient(135deg, ${themeForm.primary_color}, ${themeForm.secondary_color})` }}
+                        >
+                          <span className="text-white text-lg font-bold tracking-wide drop-shadow-sm">{shop.name}</span>
+                        </div>
+
+                        {/* Header Navbar preview */}
+                        <div
+                          className="px-4 py-3 flex items-center justify-between border-b border-gray-200/20"
+                          style={{ backgroundColor: themeForm.surface_color }}
+                        >
+                          <span className="text-xs font-bold" style={{ color: themeForm.text_color }}>🏪 Store</span>
+                          <div className="flex gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.primary_color }} />
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.accent_color }} />
+                          </div>
+                        </div>
+
+                        {/* Store Mock Content */}
+                        <div className="p-5 space-y-4">
+                          <div className="space-y-1.5">
+                            <h4 className="text-sm font-bold" style={{ color: themeForm.text_color, fontFamily: themeForm.heading_font }}>
+                              Welcome to our premium storefront
+                            </h4>
+                            <p className="text-xs leading-relaxed" style={{ color: themeForm.muted_text_color, fontFamily: themeForm.body_font }}>
+                              This preview instantly renders according to the chosen style tokens. Edit choices on the left to see modifications.
+                            </p>
+                          </div>
+
+                          {/* Product Card Mock Grid */}
+                          <div className="grid grid-cols-2 gap-3 pt-2">
+                            {[
+                              { name: 'Classic Leather Watch', price: '$120.00' },
+                              { name: 'Minimalist Sunglasses', price: '$45.00' }
+                            ].map((item, index) => (
+                              <div
+                                key={index}
+                                className="border border-gray-200/50 shadow-sm overflow-hidden"
+                                style={{
+                                  borderRadius: `${themeForm.border_radius}px`,
+                                  backgroundColor: themeForm.surface_color
+                                }}
+                              >
+                                <div className="h-20 bg-gray-200/50 flex items-center justify-center text-xs text-gray-400">
+                                  📷 Product Image
+                                </div>
+                                <div className="p-3 space-y-2">
+                                  <h5 className="text-[11px] font-bold truncate" style={{ color: themeForm.text_color }}>{item.name}</h5>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-extrabold" style={{ color: themeForm.primary_color }}>{item.price}</span>
+                                    {themeForm.button_style === 'solid' ? (
+                                      <button
+                                        type="button"
+                                        className="text-[9px] px-2 py-1 text-white font-semibold shadow-sm"
+                                        style={{
+                                          borderRadius: `${themeForm.border_radius}px`,
+                                          backgroundColor: themeForm.primary_color
+                                        }}
+                                      >
+                                        Buy
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="text-[9px] px-2 py-1 font-semibold border"
+                                        style={{
+                                          borderRadius: `${themeForm.border_radius}px`,
+                                          borderColor: themeForm.primary_color,
+                                          color: themeForm.primary_color
+                                        }}
+                                      >
+                                        Buy
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-
-          {tab === 'templates' && (
-            <motion.div key="templates" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="bg-white rounded-2xl p-8 border border-gray-100">
-                <TemplatesTab shop={shop} onShopUpdate={setShop} />
-              </div>
+              )}
             </motion.div>
           )}
 
@@ -2077,7 +2176,7 @@ export default function ShopDashboard() {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Shop Settings</h3>
                 <p className="text-gray-500 text-sm mb-6">Manage your shop details and branding</p>
                 <div className="space-y-4">
-                  <div className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50/50 transition-all cursor-pointer" onClick={() => setTab('theme')}>
+                  <div className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50/50 transition-all cursor-pointer" onClick={() => { setTab('storefront'); setStorefrontSubTab('customizer'); }}>
                     <h4 className="font-semibold text-gray-900">🎨 Theme & Branding</h4>
                     <p className="text-sm text-gray-500 mt-1">Customize colors, logo, and banner</p>
                   </div>
@@ -2464,6 +2563,36 @@ export default function ShopDashboard() {
                 {restocking ? 'Updating…' : 'Save Stock'}
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Coupons Modal */}
+      {showCouponsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100"
+          >
+            <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span>🎟️</span> Store Coupons & Promo Codes
+                </h3>
+                <p className="text-xs text-gray-500">Create and manage discounts for your storefront</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCouponsModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <CouponsTab shop={shop} />
           </motion.div>
         </div>
       )}
