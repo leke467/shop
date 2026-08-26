@@ -134,25 +134,63 @@ class MyShopView(generics.ListAPIView):
 class ShopKYCView(APIView):
     """
     POST /api/shops/<slug>/kyc/
-    Submit KYC details. Sets status to 'pending' for compliance admin review.
+    Submit KYC details. Automatically verifies against Monnify Identity API (BVN/NIN)
+    or sets status to 'pending' for manual compliance document review.
     """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     
     def post(self, request, slug):
+        from shops.verification import MonnifyIdentityService
+        from django.utils import timezone
+
         shop = generics.get_object_or_404(Shop, slug=slug, owner=request.user)
         serializer = ShopKYCSerializer(shop, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save(
-            verification_status=Shop.VerificationStatus.PENDING,
-            is_verified=False,
-        )
-        return Response(
-            {
-                "detail": "KYC details submitted successfully and are now pending verification by our compliance team.",
+        saved_shop = serializer.save()
+
+        id_number = request.data.get("id_number", "").strip()
+        legal_name = request.data.get("verification_legal_name", "").strip()
+        id_type = request.data.get("id_type", "").lower()
+
+        # Attempt Automated Verification via Monnify Identity API
+        verified_instantly = False
+        api_message = ""
+
+        if id_number and len(id_number) == 11 and id_number.isdigit():
+            # Test BVN Match
+            if id_type == "bvn" or not id_type:
+                bvn_res = MonnifyIdentityService.verify_bvn(id_number, legal_name)
+                if bvn_res.get("success"):
+                    verified_instantly = True
+                    api_message = f"Verified instantly via Monnify BVN Match (Confidence: {bvn_res.get('match_percentage', 100)}%)"
+
+            # If BVN didn't match or id_type is NIN, test NIN
+            if not verified_instantly and (id_type == "nin" or not id_type):
+                nin_res = MonnifyIdentityService.verify_nin(id_number)
+                if nin_res.get("success"):
+                    verified_instantly = True
+                    api_message = f"Verified instantly via Monnify NIMC Registry ({nin_res.get('full_name', '')})"
+
+        if verified_instantly:
+            saved_shop.verification_status = Shop.VerificationStatus.VERIFIED
+            saved_shop.is_verified = True
+            saved_shop.verified_at = timezone.now()
+            saved_shop.verification_notes = api_message
+            saved_shop.save(update_fields=["verification_status", "is_verified", "verified_at", "verification_notes", "updated_at"])
+            return Response({
+                "detail": f"Identity verified instantly via Monnify! {api_message}",
+                "status": "verified",
+            })
+        else:
+            saved_shop.verification_status = Shop.VerificationStatus.PENDING
+            saved_shop.is_verified = False
+            saved_shop.verification_notes = "Pending manual compliance document review"
+            saved_shop.save(update_fields=["verification_status", "is_verified", "verification_notes", "updated_at"])
+            return Response({
+                "detail": "KYC details submitted successfully and queued for compliance verification.",
                 "status": "pending",
-            }
-        )
+            })
 
 
 # ---------------------------------------------------------------------------
