@@ -200,7 +200,7 @@ export default function ShopDashboard() {
   const [restockMode, setRestockMode] = useState('add') // 'add' or 'set'
   const [restocking, setRestocking] = useState(false)
   const [showCouponsModal, setShowCouponsModal] = useState(false)
-  const [storefrontSubTab, setStorefrontSubTab] = useState('templates') // 'templates' | 'customizer'
+  const [storefrontSubTab, setStorefrontSubTab] = useState('customizer') // 'customizer' | 'templates'
   const [kycLoading, setKycLoading] = useState(false)
 
   // Payout & Bank States
@@ -1869,17 +1869,6 @@ export default function ShopDashboard() {
                 <div className="flex bg-gray-100 p-1 rounded-xl">
                   <button
                     type="button"
-                    onClick={() => setStorefrontSubTab('templates')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                      storefrontSubTab === 'templates'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    ✨ 20 Store Templates
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setStorefrontSubTab('customizer')}
                     className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                       storefrontSubTab === 'customizer'
@@ -1888,6 +1877,17 @@ export default function ShopDashboard() {
                     }`}
                   >
                     🎨 Colors & Theme Customizer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStorefrontSubTab('templates')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      storefrontSubTab === 'templates'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    ✨ 20 Store Templates
                   </button>
                 </div>
               </div>
