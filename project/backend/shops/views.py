@@ -134,7 +134,7 @@ class MyShopView(generics.ListAPIView):
 class ShopKYCView(APIView):
     """
     POST /api/shops/<slug>/kyc/
-    Submit KYC details. Automatically sets status to 'verified'.
+    Submit KYC details. Sets status to 'pending' for compliance admin review.
     """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -144,11 +144,14 @@ class ShopKYCView(APIView):
         serializer = ShopKYCSerializer(shop, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(
-            verification_status=Shop.VerificationStatus.VERIFIED,
-            verified_at=timezone.now()
+            verification_status=Shop.VerificationStatus.PENDING,
+            is_verified=False,
         )
         return Response(
-            {"detail": "KYC details submitted and verified successfully.", "status": "verified"}
+            {
+                "detail": "KYC details submitted successfully and are now pending verification by our compliance team.",
+                "status": "pending",
+            }
         )
 
 

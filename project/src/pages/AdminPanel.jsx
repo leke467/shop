@@ -40,6 +40,15 @@ export default function AdminPanel() {
     expires_at: '',
   })
 
+  // KYC Verification states
+  const [kycList, setKycList] = useState([])
+  const [kycPendingCount, setKycPendingCount] = useState(0)
+  const [kycStatusFilter, setKycStatusFilter] = useState('')
+  const [selectedKYCShop, setSelectedKYCShop] = useState(null)
+  const [kycModalAction, setKycModalAction] = useState('approve')
+  const [kycNotes, setKycNotes] = useState('')
+  const [kycActionLoading, setKycActionLoading] = useState(false)
+
   // Filters & Search
   const [orderFilter, setOrderFilter] = useState('')
   const [productFilter, setProductFilter] = useState('')
@@ -65,6 +74,8 @@ export default function AdminPanel() {
       navigate('/')
       return
     }
+    // Fetch pending KYC count on load
+    adminDashboardAPI.kycList().then(d => setKycPendingCount(d.pending_count || 0)).catch(() => {})
     fetchTabData(activeTab)
   }, [activeTab, isAuthenticated, isAdmin, isStaff, userLoading, navigate])
 
@@ -74,6 +85,10 @@ export default function AdminPanel() {
       if (tab === 'overview') {
         const data = await adminDashboardAPI.overview()
         setOverview(data)
+      } else if (tab === 'kyc') {
+        const data = await adminDashboardAPI.kycList({ status: kycStatusFilter })
+        setKycList(data.kyc_list || [])
+        setKycPendingCount(data.pending_count || 0)
       } else if (tab === 'orders') {
         const data = await adminDashboardAPI.orders({ status: orderFilter, search: searchQuery })
         setOrders(data.orders || [])
@@ -249,8 +264,25 @@ export default function AdminPanel() {
     }
   }
 
+  const handleKYCAction = async (shopId, action, notes = '') => {
+    try {
+      setKycActionLoading(true)
+      const res = await adminDashboardAPI.kycAction(shopId, { action, notes })
+      toast(res.detail || `KYC ${action}d successfully!`, 'success')
+      setSelectedKYCShop(null)
+      setKycNotes('')
+      fetchTabData('kyc')
+      adminDashboardAPI.kycList().then(d => setKycPendingCount(d.pending_count || 0)).catch(() => {})
+    } catch (err) {
+      toast(err.response?.data?.detail || `Failed to ${action} KYC.`, 'error')
+    } finally {
+      setKycActionLoading(false)
+    }
+  }
+
   const tabs = [
     { key: 'overview', label: 'Overview', icon: '📊' },
+    { key: 'kyc', label: 'KYC Verification', icon: '🛡️', badge: kycPendingCount },
     { key: 'orders', label: 'Order Management', icon: '📦' },
     { key: 'products', label: 'Product Management', icon: '🛍️' },
     { key: 'users', label: 'User Management', icon: '👥' },
@@ -279,14 +311,21 @@ export default function AdminPanel() {
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === t.key
                     ? 'bg-emerald-600 text-white shadow-lg'
                     : 'text-gray-400 hover:text-white hover:bg-gray-850'
                 }`}
               >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
+                <div className="flex items-center gap-3">
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                </div>
+                {t.badge > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-gray-950">
+                    {t.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -379,6 +418,153 @@ export default function AdminPanel() {
                     ))}
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {/* KYC VERIFICATION TAB */}
+            {activeTab === 'kyc' && (
+              <motion.div key="kyc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-white">Seller Identity Verification (KYC)</h2>
+                    <p className="text-xs text-gray-400 mt-1">Review government ID documents, BVN, NIN, and CAC registrations submitted by vendors.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={kycStatusFilter}
+                      onChange={(e) => {
+                        setKycStatusFilter(e.target.value)
+                        adminDashboardAPI.kycList({ status: e.target.value }).then(d => {
+                          setKycList(d.kyc_list || [])
+                          setKycPendingCount(d.pending_count || 0)
+                        })
+                      }}
+                      className="bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2 focus:outline-none"
+                    >
+                      <option value="">All Verification Statuses</option>
+                      <option value="pending">⏳ Pending Review</option>
+                      <option value="verified">✅ Verified</option>
+                      <option value="rejected">❌ Rejected</option>
+                      <option value="unverified">Unverified</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-gray-800 border border-gray-700">
+                    <span className="text-xs text-gray-400 uppercase font-semibold">Total Submissions</span>
+                    <p className="text-2xl font-bold text-white mt-1">{kycList.length}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60">
+                    <span className="text-xs text-amber-300 uppercase font-semibold">Pending Review</span>
+                    <p className="text-2xl font-bold text-amber-400 mt-1">{kycPendingCount}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60">
+                    <span className="text-xs text-emerald-300 uppercase font-semibold">Verified Stores</span>
+                    <p className="text-2xl font-bold text-emerald-400 mt-1">
+                      {kycList.filter(s => s.verification_status === 'verified').length}
+                    </p>
+                  </div>
+                </div>
+
+                {kycList.length === 0 ? (
+                  <div className="bg-gray-800 rounded-2xl p-16 border border-gray-700 text-center">
+                    <div className="text-5xl mb-3">🛡️</div>
+                    <h3 className="text-xl font-bold text-white">No KYC submissions found</h3>
+                    <p className="text-gray-400 mt-1">Vendors who submit verification documents from their dashboard will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-md">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-900 text-gray-400 uppercase text-xs">
+                          <tr>
+                            <th className="px-6 py-3">Store & Owner</th>
+                            <th className="px-6 py-3">Legal Name & ID</th>
+                            <th className="px-6 py-3">Uploaded Document</th>
+                            <th className="px-6 py-3">Status</th>
+                            <th className="px-6 py-3">Notes</th>
+                            <th className="px-6 py-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {kycList.map((shop) => (
+                            <tr key={shop.id} className="hover:bg-gray-750">
+                              <td className="px-6 py-4">
+                                <p className="font-bold text-white">{shop.name}</p>
+                                <p className="text-xs text-gray-400">/{shop.slug}</p>
+                                <p className="text-xs text-emerald-400 mt-1">{shop.owner_email}</p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <p className="font-semibold text-gray-200">{shop.verification_legal_name || '—'}</p>
+                                <p className="text-xs font-mono text-gray-400">ID: {shop.id_number || '—'}</p>
+                              </td>
+                              <td className="px-6 py-4">
+                                {shop.verification_document ? (
+                                  <a
+                                    href={shop.verification_document.startsWith('http') ? shop.verification_document : `https://shop-production-8258.up.railway.app${shop.verification_document}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 hover:bg-cyan-900 transition-colors"
+                                  >
+                                    📄 Inspect ID Doc ↗
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-gray-500 italic">No document</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${
+                                  shop.verification_status === 'verified'
+                                    ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                    : shop.verification_status === 'pending'
+                                    ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse'
+                                    : shop.verification_status === 'rejected'
+                                    ? 'bg-red-950 text-red-400 border border-red-800'
+                                    : 'bg-gray-700 text-gray-300'
+                                }`}>
+                                  {shop.verification_status === 'pending' ? '⏳ Pending' : shop.verification_status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 max-w-xs">
+                                <p className="text-xs text-gray-300 truncate" title={shop.verification_notes}>
+                                  {shop.verification_notes || '—'}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {shop.verification_status !== 'verified' && (
+                                    <button
+                                      onClick={() => handleKYCAction(shop.id, 'approve')}
+                                      disabled={kycActionLoading}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                                    >
+                                      ✅ Verify
+                                    </button>
+                                  )}
+                                  {shop.verification_status !== 'rejected' && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedKYCShop(shop)
+                                        setKycModalAction('reject')
+                                        setKycNotes('')
+                                      }}
+                                      disabled={kycActionLoading}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-950 text-red-400 border border-red-800 hover:bg-red-900 transition-colors"
+                                    >
+                                      ❌ Reject
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -1097,6 +1283,63 @@ export default function AdminPanel() {
           coupon={activeCouponModal}
           onClose={() => setActiveCouponModal(null)}
         />
+      )}
+
+      {/* KYC Review / Reject Modal */}
+      {selectedKYCShop && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-850 border border-gray-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🛡️</span> Reject KYC Submission
+              </h3>
+              <button
+                onClick={() => setSelectedKYCShop(null)}
+                className="text-gray-400 hover:text-white text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-gray-900 rounded-xl text-xs space-y-1 text-gray-300">
+              <p><strong>Store:</strong> {selectedKYCShop.name} (/{selectedKYCShop.slug})</p>
+              <p><strong>Owner:</strong> {selectedKYCShop.owner_email}</p>
+              <p><strong>Legal Name:</strong> {selectedKYCShop.verification_legal_name || '—'}</p>
+              <p><strong>ID Number:</strong> {selectedKYCShop.id_number || '—'}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                Reason for Rejection / Compliance Feedback
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={kycNotes}
+                onChange={(e) => setKycNotes(e.target.value)}
+                placeholder="e.g. Document image is blurry / Name on NIN does not match store owner name..."
+                className="w-full bg-gray-900 border border-gray-700 text-white rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              <p className="text-[11px] text-gray-500 mt-1">This feedback will be emailed to the vendor and displayed in their dashboard.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setSelectedKYCShop(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleKYCAction(selectedKYCShop.id, 'reject', kycNotes)}
+                disabled={kycActionLoading || !kycNotes.trim()}
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 transition-colors"
+              >
+                {kycActionLoading ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

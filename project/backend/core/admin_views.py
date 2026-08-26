@@ -555,3 +555,127 @@ class AdminTestEmailsView(APIView):
             "recipient": target_email,
             "results": results,
         })
+
+
+class AdminKYCListView(APIView):
+    """
+    GET /api/admin/kyc/ — List all shops with KYC verification submissions.
+    """
+    permission_classes = [IsSuperadminOrStaff]
+
+    def get(self, request):
+        status_filter = request.query_params.get("status", "")
+        qs = Shop.objects.select_related("owner").all().order_by("-updated_at")
+        if status_filter:
+            qs = qs.filter(verification_status=status_filter)
+        else:
+            qs = qs.exclude(
+                verification_status=Shop.VerificationStatus.UNVERIFIED,
+                verification_document="",
+            )
+
+        data = []
+        for shop in qs[:100]:
+            doc_url = ""
+            if shop.verification_document:
+                try:
+                    doc_url = shop.verification_document.url
+                except Exception:
+                    doc_url = str(shop.verification_document)
+
+            data.append({
+                "id": shop.id,
+                "name": shop.name,
+                "slug": shop.slug,
+                "owner_id": shop.owner_id,
+                "owner_name": f"{shop.owner.first_name} {shop.owner.last_name}".strip() or shop.owner.username,
+                "owner_email": shop.owner.email,
+                "verification_status": shop.verification_status,
+                "is_verified": shop.is_verified,
+                "verification_legal_name": shop.verification_legal_name,
+                "id_number": shop.id_number,
+                "verification_document": doc_url,
+                "verification_notes": shop.verification_notes,
+                "verified_at": shop.verified_at,
+                "created_at": shop.created_at,
+            })
+
+        pending_count = Shop.objects.filter(verification_status=Shop.VerificationStatus.PENDING).count()
+        return Response({
+            "kyc_list": data,
+            "pending_count": pending_count,
+        })
+
+
+class AdminKYCActionView(APIView):
+    """
+    POST /api/admin/kyc/<int:shop_id>/ — Approve or reject shop KYC submission.
+    """
+    permission_classes = [IsSuperadminOrStaff]
+
+    def post(self, request, shop_id):
+        shop = generics.get_object_or_404(Shop.objects.select_related("owner"), id=shop_id)
+        action = request.data.get("action", "").lower()
+        notes = request.data.get("notes", "").strip()
+
+        from notifications.services import EmailService
+
+        if action == "approve":
+            shop.verification_status = Shop.VerificationStatus.VERIFIED
+            shop.is_verified = True
+            shop.verified_at = timezone.now()
+            shop.verification_notes = notes or "Verified by compliance team"
+            shop.save(update_fields=["verification_status", "is_verified", "verified_at", "verification_notes", "updated_at"])
+
+            # Send Email to Seller
+            if shop.owner and shop.owner.email:
+                subject = f"🎉 Your Shop KYC Has Been Verified! ({shop.name})"
+                text_content = f"Hello {shop.owner.first_name or shop.name},\n\nCongratulations! Your identity and store verification documents for '{shop.name}' have been approved.\nYour store now has a Verified Trust Badge and lifted payout limits.\n\nMultiShop Compliance Team"
+                html_content = f"""<div style="font-family:sans-serif;max-width:550px;margin:0 auto;padding:24px;border:1px solid #E2E8F0;border-radius:14px;">
+                    <h2 style="color:#059669;margin-top:0;">🎉 KYC Verification Approved!</h2>
+                    <p>Hello <strong>{shop.owner.first_name or shop.name}</strong>,</p>
+                    <p>Great news! Your store <strong>{shop.name}</strong> has been officially verified by our compliance team.</p>
+                    <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:14px;border-radius:10px;margin:16px 0;color:#166534;font-size:14px;">
+                        🛡️ <strong>Verified Store Badge Active</strong><br/>
+                        💰 <strong>Uncapped Seller Wallet Withdrawals</strong>
+                    </div>
+                    <p style="font-size:12px;color:#64748B;">MultiShopNG Marketplace • Compliance</p>
+                </div>"""
+                EmailService.send_raw_email(subject=subject, text_content=text_content, recipient_list=[shop.owner.email], html_content=html_content)
+
+            return Response({
+                "detail": f"Shop '{shop.name}' KYC verified successfully.",
+                "verification_status": shop.verification_status,
+                "is_verified": shop.is_verified,
+            })
+
+        elif action == "reject":
+            shop.verification_status = Shop.VerificationStatus.REJECTED
+            shop.is_verified = False
+            shop.verification_notes = notes or "Document could not be verified"
+            shop.save(update_fields=["verification_status", "is_verified", "verification_notes", "updated_at"])
+
+            # Send Rejection Email to Seller
+            if shop.owner and shop.owner.email:
+                subject = f"⚠️ Action Required: KYC Verification Update ({shop.name})"
+                text_content = f"Hello {shop.owner.first_name or shop.name},\n\nOur compliance team reviewed your verification documents for '{shop.name}' but could not verify them.\nReason: {notes or 'Document was unclear or details did not match.'}\n\nPlease visit your Seller Dashboard -> Settings -> Identity Verification to re-upload clear documents.\n\nMultiShop Compliance Team"
+                html_content = f"""<div style="font-family:sans-serif;max-width:550px;margin:0 auto;padding:24px;border:1px solid #E2E8F0;border-radius:14px;">
+                    <h2 style="color:#DC2626;margin-top:0;">⚠️ KYC Verification Update</h2>
+                    <p>Hello <strong>{shop.owner.first_name or shop.name}</strong>,</p>
+                    <p>Our compliance team reviewed your verification documents for <strong>{shop.name}</strong> but could not verify them at this time.</p>
+                    <div style="background:#FEF2F2;border:1px solid #FECACA;padding:14px;border-radius:10px;margin:16px 0;color:#991B1B;font-size:14px;">
+                        <strong>Reason / Compliance Feedback:</strong><br/>
+                        {notes or 'Document was blurry/unclear or details did not match official registry.'}
+                    </div>
+                    <p>Please log in to your <strong>Seller Dashboard &gt; Settings</strong> and re-submit valid documents.</p>
+                    <p style="font-size:12px;color:#64748B;">MultiShopNG Marketplace • Compliance</p>
+                </div>"""
+                EmailService.send_raw_email(subject=subject, text_content=text_content, recipient_list=[shop.owner.email], html_content=html_content)
+
+            return Response({
+                "detail": f"Shop '{shop.name}' KYC rejected.",
+                "verification_status": shop.verification_status,
+                "is_verified": shop.is_verified,
+            })
+
+        return Response({"detail": "Invalid action. Must be 'approve' or 'reject'."}, status=status.HTTP_400_BAD_REQUEST)

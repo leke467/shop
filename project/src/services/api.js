@@ -577,6 +577,8 @@ export const adminDashboardAPI = {
   disputes: () => api.get('/admin/disputes/').then(r => r.data),
   resolveDispute: (id, data) => api.patch(`/admin/disputes/${id}/`, data).then(r => r.data),
   referrals: () => api.get('/admin/referrals/').then(r => r.data),
+  kycList: (params) => api.get('/admin/kyc/', { params }).then(r => r.data),
+  kycAction: (shopId, data) => api.post(`/admin/kyc/${shopId}/`, data).then(r => r.data),
 }
 
 // ── Image helper ─────────────────────────────────────────────

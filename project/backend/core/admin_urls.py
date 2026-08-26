@@ -12,11 +12,15 @@ from core.admin_views import (
     AdminReferralsView,
     AdminTestEmailsView,
     AdminUserListView,
+    AdminKYCListView,
+    AdminKYCActionView,
 )
 
 urlpatterns = [
     path("overview/", AdminOverviewView.as_view(), name="admin-overview"),
     path("test-emails/", AdminTestEmailsView.as_view(), name="admin-test-emails"),
+    path("kyc/", AdminKYCListView.as_view(), name="admin-kyc-list"),
+    path("kyc/<int:shop_id>/", AdminKYCActionView.as_view(), name="admin-kyc-action"),
     path("orders/", AdminOrderListView.as_view(), name="admin-orders"),
     path("orders/<int:pk>/", AdminOrderListView.as_view(), name="admin-order-detail"),
     path("products/", AdminProductListView.as_view(), name="admin-products"),
