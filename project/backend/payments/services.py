@@ -181,6 +181,7 @@ def checkout(
                 quantity=item.quantity,
                 unit_price=live_price,
                 currency=order.currency,
+                custom_measurements=getattr(item, "custom_measurements", {}) or {},
             )
             group.subtotal += line_total
             subtotal += line_total

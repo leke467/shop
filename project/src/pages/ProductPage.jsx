@@ -69,6 +69,23 @@ export default function ProductPage() {
   const [reporting, setReporting] = useState(false)
   const [reportSuccess, setReportSuccess] = useState(false)
 
+  // Custom Measurements / Bespoke Request States
+  const [measurementUnit, setMeasurementUnit] = useState('inches') // 'inches' | 'cm'
+  const [fashionMeasurements, setFashionMeasurements] = useState({
+    bust_chest: '',
+    waist: '',
+    hips: '',
+    shoulder: '',
+    length_height: '',
+  })
+  const [dimensionMeasurements, setDimensionMeasurements] = useState({
+    length: '',
+    width: '',
+    height: '',
+  })
+  const [inscriptionText, setInscriptionText] = useState('')
+  const [measurementError, setMeasurementError] = useState('')
+
   const handleReport = async (e) => {
     e.preventDefault()
     setReporting(true)
@@ -110,6 +127,42 @@ export default function ProductPage() {
 
   const handleAddToCart = async () => {
     if (!product) return
+    setMeasurementError('')
+
+    let customMeasurementsPayload = null
+    if (product.allow_custom_measurements) {
+      if (product.custom_measurement_type === 'fashion') {
+        customMeasurementsPayload = {
+          unit: measurementUnit,
+          ...fashionMeasurements
+        }
+        if (product.custom_measurement_required && !fashionMeasurements.bust_chest && !fashionMeasurements.waist) {
+          setMeasurementError('Please enter at least your bust/chest or waist measurement.')
+          toast('Please enter required measurements before adding to cart.', 'error')
+          return
+        }
+      } else if (product.custom_measurement_type === 'dimensions') {
+        customMeasurementsPayload = {
+          unit: measurementUnit,
+          ...dimensionMeasurements
+        }
+        if (product.custom_measurement_required && (!dimensionMeasurements.length || !dimensionMeasurements.width)) {
+          setMeasurementError('Please enter length and width dimensions.')
+          toast('Please enter required dimensions before adding to cart.', 'error')
+          return
+        }
+      } else {
+        customMeasurementsPayload = {
+          custom_text: inscriptionText
+        }
+        if (product.custom_measurement_required && !inscriptionText.trim()) {
+          setMeasurementError('Please enter your custom text / inscription.')
+          toast('Custom inscription is required for this item.', 'error')
+          return
+        }
+      }
+    }
+
     setAddingToCart(true)
     try {
       const activeVariant = selectedVariant || product.variants?.[0] || {
@@ -125,6 +178,7 @@ export default function ProductPage() {
         product_name: product.name,
         variant_name: activeVariant.name || 'Default',
         unit_price: activeVariant.price || product.base_price || 0,
+        custom_measurements: customMeasurementsPayload || undefined,
       })
       setCartSuccess(true)
       setTimeout(() => setCartSuccess(false), 3000)
@@ -355,6 +409,175 @@ export default function ProductPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Custom Measurements / Bespoke Request Section */}
+            {product.allow_custom_measurements && (
+              <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">
+                      {product.custom_measurement_type === 'cake_inscription' ? '🎂' : product.custom_measurement_type === 'dimensions' ? '📐' : '✂️'}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        {product.custom_measurement_type === 'cake_inscription'
+                          ? 'Personalized Inscription & Message'
+                          : product.custom_measurement_type === 'dimensions'
+                          ? 'Custom Dimensions'
+                          : 'Custom Body Measurements'}
+                      </h4>
+                      <p className="text-xs text-amber-900/75">
+                        {product.custom_measurement_prompt ||
+                          (product.custom_measurement_type === 'cake_inscription'
+                            ? 'Enter the custom text or name to write on this item'
+                            : product.custom_measurement_type === 'dimensions'
+                            ? 'Specify your exact length, width, and height requirements'
+                            : 'Made-to-order item. Provide your measurements for a perfect tailored fit.')}
+                        {product.custom_measurement_required && (
+                          <span className="ml-1 text-red-600 font-bold">*Required</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(product.custom_measurement_type === 'fashion' || product.custom_measurement_type === 'dimensions') && (
+                    <div className="flex items-center bg-white border border-amber-300 rounded-lg p-0.5 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setMeasurementUnit('inches')}
+                        className={`px-2 py-1 rounded-md transition-all ${
+                          measurementUnit === 'inches' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Inches
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMeasurementUnit('cm')}
+                        className={`px-2 py-1 rounded-md transition-all ${
+                          measurementUnit === 'cm' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        cm
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Fashion Fields */}
+                {product.custom_measurement_type === 'fashion' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Bust / Chest ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 38`}
+                        value={fashionMeasurements.bust_chest}
+                        onChange={e => setFashionMeasurements(m => ({ ...m, bust_chest: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Waist ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 32`}
+                        value={fashionMeasurements.waist}
+                        onChange={e => setFashionMeasurements(m => ({ ...m, waist: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Hips ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 40`}
+                        value={fashionMeasurements.hips}
+                        onChange={e => setFashionMeasurements(m => ({ ...m, hips: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Shoulder ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 18`}
+                        value={fashionMeasurements.shoulder}
+                        onChange={e => setFashionMeasurements(m => ({ ...m, shoulder: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Height / Length ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 62`}
+                        value={fashionMeasurements.length_height}
+                        onChange={e => setFashionMeasurements(m => ({ ...m, length_height: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Dimensions Fields */}
+                {product.custom_measurement_type === 'dimensions' && (
+                  <div className="grid grid-cols-3 gap-2.5 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Length ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 120`}
+                        value={dimensionMeasurements.length}
+                        onChange={e => setDimensionMeasurements(m => ({ ...m, length: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Width ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 60`}
+                        value={dimensionMeasurements.width}
+                        onChange={e => setDimensionMeasurements(m => ({ ...m, width: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Height ({measurementUnit})</label>
+                      <input
+                        type="text"
+                        placeholder={`e.g. 75`}
+                        value={dimensionMeasurements.height}
+                        onChange={e => setDimensionMeasurements(m => ({ ...m, height: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Inscription / Custom Text Field */}
+                {(product.custom_measurement_type === 'cake_inscription' || product.custom_measurement_type === 'text') && (
+                  <div className="pt-1">
+                    <textarea
+                      rows={2}
+                      placeholder={
+                        product.custom_measurement_type === 'cake_inscription'
+                          ? "e.g. 'Happy 30th Birthday Alex! (Color: Gold & Blue icing)'"
+                          : "Enter special instructions, engraving text, or custom requirements..."
+                      }
+                      value={inscriptionText}
+                      onChange={e => setInscriptionText(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white rounded-xl border border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                    />
+                  </div>
+                )}
+
+                {measurementError && (
+                  <p className="text-xs text-red-600 font-semibold">{measurementError}</p>
+                )}
               </div>
             )}
 

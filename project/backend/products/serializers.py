@@ -75,6 +75,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = (
             "public_id", "name", "slug", "base_price", "compare_at_price",
             "currency", "status", "is_featured",
+            "has_variants", "variant_attributes",
+            "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
             "shop_name", "shop_slug", "shop_status", "category_name", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
@@ -164,6 +166,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "public_id", "name", "slug", "description",
             "base_price", "compare_at_price", "currency",
             "status", "is_featured", "tags",
+            "has_variants", "variant_attributes",
+            "allow_custom_measurements", "custom_measurement_type",
+            "custom_measurement_prompt", "custom_measurement_required",
             "rating_average", "rating_count", "view_count", "purchase_count",
             "shop_name", "shop_slug", "category",
             "variants", "images", "is_locked",
@@ -202,6 +207,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     stock = serializers.IntegerField(required=False, default=100)
+    variants_data = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
 
     class Meta:
         model = Product
@@ -209,6 +215,9 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             "public_id", "name", "slug", "description", "category",
             "base_price", "compare_at_price", "currency",
             "status", "is_featured", "tags", "stock",
+            "has_variants", "variant_attributes", "variants_data",
+            "allow_custom_measurements", "custom_measurement_type",
+            "custom_measurement_prompt", "custom_measurement_required",
         )
         read_only_fields = ("public_id", "slug",)
 
@@ -224,6 +233,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             data['stock'] = qty
             data['inventory_quantity'] = qty
             data['is_out_of_stock'] = qty <= 0
+            data['variants'] = ProductVariantSerializer(instance.variants.filter(is_active=True), many=True).data
         except Exception:
             data['stock'] = 0
             data['inventory_quantity'] = 0
@@ -232,41 +242,106 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         stock = validated_data.pop("stock", 100)
+        variants_data = validated_data.pop("variants_data", None)
         product = super().create(validated_data)
-        self._sync_inventory(product, stock)
+        self._sync_variants_and_inventory(product, stock, variants_data)
         return product
 
     def update(self, instance, validated_data):
         stock = validated_data.pop("stock", None)
+        variants_data = validated_data.pop("variants_data", None)
         product = super().update(instance, validated_data)
-        if stock is not None:
-            self._sync_inventory(product, stock)
+        self._sync_variants_and_inventory(product, stock, variants_data)
         return product
 
-    def _sync_inventory(self, product, stock):
-        try:
-            stock_int = max(0, int(stock))
-        except (ValueError, TypeError):
-            stock_int = 100
+    def _sync_variants_and_inventory(self, product, fallback_stock, variants_data=None):
+        import uuid
+        from decimal import Decimal
 
-        variant = product.variants.filter(is_default=True).first() or product.variants.first()
-        if not variant:
-            import uuid
-            variant = ProductVariant.objects.create(
-                product=product,
-                name="Default",
-                sku=f"SKU-{str(uuid.uuid4())[:8].upper()}",
-                price=product.base_price,
-                is_default=True,
-                is_active=True,
+        if variants_data and len(variants_data) > 0 and product.has_variants:
+            # Process custom variants created by the vendor
+            existing_variants = {v.id: v for v in product.variants.all()}
+            keep_variant_ids = set()
+
+            for idx, v_data in enumerate(variants_data):
+                v_id = v_data.get("id")
+                v_name = v_data.get("name") or "Variant"
+                v_attrs = v_data.get("attributes") or {}
+                v_sku = v_data.get("sku") or f"SKU-{str(uuid.uuid4())[:8].upper()}"
+                
+                try:
+                    v_price = Decimal(str(v_data.get("price") or product.base_price))
+                except Exception:
+                    v_price = product.base_price
+
+                try:
+                    v_stock = max(0, int(v_data.get("stock", fallback_stock or 100)))
+                except Exception:
+                    v_stock = 100
+
+                is_default = (idx == 0)
+
+                if v_id and v_id in existing_variants:
+                    variant = existing_variants[v_id]
+                    variant.name = v_name
+                    variant.attributes = v_attrs
+                    variant.price = v_price
+                    variant.is_default = is_default
+                    variant.is_active = True
+                    variant.save()
+                else:
+                    variant = ProductVariant.objects.create(
+                        product=product,
+                        name=v_name,
+                        attributes=v_attrs,
+                        sku=v_sku,
+                        price=v_price,
+                        is_default=is_default,
+                        is_active=True,
+                    )
+
+                keep_variant_ids.add(variant.id)
+
+                inv, _ = Inventory.objects.get_or_create(
+                    variant=variant,
+                    defaults={"quantity": v_stock, "reserved": 0}
+                )
+                inv.quantity = v_stock
+                inv.save()
+
+            # Archive variants no longer in the list
+            for old_id, old_var in existing_variants.items():
+                if old_id not in keep_variant_ids:
+                    old_var.is_active = False
+                    old_var.save()
+        else:
+            # Simple Product without custom variants
+            try:
+                stock_int = max(0, int(fallback_stock)) if fallback_stock is not None else 100
+            except (ValueError, TypeError):
+                stock_int = 100
+
+            variant = product.variants.filter(is_default=True).first() or product.variants.first()
+            if not variant:
+                variant = ProductVariant.objects.create(
+                    product=product,
+                    name="Default",
+                    sku=f"SKU-{str(uuid.uuid4())[:8].upper()}",
+                    price=product.base_price,
+                    is_default=True,
+                    is_active=True,
+                )
+            else:
+                variant.price = product.base_price
+                variant.save(update_fields=["price", "updated_at"])
+
+            inv, _ = Inventory.objects.get_or_create(
+                variant=variant,
+                defaults={"quantity": stock_int, "reserved": 0}
             )
-        inv, _ = Inventory.objects.get_or_create(
-            variant=variant,
-            defaults={"quantity": stock_int, "reserved": 0}
-        )
-        inv.quantity = stock_int
-        inv.reserved = 0
-        inv.save()
+            inv.quantity = stock_int
+            inv.reserved = 0
+            inv.save()
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):

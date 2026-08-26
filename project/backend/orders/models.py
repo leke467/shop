@@ -95,9 +95,13 @@ class CartItem(TimeStampedModel):
     unit_price = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
     )
+    custom_measurements = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Custom buyer measurements or bespoke inscription notes for this item.",
+    )
 
     class Meta:
-        unique_together = ("cart", "variant")
         ordering = ("id",)
 
     def __str__(self) -> str:
@@ -380,6 +384,11 @@ class OrderItem(TimeStampedModel):
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
     )
     currency = models.CharField(max_length=3, default="USD")
+    custom_measurements = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Custom buyer measurements or bespoke inscription notes for this item.",
+    )
 
     class Meta:
         ordering = ("id",)

@@ -159,7 +159,22 @@ export default function ShopDashboard() {
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState(false)
   const [tab, setTab] = useState(searchParams.get('tab') || 'overview')
-  const [productForm, setProductForm] = useState({ name: '', description: '', base_price: '', stock: 100, status: 'active' })
+  const [productForm, setProductForm] = useState({
+    name: '',
+    description: '',
+    base_price: '',
+    stock: 100,
+    status: 'active',
+    has_variants: false,
+    variant_attributes: [],
+    variants_data: [],
+    allow_custom_measurements: false,
+    custom_measurement_type: 'fashion',
+    custom_measurement_prompt: '',
+    custom_measurement_required: false,
+    imageFiles: []
+  })
+  const [customOptionInput, setCustomOptionInput] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
   const [saving, setSaving] = useState(false)
   const [themeSaving, setThemeSaving] = useState(false)
@@ -386,12 +401,94 @@ export default function ShopDashboard() {
   }, [isAuthenticated, userLoading, navigate])
 
 
+  const addVariantPreset = (type) => {
+    let newVariants = []
+    const basePrice = productForm.base_price || ''
+    const defaultStock = productForm.stock || 50
+
+    if (type === 'clothing_sizes') {
+      newVariants = ['S', 'M', 'L', 'XL', 'XXL'].map(size => ({
+        name: `Size ${size}`,
+        attributes: { size },
+        price: basePrice,
+        stock: defaultStock,
+        sku: `SIZE-${size}`,
+      }))
+    } else if (type === 'shoe_sizes') {
+      newVariants = ['38', '39', '40', '41', '42', '43', '44'].map(size => ({
+        name: `Size ${size}`,
+        attributes: { size },
+        price: basePrice,
+        stock: defaultStock,
+        sku: `SHOE-${size}`,
+      }))
+    } else if (type === 'colors') {
+      newVariants = ['Black', 'White', 'Navy Blue', 'Red', 'Emerald Green'].map(color => ({
+        name: color,
+        attributes: { color },
+        price: basePrice,
+        stock: defaultStock,
+        sku: `COL-${color.slice(0, 3).toUpperCase()}`,
+      }))
+    } else if (type === 'flavors') {
+      newVariants = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Caramel'].map(flavor => ({
+        name: flavor,
+        attributes: { flavor },
+        price: basePrice,
+        stock: defaultStock,
+        sku: `FLV-${flavor.slice(0, 3).toUpperCase()}`,
+      }))
+    } else if (type === 'years') {
+      newVariants = ['2021', '2022', '2023', '2024', '2025'].map(year => ({
+        name: `Year ${year}`,
+        attributes: { year },
+        price: basePrice,
+        stock: 5,
+        sku: `YR-${year}`,
+      }))
+    }
+
+    setProductForm(prev => ({
+      ...prev,
+      has_variants: true,
+      variants_data: [...(prev.variants_data || []), ...newVariants]
+    }))
+    toast(`Added ${newVariants.length} option variants!`, 'success')
+  }
+
+  const addCustomVariant = () => {
+    if (!customOptionInput.trim()) return
+    const opt = customOptionInput.trim()
+    const newVar = {
+      name: opt,
+      attributes: { option: opt },
+      price: productForm.base_price || '',
+      stock: productForm.stock || 50,
+      sku: `OPT-${opt.slice(0, 4).toUpperCase()}`
+    }
+    setProductForm(prev => ({
+      ...prev,
+      has_variants: true,
+      variants_data: [...(prev.variants_data || []), newVar]
+    }))
+    setCustomOptionInput('')
+    toast(`Added variant option '${opt}'`, 'success')
+  }
+
   const handleCreateProduct = async (e) => {
     e.preventDefault()
     setSaving(true)
     try {
       let savedProduct;
       const { imageFiles, ...payload } = productForm;
+
+      // Ensure variants payload formatting
+      payload.has_variants = !!productForm.has_variants
+      payload.variants_data = productForm.has_variants ? (productForm.variants_data || []) : []
+      payload.allow_custom_measurements = !!productForm.allow_custom_measurements
+      payload.custom_measurement_type = productForm.custom_measurement_type || 'fashion'
+      payload.custom_measurement_prompt = productForm.custom_measurement_prompt || ''
+      payload.custom_measurement_required = !!productForm.custom_measurement_required
 
       if (editingProduct) {
         savedProduct = await productAPI.update(editingProduct.slug || editingProduct.public_id, payload)
@@ -420,7 +517,21 @@ export default function ShopDashboard() {
       }
 
       toast(editingProduct ? 'Product updated successfully!' : 'Product created successfully!')
-      setProductForm({ name: '', description: '', base_price: '', stock: 100, status: 'active', imageFiles: [] })
+      setProductForm({
+        name: '',
+        description: '',
+        base_price: '',
+        stock: 100,
+        status: 'active',
+        has_variants: false,
+        variant_attributes: [],
+        variants_data: [],
+        allow_custom_measurements: false,
+        custom_measurement_type: 'fashion',
+        custom_measurement_prompt: '',
+        custom_measurement_required: false,
+        imageFiles: []
+      })
       setEditingProduct(null)
       setTab('products')
       if (shop?.slug) loadProducts(shop.slug)
@@ -445,6 +556,19 @@ export default function ShopDashboard() {
       base_price: product.base_price || '',
       stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
       status: product.status || 'active',
+      has_variants: !!product.has_variants,
+      variants_data: (product.variants || []).map(v => ({
+        id: v.id,
+        name: v.name || '',
+        price: v.price !== undefined ? v.price : (product.base_price || ''),
+        stock: v.inventory?.quantity !== undefined ? v.inventory.quantity : 100,
+        sku: v.sku || '',
+        attributes: v.attributes || {},
+      })),
+      allow_custom_measurements: !!product.allow_custom_measurements,
+      custom_measurement_type: product.custom_measurement_type || 'fashion',
+      custom_measurement_prompt: product.custom_measurement_prompt || '',
+      custom_measurement_required: !!product.custom_measurement_required,
       imageFiles: []
     })
     setTab('add-product')
@@ -937,11 +1061,33 @@ export default function ShopDashboard() {
 
                         <div>
                           <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Items Purchased</h5>
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-xs">
-                                <span className="text-gray-600">{item.quantity}x {item.product_name} {item.variant_name && `(${item.variant_name})`}</span>
-                                <span className="font-bold text-gray-800">₦{Number(item.line_total).toLocaleString()}</span>
+                              <div key={idx} className="border-b border-gray-100 pb-1.5 last:border-0 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700 font-medium">
+                                    {item.quantity}x {item.product_name} {item.variant_name && item.variant_name !== 'Default' ? `(${item.variant_name})` : ''}
+                                  </span>
+                                  <span className="font-bold text-gray-800">₦{Number(item.line_total).toLocaleString()}</span>
+                                </div>
+                                {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
+                                  <div className="mt-1 p-2 bg-amber-50/80 rounded-lg border border-amber-200/80 text-[11px] text-amber-900 space-y-0.5">
+                                    <div className="font-bold flex items-center gap-1 text-amber-800">
+                                      <span>✂️</span> Custom Specs / Inscription:
+                                    </div>
+                                    {item.custom_measurements.custom_text ? (
+                                      <p className="italic">"{item.custom_measurements.custom_text}"</p>
+                                    ) : (
+                                      <div className="grid grid-cols-2 gap-1 text-[10px]">
+                                        {Object.entries(item.custom_measurements).filter(([k, v]) => k !== 'unit' && v).map(([k, v]) => (
+                                          <div key={k}>
+                                            <span className="capitalize font-semibold">{k.replace('_', ' ')}:</span> {v} {item.custom_measurements.unit || ''}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1355,6 +1501,249 @@ export default function ShopDashboard() {
                       </select>
                     </div>
                   </div>
+
+                  {/* --- Section 1: Product Variants & Options (Toggleable) --- */}
+                  <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                          <span>🏷️</span> Product Variants & Options
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Turn ON if buyers need to select a Size, Color, Flavor, Year, or Model. Keep OFF for simple products.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={productForm.has_variants}
+                          onChange={e => setProductForm(f => ({ ...f, has_variants: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+
+                    {productForm.has_variants && (
+                      <div className="space-y-4 pt-2 border-t border-gray-200">
+                        {/* Quick Presets */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">⚡ 1-Click Quick Presets:</label>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => addVariantPreset('clothing_sizes')}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-xs font-medium text-gray-700 transition-all shadow-sm"
+                            >
+                              👕 Clothing Sizes (S, M, L, XL, XXL)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addVariantPreset('shoe_sizes')}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-xs font-medium text-gray-700 transition-all shadow-sm"
+                            >
+                              👟 Shoe Sizes (38 - 44)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addVariantPreset('colors')}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-xs font-medium text-gray-700 transition-all shadow-sm"
+                            >
+                              🎨 Colors (Black, White, Blue, Red)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addVariantPreset('flavors')}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-xs font-medium text-gray-700 transition-all shadow-sm"
+                            >
+                              🍰 Flavors (Vanilla, Chocolate, Velvet)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addVariantPreset('years')}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:border-primary-500 hover:bg-primary-50 text-xs font-medium text-gray-700 transition-all shadow-sm"
+                            >
+                              🚗 Vehicle Years (2021 - 2025)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Add Custom Option */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add custom option (e.g. '128GB', 'XL / Red', '5 Yards', '5mm')"
+                            value={customOptionInput}
+                            onChange={e => setCustomOptionInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomVariant(); } }}
+                            className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                          />
+                          <button
+                            type="button"
+                            onClick={addCustomVariant}
+                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all"
+                          >
+                            + Add Option
+                          </button>
+                        </div>
+
+                        {/* Variant List Table */}
+                        {productForm.variants_data?.length > 0 && (
+                          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-gray-100/80 text-gray-600 font-semibold border-b border-gray-200">
+                                <tr>
+                                  <th className="px-3 py-2.5">Variant / Option</th>
+                                  <th className="px-3 py-2.5 w-32">Price (₦)</th>
+                                  <th className="px-3 py-2.5 w-24">Stock</th>
+                                  <th className="px-3 py-2.5 w-10 text-center">✕</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {productForm.variants_data.map((v, idx) => (
+                                  <tr key={idx} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="text"
+                                        value={v.name}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          setProductForm(f => {
+                                            const updated = [...f.variants_data];
+                                            updated[idx] = { ...updated[idx], name: val };
+                                            return { ...f, variants_data: updated };
+                                          });
+                                        }}
+                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs font-medium"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        placeholder={productForm.base_price || "Base"}
+                                        value={v.price}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          setProductForm(f => {
+                                            const updated = [...f.variants_data];
+                                            updated[idx] = { ...updated[idx], price: val };
+                                            return { ...f, variants_data: updated };
+                                          });
+                                        }}
+                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        value={v.stock ?? 50}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          setProductForm(f => {
+                                            const updated = [...f.variants_data];
+                                            updated[idx] = { ...updated[idx], stock: val };
+                                            return { ...f, variants_data: updated };
+                                          });
+                                        }}
+                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setProductForm(f => ({
+                                            ...f,
+                                            variants_data: f.variants_data.filter((_, i) => i !== idx)
+                                          }));
+                                        }}
+                                        className="text-red-500 hover:text-red-700 font-bold text-sm"
+                                      >
+                                        ✕
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* --- Section 2: Made-to-Order / Bespoke Measurements & Inscription (Toggleable) --- */}
+                  <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                          <span>✂️</span> Made-to-Order & Custom Measurements
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Turn ON for tailored clothes, custom furniture, or personalized cakes/gifts requiring buyer measurements or custom text.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={productForm.allow_custom_measurements}
+                          onChange={e => setProductForm(f => ({ ...f, allow_custom_measurements: e.target.checked }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+
+                    {productForm.allow_custom_measurements && (
+                      <div className="space-y-4 pt-2 border-t border-gray-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Measurement Category</label>
+                            <select
+                              value={productForm.custom_measurement_type}
+                              onChange={e => setProductForm(f => ({ ...f, custom_measurement_type: e.target.value }))}
+                              className="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                            >
+                              <option value="fashion">✂️ Fashion / Tailoring (Bust, Waist, Hip, Length)</option>
+                              <option value="dimensions">📐 Dimensions & Furniture (Length × Width × Height)</option>
+                              <option value="cake_inscription">🎂 Cake / Gift Inscription (Custom Text / Message)</option>
+                              <option value="text">📝 General Custom Instructions / Notes</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Prompt Label (Shown to Buyer)</label>
+                            <input
+                              type="text"
+                              placeholder={
+                                productForm.custom_measurement_type === 'cake_inscription'
+                                  ? "e.g. 'Enter name & message to write on cake'"
+                                  : productForm.custom_measurement_type === 'dimensions'
+                                  ? "e.g. 'Enter exact table dimensions in cm'"
+                                  : "e.g. 'Provide your measurements in inches'"
+                              }
+                              value={productForm.custom_measurement_prompt}
+                              onChange={e => setProductForm(f => ({ ...f, custom_measurement_prompt: e.target.value }))}
+                              className="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            type="checkbox"
+                            id="custom_req"
+                            checked={productForm.custom_measurement_required}
+                            onChange={e => setProductForm(f => ({ ...f, custom_measurement_required: e.target.checked }))}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <label htmlFor="custom_req" className="text-xs text-gray-700 font-medium cursor-pointer">
+                            Require buyer to fill in measurements/text before adding to cart
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Product Images (Optional, up to 4)</label>
                     <input type="file" accept="image/*" multiple onChange={e => {

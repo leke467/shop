@@ -97,10 +97,12 @@ export function CartProvider({ children }) {
     const variant_name = param.variant_name || (typeof rawVariant === 'object' ? rawVariant.name : '') || 'Default'
     const unit_price = Number(param.unit_price || param.base_price || param.price || (typeof rawVariant === 'object' ? rawVariant.price : 0) || 0)
 
+    const custom_measurements = param.custom_measurements || {}
+
     let backendSuccess = false
     if (isAuthenticated) {
       try {
-        await orderAPI.addToCart({ variant_id, product_id, quantity })
+        await orderAPI.addToCart({ variant_id, product_id, quantity, custom_measurements })
         await refreshCart(true)
         backendSuccess = true
       } catch (err) {
@@ -111,7 +113,7 @@ export function CartProvider({ children }) {
     if (!isAuthenticated || !backendSuccess) {
       const currentCart = getGuestCart()
       const existingKey = variant_id || product_id || product_name
-      const existing = currentCart.find(i => (i.variant === existingKey || i.product_id === existingKey || i.product_name === product_name))
+      const existing = currentCart.find(i => (i.variant === existingKey || i.product_id === existingKey || i.product_name === product_name) && JSON.stringify(i.custom_measurements || {}) === JSON.stringify(custom_measurements))
       if (existing) {
         existing.quantity += quantity
         existing.line_total = Number(existing.unit_price) * existing.quantity
@@ -124,6 +126,7 @@ export function CartProvider({ children }) {
           variant_name,
           quantity,
           unit_price,
+          custom_measurements,
           image: param.image || param.primary_image || (typeof param.images?.[0] === 'string' ? param.images[0] : (param.images?.[0]?.medium || param.images?.[0]?.image)),
           line_total: unit_price * quantity
         })

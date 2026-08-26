@@ -111,6 +111,38 @@ class Product(BaseModel, SoftDeleteModel):
     )
     is_featured = models.BooleanField(default=False)
 
+    # --- Variant Configuration ---
+    has_variants = models.BooleanField(
+        default=False,
+        help_text="If true, product has multiple selectable variants (e.g. Size, Color, Flavor, Model).",
+    )
+    variant_attributes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of attribute definitions e.g. [{'name': 'Size', 'options': ['S', 'M', 'L']}]",
+    )
+
+    # --- Bespoke / Custom-Made Options ---
+    allow_custom_measurements = models.BooleanField(
+        default=False,
+        help_text="If true, product is made-to-order and prompts buyer for bespoke measurements or custom inscription.",
+    )
+    custom_measurement_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default="fashion",
+        help_text="Type: 'fashion' (Bust/Waist/Hip/Length), 'dimensions' (L×W×H), 'cake_inscription', or 'text'",
+    )
+    custom_measurement_prompt = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Custom prompt label e.g. 'Enter name & age for cake inscription' or 'Provide measurements in inches'",
+    )
+    custom_measurement_required = models.BooleanField(
+        default=False,
+        help_text="Whether custom measurement/text is mandatory before adding to cart.",
+    )
+
     # Denormalised aggregates for catalog/search/sorting.
     rating_average = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     rating_count = models.PositiveIntegerField(default=0)

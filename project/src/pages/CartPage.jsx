@@ -469,7 +469,24 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
                       <div className="flex items-start justify-between gap-1.5 sm:gap-2">
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-gray-900 truncate text-xs sm:text-base">{item.product_name || item.name}</h3>
-                          {item.variant_name && <p className="text-[11px] sm:text-sm text-gray-400 truncate">{item.variant_name}</p>}
+                          {item.variant_name && item.variant_name !== 'Default' && (
+                            <p className="text-[11px] sm:text-xs text-primary-600 font-semibold">{item.variant_name}</p>
+                          )}
+                          {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {item.custom_measurements.custom_text ? (
+                                <span className="inline-block text-[10px] bg-amber-50 text-amber-800 border border-amber-200 rounded px-1.5 py-0.5 max-w-[200px] truncate">
+                                  ✍️ Inscription: "{item.custom_measurements.custom_text}"
+                                </span>
+                              ) : (
+                                Object.entries(item.custom_measurements).filter(([k, v]) => k !== 'unit' && v).map(([k, v]) => (
+                                  <span key={k} className="inline-block text-[10px] bg-amber-50 text-amber-800 border border-amber-200 rounded px-1.5 py-0.5">
+                                    {k.replace('_', ' ')}: {v}{item.custom_measurements.unit || ''}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          )}
                         </div>
                         <button
                           onClick={() => handleRemoveItem(item.id || item.public_id)}

@@ -454,8 +454,25 @@ export default function OrdersPage() {
                             <div key={item.id} className="flex justify-between items-start gap-2 min-w-0 text-xs sm:text-sm">
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-900 truncate">{item.product_name}</p>
-                                {item.variant_name && <p className="text-gray-500 truncate">{item.variant_name}</p>}
-                                <p className="text-gray-500">Qty: {item.quantity}</p>
+                                {item.variant_name && item.variant_name !== 'Default' && (
+                                  <p className="text-primary-600 font-semibold text-xs truncate">{item.variant_name}</p>
+                                )}
+                                {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
+                                  <div className="mt-1 p-1.5 bg-amber-50 rounded text-[11px] text-amber-900 border border-amber-200/60 max-w-sm">
+                                    <span className="font-bold">✂️ Custom Specs: </span>
+                                    {item.custom_measurements.custom_text ? (
+                                      <span>"{item.custom_measurements.custom_text}"</span>
+                                    ) : (
+                                      <span>
+                                        {Object.entries(item.custom_measurements)
+                                          .filter(([k, v]) => k !== 'unit' && v)
+                                          .map(([k, v]) => `${k.replace('_', ' ')}: ${v}${item.custom_measurements.unit || ''}`)
+                                          .join(' | ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                <p className="text-gray-500 text-xs mt-0.5">Qty: {item.quantity}</p>
                               </div>
                               <p className="font-medium text-gray-900 flex-shrink-0">₦{Number(item.line_total).toLocaleString()}</p>
                             </div>

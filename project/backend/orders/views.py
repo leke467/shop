@@ -79,19 +79,19 @@ class CartView(APIView):
             return Response({"error": "No valid product or variant found."}, status=status.HTTP_400_BAD_REQUEST)
 
         quantity = ser.validated_data.get("quantity", 1)
+        custom_measurements = (
+            ser.validated_data.get("custom_measurements") 
+            or request.data.get("custom_measurements") 
+            or {}
+        )
 
-        item, created = CartItem.objects.get_or_create(
+        item = CartItem.objects.create(
             cart=cart,
             variant=variant,
-            defaults={
-                "quantity": quantity,
-                "unit_price": variant.price,
-            },
+            quantity=quantity,
+            unit_price=variant.price,
+            custom_measurements=custom_measurements,
         )
-        if not created:
-            item.quantity += quantity
-            item.unit_price = variant.price
-            item.save()
 
         return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
 

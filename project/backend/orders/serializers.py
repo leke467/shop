@@ -21,7 +21,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = (
             "id", "variant", "product_name", "product_slug", "product_public_id", "image",
             "variant_name", "shop_slug", "allow_manual_delivery",
-            "quantity", "unit_price", "line_total",
+            "quantity", "unit_price", "line_total", "custom_measurements",
         )
         read_only_fields = ("id", "unit_price", "line_total")
 
@@ -55,6 +55,7 @@ class CartItemCreateSerializer(serializers.Serializer):
     variant_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     product_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     quantity = serializers.IntegerField(min_value=1, default=1)
+    custom_measurements = serializers.DictField(required=False, default=dict)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -64,7 +65,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = (
             "id", "product_name", "variant_name", "sku",
-            "quantity", "unit_price", "currency", "line_total",
+            "quantity", "unit_price", "currency", "line_total", "custom_measurements",
         )
 
 
