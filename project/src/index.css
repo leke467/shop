@@ -17,17 +17,22 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  html, body, #root {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
     margin: 0;
     padding: 0;
     width: 100%;
-    max-width: 100%;
-    min-width: 320px;
     min-height: 100vh;
-    overflow-x: hidden;
-    overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Prevent text selection on native UI elements */
