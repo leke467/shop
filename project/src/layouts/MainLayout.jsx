@@ -68,7 +68,19 @@ function MainLayout() {
   const knownShop = shopSlugFromPath && getShopBySlug ? getShopBySlug(shopSlugFromPath) : null
   const cachedTemplateId = shopSlugFromPath ? getTemplateShopCache(shopSlugFromPath) : null
 
-  const hideMarketplaceNav = isShopRoute
+  const searchParams = new URLSearchParams(location.search)
+  const hasPreviewTemplate = searchParams.has('preview_template')
+
+  // Only hide marketplace Navbar & Footer if the shop is using a custom template
+  // Default shops (no template) will always display the top MultiShop Navbar & Footer
+  const hasCustomTemplate = Boolean(
+    hasPreviewTemplate ||
+    activeTemplateShop?.template_id ||
+    knownShop?.template_id ||
+    cachedTemplateId
+  )
+
+  const hideMarketplaceNav = isShopRoute && hasCustomTemplate
 
   // Scroll to top on route change
   useEffect(() => {
