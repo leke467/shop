@@ -288,6 +288,17 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         stock = validated_data.pop("stock", None)
         variants_data = validated_data.pop("variants_data", None)
+        new_name = validated_data.get("name")
+        if new_name and new_name != instance.name:
+            from django.utils.text import slugify
+            base = slugify(new_name) or "product"
+            slug = base
+            n = 1
+            while Product.objects.filter(slug=slug).exclude(pk=instance.pk).exists():
+                n += 1
+                slug = f"{base}-{n}"
+            instance.slug = slug
+
         product = super().update(instance, validated_data)
         self._sync_variants_and_inventory(product, stock, variants_data)
         return product
