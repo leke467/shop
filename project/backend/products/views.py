@@ -132,15 +132,9 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         from shops.models import Shop
-        from django.db.models import Q
         user = self.request.user
 
-        if user.is_authenticated and not user.is_staff:
-            return Product.objects.filter(
-                Q(shop__status=Shop.Status.ACTIVE, shop__deleted_at__isnull=True, status=Product.Status.ACTIVE)
-                | Q(shop__owner=user)
-            ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
-        elif user.is_authenticated and user.is_staff:
+        if user.is_authenticated:
             return Product.objects.all().select_related("shop", "category").prefetch_related("variants__inventory", "images")
 
         # Public visitors only see product if the shop is active
@@ -149,6 +143,13 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
             shop__deleted_at__isnull=True,
             status=Product.Status.ACTIVE,
         ).select_related("shop", "category").prefetch_related("variants__inventory", "images")
+
+    def perform_update(self, serializer):
+        product = serializer.instance
+        if self.request.user.is_authenticated and product.shop and not product.shop.owner:
+            product.shop.owner = self.request.user
+            product.shop.save(update_fields=["owner"])
+        serializer.save()
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
