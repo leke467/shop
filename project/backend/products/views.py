@@ -66,6 +66,9 @@ class ProductListView(generics.ListAPIView):
         
         if shop_slug:
             qs = qs.filter(shop__slug=shop_slug)
+        else:
+            # On global marketplace feeds / home page, only show products enabled for marketplace
+            qs = qs.filter(is_marketplace_visible=True)
             
         return qs
 

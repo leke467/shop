@@ -75,7 +75,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             "public_id", "name", "slug", "base_price", "compare_at_price",
-            "currency", "status", "is_featured",
+            "currency", "status", "is_featured", "is_marketplace_visible",
             "has_variants", "variant_attributes",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
@@ -185,7 +185,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = (
             "public_id", "name", "slug", "description",
             "base_price", "compare_at_price", "currency",
-            "status", "is_featured", "tags",
+            "status", "is_featured", "is_marketplace_visible", "tags",
             "has_variants", "variant_attributes",
             "allow_custom_measurements", "custom_measurement_type",
             "custom_measurement_prompt", "custom_measurement_required",
@@ -252,7 +252,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             "public_id", "name", "slug", "description", "category",
             "base_price", "compare_at_price", "currency",
-            "status", "is_featured", "tags", "stock",
+            "status", "is_featured", "is_marketplace_visible", "tags", "stock",
             "has_variants", "variant_attributes", "variants_data",
             "allow_custom_measurements", "custom_measurement_type",
             "custom_measurement_prompt", "custom_measurement_required",

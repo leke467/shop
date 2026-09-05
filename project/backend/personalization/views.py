@@ -108,6 +108,7 @@ def build_recommendations(user, limit=24):
     # Build combined query.
     qs = Product.objects.filter(
         status=Product.Status.ACTIVE,
+        is_marketplace_visible=True,
         shop__status="active",
         shop__deleted_at__isnull=True,
     )

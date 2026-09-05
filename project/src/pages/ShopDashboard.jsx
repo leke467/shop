@@ -149,6 +149,23 @@ const NIGERIAN_BANKS = [
   { name: 'FairMoney MFB', code: '51318' }
 ]
 
+const defaultProductForm = {
+  name: '',
+  description: '',
+  base_price: '',
+  stock: 100,
+  status: 'active',
+  is_marketplace_visible: true,
+  has_variants: false,
+  variant_attributes: [],
+  variants_data: [],
+  allow_custom_measurements: false,
+  custom_measurement_type: 'fashion',
+  custom_measurement_prompt: '',
+  custom_measurement_required: false,
+  imageFiles: []
+}
+
 export default function ShopDashboard() {
   const [searchParams] = useSearchParams()
   const { isAuthenticated, loading: userLoading } = useUser()
@@ -159,21 +176,7 @@ export default function ShopDashboard() {
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState(false)
   const [tab, setTab] = useState(searchParams.get('tab') || 'overview')
-  const [productForm, setProductForm] = useState({
-    name: '',
-    description: '',
-    base_price: '',
-    stock: 100,
-    status: 'active',
-    has_variants: false,
-    variant_attributes: [],
-    variants_data: [],
-    allow_custom_measurements: false,
-    custom_measurement_type: 'fashion',
-    custom_measurement_prompt: '',
-    custom_measurement_required: false,
-    imageFiles: []
-  })
+  const [productForm, setProductForm] = useState(defaultProductForm)
   const [customOptionInput, setCustomOptionInput] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -486,7 +489,8 @@ export default function ShopDashboard() {
       let savedProduct;
       const { imageFiles, ...payload } = productForm;
 
-      // Ensure variants payload formatting
+      // Ensure variants and visibility payload formatting
+      payload.is_marketplace_visible = productForm.is_marketplace_visible !== undefined ? !!productForm.is_marketplace_visible : true
       payload.has_variants = !!productForm.has_variants
       payload.variants_data = productForm.has_variants ? (productForm.variants_data || []) : []
       payload.allow_custom_measurements = !!productForm.allow_custom_measurements
@@ -521,21 +525,7 @@ export default function ShopDashboard() {
       }
 
       toast(editingProduct ? 'Product updated successfully!' : 'Product created successfully!')
-      setProductForm({
-        name: '',
-        description: '',
-        base_price: '',
-        stock: 100,
-        status: 'active',
-        has_variants: false,
-        variant_attributes: [],
-        variants_data: [],
-        allow_custom_measurements: false,
-        custom_measurement_type: 'fashion',
-        custom_measurement_prompt: '',
-        custom_measurement_required: false,
-        imageFiles: []
-      })
+      setProductForm(defaultProductForm)
       setEditingProduct(null)
       setTab('products')
       if (shop?.slug) loadProducts(shop.slug)
@@ -560,6 +550,7 @@ export default function ShopDashboard() {
       base_price: product.base_price || '',
       stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
       status: product.status || 'active',
+      is_marketplace_visible: product.is_marketplace_visible !== undefined ? !!product.is_marketplace_visible : true,
       has_variants: !!product.has_variants,
       variants_data: (product.variants || []).map(v => ({
         id: v.id,
@@ -576,6 +567,20 @@ export default function ShopDashboard() {
       imageFiles: []
     })
     setTab('add-product')
+  }
+
+  const handleToggleProductVisibility = async (product) => {
+    const targetSlug = product.slug || product.public_id;
+    const currentVis = product.is_marketplace_visible !== false;
+    const newVis = !currentVis;
+    try {
+      await productAPI.update(targetSlug, { is_marketplace_visible: newVis });
+      setProducts(prev => prev.map(p => (p.slug === targetSlug || p.public_id === targetSlug) ? { ...p, is_marketplace_visible: newVis } : p));
+      toast(newVis ? 'Product is now visible on MultiShop Home & Store!' : 'Product is now exclusive to your Store URL!');
+    } catch (err) {
+      console.error('Failed to update product visibility', err);
+      toast('Failed to update product visibility.', 'error');
+    }
   }
 
   const handleDeleteProduct = async (product) => {
@@ -1018,7 +1023,7 @@ export default function ShopDashboard() {
                 }
                 if (t.key === 'add-product') {
                   setEditingProduct(null)
-                  setProductForm({ name: '', description: '', base_price: '', status: 'active' })
+                  setProductForm(defaultProductForm)
                 }
               }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${tab === t.key ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -1039,21 +1044,7 @@ export default function ShopDashboard() {
                   <button
                     onClick={() => {
                       setEditingProduct(null);
-                      setProductForm({
-                        name: '',
-                        description: '',
-                        base_price: '',
-                        stock: 100,
-                        status: 'active',
-                        has_variants: false,
-                        variant_attributes: [],
-                        variants_data: [],
-                        allow_custom_measurements: false,
-                        custom_measurement_type: 'fashion',
-                        custom_measurement_prompt: '',
-                        custom_measurement_required: false,
-                        imageFiles: []
-                      });
+                      setProductForm(defaultProductForm);
                       setTab('add-product');
                     }}
                     className="p-5 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-left"
@@ -1478,7 +1469,7 @@ export default function ShopDashboard() {
                   <div className="text-5xl mb-3">📦</div>
                   <h3 className="text-xl font-bold text-gray-900">No products yet</h3>
                   <p className="text-gray-500 mt-2">Add your first product to start selling</p>
-                  <button onClick={() => { setTab('add-product'); setEditingProduct(null); setProductForm({ name: '', description: '', base_price: '', status: 'active' }); }} className="mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Add Product</button>
+                  <button onClick={() => { setTab('add-product'); setEditingProduct(null); setProductForm(defaultProductForm); }} className="mt-6 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Add Product</button>
                   
                   <div className="mt-6 pt-6 border-t border-gray-100">
                     <p className="text-sm text-gray-500 mb-3">Or import multiple products at once</p>
@@ -1521,21 +1512,7 @@ export default function ShopDashboard() {
                       <button
                         onClick={() => {
                           setEditingProduct(null);
-                          setProductForm({
-                            name: '',
-                            description: '',
-                            base_price: '',
-                            stock: 100,
-                            status: 'active',
-                            has_variants: false,
-                            variant_attributes: [],
-                            variants_data: [],
-                            allow_custom_measurements: false,
-                            custom_measurement_type: 'fashion',
-                            custom_measurement_prompt: '',
-                            custom_measurement_required: false,
-                            imageFiles: []
-                          });
+                          setProductForm(defaultProductForm);
                           setTab('add-product');
                         }}
                         className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary-500/20"
@@ -1551,6 +1528,7 @@ export default function ShopDashboard() {
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Product</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Price</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Stock</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Visibility</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
                         <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                       </tr>
@@ -1588,6 +1566,22 @@ export default function ShopDashboard() {
                             }`}>
                               {(p.inventory_quantity ?? 100) <= 0 ? '0 (Out of stock)' : `${p.inventory_quantity ?? 100} in stock`}
                             </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductVisibility(p)}
+                              title="Click to toggle between Marketplace & Store and Store Only"
+                              className={`group inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                                p.is_marketplace_visible !== false
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
+                              }`}
+                            >
+                              <span>{p.is_marketplace_visible !== false ? '🌐' : '🏪'}</span>
+                              <span>{p.is_marketplace_visible !== false ? 'Marketplace & Store' : 'Store Only'}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] ml-0.5">⇄</span>
+                            </button>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
@@ -1665,6 +1659,66 @@ export default function ShopDashboard() {
                         <option value="active">Active</option>
                         <option value="draft">Draft</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* --- Product Visibility / Destination Card --- */}
+                  <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50/70 space-y-3">
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                        <span>🌐</span> Marketplace & Storefront Visibility
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Choose where this product appears across MultiShop.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <label className={`relative flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        productForm.is_marketplace_visible !== false
+                          ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm'
+                          : 'bg-white border-gray-200 hover:border-gray-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="is_marketplace_visible"
+                          checked={productForm.is_marketplace_visible !== false}
+                          onChange={() => setProductForm(f => ({ ...f, is_marketplace_visible: true }))}
+                          className="mt-1 text-primary-600 focus:ring-primary-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-sm text-gray-900">Marketplace & Store</span>
+                            <span className="text-[10px] uppercase font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">Default</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            Product appears on the MultiShop home page, search, explore feed, and your storefront.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label className={`relative flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        productForm.is_marketplace_visible === false
+                          ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-sm'
+                          : 'bg-white border-gray-200 hover:border-gray-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="is_marketplace_visible"
+                          checked={productForm.is_marketplace_visible === false}
+                          onChange={() => setProductForm(f => ({ ...f, is_marketplace_visible: false }))}
+                          className="mt-1 text-primary-600 focus:ring-primary-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-sm text-gray-900">Storefront Only</span>
+                            <span className="text-[10px] uppercase font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Exclusive</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            Product is exclusive to your direct store link & template. Hidden from the MultiShop marketplace home feed.
+                          </p>
+                        </div>
+                      </label>
                     </div>
                   </div>
 

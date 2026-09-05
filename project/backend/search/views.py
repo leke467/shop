@@ -72,6 +72,7 @@ class UnifiedSearchView(APIView):
         if search_type in ("all", "products"):
             products_qs = Product.objects.filter(
                 status=Product.Status.ACTIVE,
+                is_marketplace_visible=True,
                 shop__status=Shop.Status.ACTIVE,
                 shop__deleted_at__isnull=True,
             ).select_related("shop", "category").prefetch_related("images")

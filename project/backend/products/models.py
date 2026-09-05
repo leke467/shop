@@ -110,6 +110,11 @@ class Product(BaseModel, SoftDeleteModel):
         max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True
     )
     is_featured = models.BooleanField(default=False)
+    is_marketplace_visible = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="If True, product appears on MultiShop marketplace home page & explore feed. If False, it is exclusive to the seller's storefront.",
+    )
 
     # --- Variant Configuration ---
     has_variants = models.BooleanField(
