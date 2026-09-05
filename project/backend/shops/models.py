@@ -603,6 +603,7 @@ def create_default_shop_products(sender, instance, created, **kwargs):
                     "description": item["description"],
                     "base_price": item["base_price"],
                     "status": Product.Status.ACTIVE,
+                    "is_marketplace_visible": False,
                 }
             )
 
