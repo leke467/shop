@@ -47,12 +47,11 @@ class ProductListView(generics.ListAPIView):
         from shops.models import Shop
         shop_slug = self.request.query_params.get("shop")
 
-        # If the authenticated owner is loading their own shop's products (e.g. dashboard), allow draft shop
+        # If the authenticated owner is loading their own shop's products (e.g. dashboard), return all their products (active, draft, archived)
         if shop_slug and self.request.user.is_authenticated:
             if Shop.objects.filter(slug=shop_slug, owner=self.request.user).exists() or self.request.user.is_staff:
                 return Product.objects.filter(
                     shop__slug=shop_slug,
-                    status=Product.Status.ACTIVE,
                 ).select_related("shop", "category").prefetch_related("images", "variants__inventory")
 
         # Public listing across marketplace: ONLY active products from ACTIVE, non-deleted shops
@@ -93,14 +92,13 @@ class ShopProductListView(generics.ListCreateAPIView):
         slug = self.kwargs["slug"]
         user = self.request.user
 
-        # If user is owner or staff, allow them to manage/view products even if shop is in draft
+        # If user is owner or staff, allow them to manage/view all products (including drafts) even if shop is in draft
         if user.is_authenticated and (Shop.objects.filter(slug=slug, owner=user).exists() or user.is_staff):
             return Product.objects.filter(
                 shop__slug=slug,
-                status=Product.Status.ACTIVE,
             ).select_related("shop", "category").prefetch_related("images", "variants__inventory")
 
-        # Public visitors only see products if the shop itself is active
+        # Public visitors only see products if the shop itself is active and product is active
         return Product.objects.filter(
             shop__slug=slug,
             shop__status=Shop.Status.ACTIVE,

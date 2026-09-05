@@ -583,6 +583,19 @@ export default function ShopDashboard() {
     }
   }
 
+  const handleToggleProductStatus = async (product) => {
+    const targetSlug = product.slug || product.public_id;
+    const newStatus = product.status === 'active' ? 'draft' : 'active';
+    try {
+      await productAPI.update(targetSlug, { status: newStatus });
+      setProducts(prev => prev.map(p => (p.slug === targetSlug || p.public_id === targetSlug) ? { ...p, status: newStatus } : p));
+      toast(newStatus === 'active' ? 'Product published and active!' : 'Product moved to Draft.');
+    } catch (err) {
+      console.error('Failed to update product status', err);
+      toast('Failed to update product status.', 'error');
+    }
+  }
+
   const handleDeleteProduct = async (product) => {
     if (!(await confirm('Are you sure you want to delete this product?'))) return
     try {
@@ -1584,8 +1597,20 @@ export default function ShopDashboard() {
                             </button>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
-                              }`}>{p.status}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductStatus(p)}
+                              title="Click to toggle between Active and Draft"
+                              className={`group inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                                p.status === 'active'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:border-amber-300'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${p.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                              <span className="capitalize">{p.status || 'draft'}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] ml-0.5">⇄</span>
+                            </button>
                           </td>
                           <td className="px-6 py-4 text-right space-x-3">
                             <button
