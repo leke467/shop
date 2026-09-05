@@ -1668,7 +1668,7 @@ export default function ShopDashboard() {
                               </thead>
                               <tbody className="divide-y divide-gray-100">
                                 {productForm.variants_data.map((v, idx) => (
-                                  <tr key={idx} className="hover:bg-gray-50/50">
+                                  <tr key={idx} className="hover:bg-gray-50/70 transition-colors">
                                     <td className="px-3 py-2">
                                       <input
                                         type="text"
@@ -1681,7 +1681,7 @@ export default function ShopDashboard() {
                                             return { ...f, variants_data: updated };
                                           });
                                         }}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs font-medium"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-semibold bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
                                       />
                                     </td>
                                     <td className="px-3 py-2">
@@ -1697,7 +1697,7 @@ export default function ShopDashboard() {
                                             return { ...f, variants_data: updated };
                                           });
                                         }}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
                                       />
                                     </td>
                                     <td className="px-3 py-2">
@@ -1712,7 +1712,7 @@ export default function ShopDashboard() {
                                             return { ...f, variants_data: updated };
                                           });
                                         }}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
                                       />
                                     </td>
                                     <td className="px-3 py-2 text-center">
@@ -1724,7 +1724,8 @@ export default function ShopDashboard() {
                                             variants_data: f.variants_data.filter((_, i) => i !== idx)
                                           }));
                                         }}
-                                        className="text-red-500 hover:text-red-700 font-bold text-sm"
+                                        className="w-7 h-7 inline-flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-bold text-sm"
+                                        title="Remove option"
                                       >
                                         ✕
                                       </button>
