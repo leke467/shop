@@ -191,6 +191,21 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             "template_id": {"required": False, "allow_blank": True},
         }
 
+    def validate_name(self, value):
+        name = value.strip()
+        if len(name) < 2:
+            raise serializers.ValidationError("Store name must be at least 2 characters.")
+
+        # Check case-insensitive store name uniqueness across all shops
+        qs = Shop.all_objects.filter(name__iexact=name)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                f"The store name '{name}' is already taken. Please choose a unique name for your shop."
+            )
+        return name
+
     def create(self, validated_data):
         user = self.context["request"].user
         if not validated_data.get("email"):
