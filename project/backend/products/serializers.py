@@ -78,7 +78,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "has_variants", "variant_attributes",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
-            "shop_name", "shop_slug", "shop_status", "category_name", "primary_image",
+            "shop_name", "shop_slug", "shop_logo", "shop_status", "category_name", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
@@ -94,6 +94,24 @@ class ProductListSerializer(serializers.ModelSerializer):
             return obj.shop.slug if obj.shop else ""
         except Exception:
             return ""
+
+    def get_shop_logo(self, obj):
+        try:
+            if obj.shop:
+                if obj.shop.logo:
+                    request = self.context.get("request")
+                    if request:
+                        return request.build_absolute_uri(obj.shop.logo.url)
+                    return obj.shop.logo.url
+                if hasattr(obj.shop, "theme") and obj.shop.theme:
+                    extra = getattr(obj.shop.theme, "extra_tokens", {}) or {}
+                    theme_data = getattr(obj.shop.theme, "theme_data", {}) or {}
+                    logo = extra.get("logo_url") or theme_data.get("logo_url") or extra.get("logo")
+                    if logo:
+                        return logo
+        except Exception:
+            pass
+        return None
 
     def get_shop_status(self, obj):
         try:
@@ -153,6 +171,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     """Full detail with variants, images, reviews."""
     shop_name = serializers.CharField(source="shop.name", read_only=True)
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
+    shop_logo = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
@@ -170,7 +189,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "allow_custom_measurements", "custom_measurement_type",
             "custom_measurement_prompt", "custom_measurement_required",
             "rating_average", "rating_count", "view_count", "purchase_count",
-            "shop_name", "shop_slug", "category",
+            "shop_name", "shop_slug", "shop_logo", "category",
             "variants", "images", "is_locked",
             "inventory_quantity", "is_out_of_stock",
             "created_at", "updated_at",
@@ -179,6 +198,24 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "public_id", "rating_average", "rating_count",
             "view_count", "purchase_count", "created_at", "updated_at",
         )
+
+    def get_shop_logo(self, obj):
+        try:
+            if obj.shop:
+                if obj.shop.logo:
+                    request = self.context.get("request")
+                    if request:
+                        return request.build_absolute_uri(obj.shop.logo.url)
+                    return obj.shop.logo.url
+                if hasattr(obj.shop, "theme") and obj.shop.theme:
+                    extra = getattr(obj.shop.theme, "extra_tokens", {}) or {}
+                    theme_data = getattr(obj.shop.theme, "theme_data", {}) or {}
+                    logo = extra.get("logo_url") or theme_data.get("logo_url") or extra.get("logo")
+                    if logo:
+                        return logo
+        except Exception:
+            pass
+        return None
 
     def get_is_locked(self, obj):
         try:
