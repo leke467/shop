@@ -63,6 +63,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight for catalog listing."""
     shop_name = serializers.SerializerMethodField()
     shop_slug = serializers.SerializerMethodField()
+    shop_logo = serializers.SerializerMethodField()
     shop_status = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
