@@ -15,7 +15,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
   const currentTemplate = shop?.template_id || ''
 
   const openManageModal = (templateId) => {
-    setSelectedTemplateId(templateId || currentTemplate || 'honeyspicy')
+    setSelectedTemplateId(templateId || currentTemplate || 'default')
     setShowManageModal(true)
   }
 
@@ -119,7 +119,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
               View Live
             </button>
             <button
-              onClick={() => setShowManageModal(true)}
+              onClick={() => openManageModal(currentTemplate || 'default')}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 text-white text-sm font-bold hover:opacity-95 transition-all shadow-md flex items-center gap-1.5"
             >
               <span>⚙️</span> Manage
@@ -152,7 +152,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
               View Live
             </button>
             <button
-              onClick={() => setShowManageModal(true)}
+              onClick={() => openManageModal('default')}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold hover:opacity-95 transition-all shadow-md flex items-center gap-1.5"
             >
               <span>⚙️</span> Manage Storefront
@@ -281,7 +281,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
       {/* Storefront Customizer Modal */}
       <TemplateCustomizerModal
         shop={shop}
-        templateId={selectedTemplateId || currentTemplate || 'honeyspicy'}
+        templateId={selectedTemplateId || currentTemplate || 'default'}
         isOpen={showManageModal}
         onClose={() => setShowManageModal(false)}
         onSaveSuccess={onShopUpdate}

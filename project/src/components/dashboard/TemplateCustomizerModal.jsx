@@ -80,7 +80,7 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
     }
 
     // 2. Global token ONLY if this template is currently the active template recorded in tokens
-    const activeTemplateInTokens = tokens.template_id || shop?.template_id || 'honeyspicy'
+    const activeTemplateInTokens = tokens.template_id || shop?.template_id || 'default'
     if (activeTemplateInTokens === currentTemplateId) {
       const globalVal = tokens[key]
       if (globalVal !== undefined && globalVal !== null && globalVal !== '') {
@@ -171,7 +171,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const currentTemplateId = templateId || shop?.template_id || 'honeyspicy'
+  const currentTemplateId = templateId || shop?.template_id || 'default'
   const schema = getTemplateSchema(currentTemplateId)
 
   const [form, setForm] = useState(() => getInitialFormForTemplate(schema, shop, {}, currentTemplateId))
@@ -286,9 +286,13 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         description: form.description,
       })
 
-      const targetTemplate = templateId || shop?.template_id || 'honeyspicy'
-      if (templateId && templateId !== shop?.template_id) {
-        await shopAPI.setTemplate(shop.slug, targetTemplate)
+      const targetTemplate = templateId || shop?.template_id || 'default'
+      if (templateId !== undefined && templateId !== shop?.template_id) {
+        if (!targetTemplate || targetTemplate === 'default') {
+          await shopAPI.clearTemplate(shop.slug)
+        } else {
+          await shopAPI.setTemplate(shop.slug, targetTemplate)
+        }
       }
 
       const extra_tokens = {
@@ -389,7 +393,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         ...updatedShop,
         banner: finalBannerUrl || null,
         logo: finalLogoUrl || null,
-        template_id: targetTemplate,
+        template_id: (!targetTemplate || targetTemplate === 'default') ? '' : targetTemplate,
         theme: updatedTheme,
       }
 

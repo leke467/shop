@@ -911,8 +911,69 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
     defaultColors: { primary: '#8B6F55', banner: '#4A3728', bg: '#FAF6F0', text: '#4A3728' },
     defaultFont: 'Caveat',
   },
+
+  default: {
+    id: 'default',
+    name: 'Default Storefront',
+    tagline: 'Standard clean MultiShop storefront for all sellers',
+    hero: {
+      hasWelcomePrefix: true,
+      welcomePrefixLabel: 'Welcome Prefix (e.g. "Welcome to")',
+      welcomePrefixDefault: 'Welcome to',
+      hasHeadline: true,
+      headlineLabel: 'Store Headline / Store Name',
+      hasSubtitle: true,
+      subtitleLabel: 'Store Tagline / Bio',
+      hasCtaPrimary: true,
+      ctaPrimaryLabel: 'Primary Button Text',
+      ctaPrimaryDefault: 'Explore Catalog',
+      hasCtaSecondary: true,
+      ctaSecondaryLabel: 'Secondary Button Text',
+      ctaSecondaryDefault: 'About Us',
+      imageSlots: [
+        { key: 'banner_url', label: 'Store Banner Image', desc: 'Hero banner background image displayed at the top of your store', default: '' },
+      ],
+    },
+    sections: {
+      hasFeaturedTitle: true,
+      featuredTitleLabel: 'Featured Products Title',
+      featuredTitleDefault: 'Featured Products',
+      hasFeaturedSubtitle: true,
+      featuredSubtitleLabel: 'Featured Subtitle',
+      featuredSubtitleDefault: 'Handpicked favorites and top selling items',
+      hasCatalogTitle: true,
+      catalogTitleLabel: 'Product Catalog Heading',
+      catalogTitleDefault: 'All Products',
+      categoriesSubtitleDefault: 'Browse our full collection of verified products',
+      hasTestimonialsTitle: true,
+      testimonialsTitleDefault: 'Customer Reviews',
+    },
+    features: {
+      hasFeaturesBanner: true,
+      bannerTitle: '4 Store Highlight Cards',
+      defaultCards: [
+        { key1: 'feature1_title', val1: 'Authentic Quality', key2: 'feature1_desc', val2: '100% verified original quality goods' },
+        { key1: 'feature2_title', val1: 'Fast Delivery', key2: 'feature2_desc', val2: 'Swift doorstep shipping nationwide' },
+        { key1: 'feature3_title', val1: 'Secure Escrow', key2: 'feature3_desc', val2: 'Protected payments with delivery codes' },
+        { key1: 'feature4_title', val1: 'Dedicated Support', key2: 'feature4_desc', val2: 'Quick response and customer care' },
+      ]
+    },
+    palettePresets: [
+      { name: 'MultiShop Blue', icon: '🔵', primary_color: '#2563EB', banner_color: '#1E40AF', background_color: '#FFFFFF', text_color: '#111827' },
+      { name: 'Emerald Green', icon: '🌲', primary_color: '#059669', banner_color: '#065F46', background_color: '#F0FDF4', text_color: '#064E3B' },
+      { name: 'Sunset Amber', icon: '🌅', primary_color: '#D97706', banner_color: '#78350F', background_color: '#FFFBEB', text_color: '#451A03' },
+      { name: 'Royal Purple', icon: '👑', primary_color: '#7C3AED', banner_color: '#5B21B6', background_color: '#FAF5FF', text_color: '#3B0764' },
+      { name: 'Crimson Rose', icon: '🌹', primary_color: '#E11D48', banner_color: '#9F1239', background_color: '#FFF1F2', text_color: '#4C0519' },
+      { name: 'Charcoal Minimal', icon: '⬛', primary_color: '#1F2937', banner_color: '#111827', background_color: '#F9FAFB', text_color: '#111827' },
+    ],
+    defaultColors: { primary: '#2563EB', banner: '#1E40AF', bg: '#FFFFFF', text: '#111827' },
+    defaultFont: 'Inter',
+  },
 }
 
 export function getTemplateSchema(templateId) {
-  return TEMPLATE_CUSTOMIZATION_SCHEMAS[templateId] || TEMPLATE_CUSTOMIZATION_SCHEMAS.honeyspicy
+  if (!templateId || templateId === 'default') {
+    return TEMPLATE_CUSTOMIZATION_SCHEMAS.default || TEMPLATE_CUSTOMIZATION_SCHEMAS.honeyspicy
+  }
+  return TEMPLATE_CUSTOMIZATION_SCHEMAS[templateId] || TEMPLATE_CUSTOMIZATION_SCHEMAS.default || TEMPLATE_CUSTOMIZATION_SCHEMAS.honeyspicy
 }

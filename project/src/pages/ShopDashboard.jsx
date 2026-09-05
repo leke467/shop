@@ -216,6 +216,8 @@ export default function ShopDashboard() {
   // Bulk Import State
   const [bulkImporting, setBulkImporting] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
@@ -732,6 +734,80 @@ export default function ShopDashboard() {
       ...prev,
       ...preset
     }))
+  }
+
+  const handleBannerUpload = async (file) => {
+    if (!file || !shop?.slug) return
+    setUploadingBanner(true)
+    try {
+      const formData = new FormData()
+      formData.append('banner', file)
+      const res = await shopAPI.uploadBranding(shop.slug, formData)
+      const updated = { ...shop, banner: res.banner || res.banner_url || file }
+      setShop(updated)
+      setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+      toast('Store banner image updated successfully!')
+    } catch (err) {
+      console.error('Failed to upload banner:', err)
+      toast(err.response?.data?.detail || err.response?.data?.banner?.[0] || 'Failed to upload banner image.', 'error')
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
+  const handleLogoUpload = async (file) => {
+    if (!file || !shop?.slug) return
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+      const res = await shopAPI.uploadBranding(shop.slug, formData)
+      const updated = { ...shop, logo: res.logo || res.logo_url || file }
+      setShop(updated)
+      setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+      toast('Store logo updated successfully!')
+    } catch (err) {
+      console.error('Failed to upload logo:', err)
+      toast(err.response?.data?.detail || err.response?.data?.logo?.[0] || 'Failed to upload logo.', 'error')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
+  const handleRemoveBanner = async () => {
+    if (!shop?.slug) return
+    if (!(await confirm('Are you sure you want to remove your store banner image?'))) return
+    setUploadingBanner(true)
+    try {
+      await shopAPI.removeBranding(shop.slug, 'banner')
+      const updated = { ...shop, banner: null }
+      setShop(updated)
+      setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+      toast('Store banner removed')
+    } catch (err) {
+      console.error('Failed to remove banner:', err)
+      toast('Failed to remove banner', 'error')
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    if (!shop?.slug) return
+    if (!(await confirm('Are you sure you want to remove your store logo?'))) return
+    setUploadingLogo(true)
+    try {
+      await shopAPI.removeBranding(shop.slug, 'logo')
+      const updated = { ...shop, logo: null }
+      setShop(updated)
+      setShops(prev => prev.map(s => s.slug === shop.slug ? updated : s))
+      toast('Store logo removed')
+    } catch (err) {
+      console.error('Failed to remove logo:', err)
+      toast('Failed to remove logo', 'error')
+    } finally {
+      setUploadingLogo(false)
+    }
   }
 
   const handleShopStatusChange = async (newStatus) => {
@@ -1937,6 +2013,119 @@ export default function ShopDashboard() {
                       </button>
                     </div>
 
+                    {/* Store Banner & Logo Branding */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-blue-950">Store Branding Assets</h4>
+                          <p className="text-[11px] text-blue-700">Upload your store banner image & brand logo</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">Standard Storefront</span>
+                      </div>
+
+                      {/* Banner Image Uploader */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-gray-700">Store Banner Image</label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex-1 px-3 py-2 bg-white hover:bg-blue-50/50 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold cursor-pointer text-center transition-all shadow-2xs flex items-center justify-center gap-1.5">
+                            {uploadingBanner ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
+                                </svg>
+                                Uploading Banner...
+                              </span>
+                            ) : (
+                              <>
+                                <span>🖼️</span>
+                                <span>{shop.banner ? 'Change Banner Image' : 'Upload Banner Image'}</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*,.webp,.png,.jpg,.jpeg"
+                              className="hidden"
+                              disabled={uploadingBanner}
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) handleBannerUpload(e.target.files[0])
+                              }}
+                            />
+                          </label>
+                          {shop.banner && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveBanner}
+                              disabled={uploadingBanner}
+                              className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+                              title="Remove Banner Image"
+                            >
+                              ✕ Remove
+                            </button>
+                          )}
+                        </div>
+                        {shop.banner && (
+                          <div className="h-14 rounded-xl overflow-hidden border border-blue-200 relative bg-gray-100">
+                            <img src={getImageUrl(shop.banner)} alt="Banner Preview" className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">Active Banner</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-gray-500">Appears at the top of your shop. Recommended 1200×400px (JPG, PNG, WebP).</p>
+                      </div>
+
+                      {/* Store Logo Uploader */}
+                      <div className="space-y-1.5 pt-1 border-t border-blue-100">
+                        <label className="block text-xs font-bold text-gray-700">Store Logo / Avatar</label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex-1 px-3 py-2 bg-white hover:bg-blue-50/50 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold cursor-pointer text-center transition-all shadow-2xs flex items-center justify-center gap-1.5">
+                            {uploadingLogo ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
+                                </svg>
+                                Uploading Logo...
+                              </span>
+                            ) : (
+                              <>
+                                <span>🏷️</span>
+                                <span>{shop.logo ? 'Change Store Logo' : 'Upload Store Logo'}</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                              className="hidden"
+                              disabled={uploadingLogo}
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) handleLogoUpload(e.target.files[0])
+                              }}
+                            />
+                          </label>
+                          {shop.logo && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveLogo}
+                              disabled={uploadingLogo}
+                              className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+                              title="Remove Store Logo"
+                            >
+                              ✕ Remove
+                            </button>
+                          )}
+                        </div>
+                        {shop.logo && (
+                          <div className="flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-blue-100">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center p-0.5 shrink-0">
+                              <img src={getImageUrl(shop.logo)} alt="Logo" className="max-w-full max-h-full object-contain" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 truncate flex-1">{shop.name} Logo</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-gray-500">Square 400×400px (PNG, SVG, JPG, WebP).</p>
+                      </div>
+                    </div>
+
                     {/* Presets */}
                     <div>
                       <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Color Presets</label>
@@ -2104,20 +2293,103 @@ export default function ShopDashboard() {
                         className="border border-gray-100 rounded-2xl shadow-md overflow-hidden transition-all duration-300"
                         style={{ backgroundColor: themeForm.background_color }}
                       >
-                        {/* Shop Banner preview */}
+                        {/* Shop Banner preview - Clickable to upload banner */}
                         <div
-                          className="h-28 flex items-center justify-center relative transition-all"
-                          style={{ background: `linear-gradient(135deg, ${themeForm.primary_color}, ${themeForm.secondary_color})` }}
+                          className="h-36 sm:h-44 flex items-center justify-center relative transition-all overflow-hidden group"
+                          style={{ background: `linear-gradient(135deg, ${themeForm.primary_color}, ${themeForm.secondary_color || '#7c3aed'})` }}
                         >
-                          <span className="text-white text-lg font-bold tracking-wide drop-shadow-sm">{shop.name}</span>
+                          {/* Render live banner image if uploaded */}
+                          {(shop.banner || shop.theme?.extra_tokens?.banner_url) && (
+                            <img
+                              src={getImageUrl(shop.banner || shop.theme?.extra_tokens?.banner_url)}
+                              alt="Store Banner"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
+
+                          {/* Store Name Over Banner */}
+                          <div className="relative z-10 text-center px-4">
+                            <span className="text-white text-lg sm:text-xl font-black tracking-wide drop-shadow-md">{shop.name}</span>
+                            {shop.tagline && <p className="text-white/80 text-xs mt-0.5 line-clamp-1 drop-shadow-sm font-medium">{shop.tagline}</p>}
+                          </div>
+
+                          {/* Interactive "Change Banner" Overlay Button directly on the banner area */}
+                          <label className="absolute top-3 right-3 z-20 px-3 py-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 cursor-pointer shadow-lg transition-all flex items-center gap-1.5">
+                            {uploadingBanner ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
+                                </svg>
+                                Uploading...
+                              </span>
+                            ) : (
+                              <>
+                                <span>📷</span>
+                                <span>{shop.banner ? 'Change Banner' : 'Upload Banner'}</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*,.webp,.png,.jpg,.jpeg"
+                              className="hidden"
+                              disabled={uploadingBanner}
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) handleBannerUpload(e.target.files[0])
+                              }}
+                            />
+                          </label>
+
+                          {shop.banner && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveBanner}
+                              disabled={uploadingBanner}
+                              className="absolute top-3 left-3 z-20 px-2.5 py-1 bg-red-600/80 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg shadow-md transition-all flex items-center gap-1 backdrop-blur-md"
+                              title="Remove Banner"
+                            >
+                              ✕ Remove
+                            </button>
+                          )}
                         </div>
 
-                        {/* Header Navbar preview */}
+                        {/* Store Header & Logo Bar */}
                         <div
-                          className="px-4 py-3 flex items-center justify-between border-b border-gray-200/20"
+                          className="px-4 py-3 flex items-center justify-between border-b border-gray-200/20 relative"
                           style={{ backgroundColor: themeForm.surface_color }}
                         >
-                          <span className="text-xs font-bold" style={{ color: themeForm.text_color }}>🏪 Store</span>
+                          <div className="flex items-center gap-3">
+                            {/* Logo slot overlapping banner with click-to-upload */}
+                            <div className="relative group/logo -mt-9 w-14 h-14 rounded-2xl bg-white shadow-lg border-2 border-white overflow-hidden flex items-center justify-center shrink-0">
+                              {(shop.logo || shop.theme?.extra_tokens?.logo_url) ? (
+                                <img src={getImageUrl(shop.logo || shop.theme?.extra_tokens?.logo_url)} alt={shop.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-xl font-extrabold" style={{ color: themeForm.primary_color }}>{shop.name?.[0]}</span>
+                              )}
+                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-bold" title="Upload Logo">
+                                {uploadingLogo ? '⏳' : '📷'}
+                                <input
+                                  type="file"
+                                  accept="image/*,.svg,.webp,.png,.jpg,.jpeg"
+                                  className="hidden"
+                                  disabled={uploadingLogo}
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) handleLogoUpload(e.target.files[0])
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold" style={{ color: themeForm.text_color }}>{shop.name}</span>
+                                {shop.is_verified && <span className="text-[10px] px-1.5 py-0.2 bg-green-100 text-green-700 rounded-full font-semibold">✓</span>}
+                              </div>
+                              <span className="text-[10px] block line-clamp-1" style={{ color: themeForm.muted_text_color }}>
+                                {shop.tagline || 'Standard MultiShop Storefront'}
+                              </span>
+                            </div>
+                          </div>
                           <div className="flex gap-2">
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.primary_color }} />
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: themeForm.accent_color }} />
@@ -2449,6 +2721,7 @@ export default function ShopDashboard() {
 
       <TemplateCustomizerModal
         shop={shop}
+        templateId={shop?.template_id || 'default'}
         isOpen={showManageModal}
         onClose={() => setShowManageModal(false)}
         onSaveSuccess={(updated) => {
