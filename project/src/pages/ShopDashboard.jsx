@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shopAPI, productAPI, getImageUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
+import { shopAPI, productAPI, getImageUrl, handleImageError, getProductPlaceholderUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import LimitReachedModal, { extractLimitError } from '../components/subscription/LimitReachedModal'
 import CustomDomainManager from '../components/shop/CustomDomainManager'
@@ -1004,17 +1004,29 @@ export default function ShopDashboard() {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Products</h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {products.slice(0, 6).map(p => (
-                      <div key={p.slug || p.public_id} className="bg-white rounded-2xl p-4 border border-gray-100 flex gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                          {p.images?.[0] ? (
-                            <img src={getImageUrl(p.images[0].thumbnail || p.images[0].image)} alt="" className="w-full h-full object-cover" />
-                          ) : <div className="w-full h-full flex items-center justify-center text-gray-300 text-lg">📦</div>}
+                      <div key={p.slug || p.public_id} className="bg-white rounded-2xl p-4 border border-gray-100 flex gap-4 items-center shadow-xs">
+                        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100">
+                          {(() => {
+                            const rawImg = p.primary_image || p.image || p.images?.[0]?.thumbnail || p.images?.[0]?.image || (typeof p.images?.[0] === 'string' ? p.images[0] : null);
+                            const imgSrc = rawImg ? getImageUrl(rawImg, p.name) : getProductPlaceholderUrl(p.name);
+                            return (
+                              <img
+                                src={imgSrc}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => handleImageError(e, 'product', p.name)}
+                              />
+                            );
+                          })()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <h4 className="font-semibold text-gray-900 text-sm truncate">{p.name}</h4>
-                          <p className="text-primary-600 font-bold text-sm mt-1">₦{Number(p.base_price || 0).toLocaleString()}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
-                            }`}>{p.status}</span>
+                          <p className="text-primary-600 font-bold text-sm mt-0.5">₦{Number(p.base_price || 0).toLocaleString()}</p>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${
+                            p.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {p.status}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -1472,8 +1484,19 @@ export default function ShopDashboard() {
                         <tr key={p.slug || p.public_id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                                {p.images?.[0] ? <img src={getImageUrl(p.images[0].thumbnail || p.images[0].image)} className="w-full h-full object-cover" /> : <span className="flex items-center justify-center w-full h-full text-sm">📦</span>}
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100">
+                                {(() => {
+                                  const rawImg = p.primary_image || p.image || p.images?.[0]?.thumbnail || p.images?.[0]?.image || (typeof p.images?.[0] === 'string' ? p.images[0] : null);
+                                  const imgSrc = rawImg ? getImageUrl(rawImg, p.name) : getProductPlaceholderUrl(p.name);
+                                  return (
+                                    <img
+                                      src={imgSrc}
+                                      alt={p.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => handleImageError(e, 'product', p.name)}
+                                    />
+                                  );
+                                })()}
                               </div>
                               <span className="font-medium text-gray-900 text-sm truncate max-w-[200px]">{p.name}</span>
                             </div>
