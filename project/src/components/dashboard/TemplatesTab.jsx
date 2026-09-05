@@ -54,6 +54,11 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
     }
   }
 
+  const handleViewLive = () => {
+    if (!shop?.slug) return
+    window.open(`/shop/${shop.slug}`, '_blank')
+  }
+
   const handlePreview = (templateId) => {
     if (!shop?.slug) return
     const url = templateId ? `/shop/${shop.slug}?preview_template=${templateId}` : `/shop/${shop.slug}`
@@ -108,7 +113,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
           </div>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
-              onClick={() => handlePreview(currentTemplate)}
+              onClick={handleViewLive}
               className="px-4 py-2.5 rounded-xl bg-white text-amber-800 text-sm font-semibold hover:bg-amber-100 border border-amber-200 transition-all shadow-sm"
             >
               View Live
@@ -141,7 +146,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => handlePreview('')}
+              onClick={handleViewLive}
               className="px-4 py-2.5 rounded-xl bg-white text-blue-800 text-sm font-semibold hover:bg-blue-100 border border-blue-200 transition-all shadow-sm"
             >
               View Live
@@ -200,7 +205,7 @@ export default function TemplatesTab({ shop, onShopUpdate }) {
                   {isActive ? (
                     <div className="flex gap-2 w-full">
                       <button
-                        onClick={() => handlePreview(template.id)}
+                        onClick={handleViewLive}
                         className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors text-center"
                       >
                         View Live
