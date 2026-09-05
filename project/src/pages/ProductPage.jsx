@@ -335,22 +335,48 @@ export default function ProductPage() {
 
           {/* Details */}
           <div className="lg:pt-4">
-            {/* Shop link and Report */}
-            <div className="flex items-center justify-between mb-3">
-              <Link to={`/shop/${product.shop_slug || ''}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center text-white text-xs font-bold">
-                  {product.shop_name?.[0] || 'S'}
+            {/* Attractive Store Badge with View Store CTA */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 mb-5 rounded-2xl bg-gradient-to-r from-amber-50/70 via-gray-50 to-primary-50/40 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-primary-600 via-indigo-600 to-amber-500 text-white font-black text-base flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+                  {product.shop_name?.[0]?.toUpperCase() || 'S'}
                 </div>
-                {product.shop_name || 'Shop'}
-              </Link>
-              {product.shop_slug && (
-                <button
-                  onClick={() => setShowReportModal(true)}
-                  className="text-xs text-gray-400 hover:text-error-600 transition-colors flex items-center gap-1"
-                >
-                  🚩 Report Shop
-                </button>
-              )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Sold by</span>
+                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ✓ Verified Seller
+                    </span>
+                  </div>
+                  <Link
+                    to={`/shop/${product.shop_slug || ''}`}
+                    className="font-extrabold text-gray-900 text-sm sm:text-base hover:text-primary-600 transition-colors truncate block"
+                  >
+                    {product.shop_name || 'MultiShop Merchant'}
+                  </Link>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {product.shop_slug && (
+                  <Link
+                    to={`/shop/${product.shop_slug}`}
+                    className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 group"
+                  >
+                    <span>🏪 View Store</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                  </Link>
+                )}
+                {product.shop_slug && (
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors text-xs"
+                    title="Report Shop"
+                  >
+                    🚩
+                  </button>
+                )}
+              </div>
             </div>
 
             <h1 className="text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
