@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shopAPI, productAPI, searchAPI, getImageUrl, handleImageError, getProductPlaceholderUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
