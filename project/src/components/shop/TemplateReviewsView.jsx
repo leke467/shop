@@ -156,6 +156,15 @@ export default function TemplateReviewsView({ reviews = [], shop, shopSlug, them
           subtext: 'text-purple-300',
           border: 'border-white/10'
         }
+      case 'farmfresh':
+        return {
+          container: 'bg-[#F8FAFC] text-slate-900 font-sans',
+          card: 'bg-white border border-slate-200 text-slate-900 rounded-xl shadow-xs',
+          input: 'bg-white border border-slate-300 text-slate-900 rounded-lg outline-none focus:border-emerald-600',
+          btn: 'bg-[#064E3B] text-white font-bold rounded-lg hover:bg-[#047857] shadow-xs',
+          subtext: 'text-emerald-700',
+          border: 'border-slate-200'
+        }
       default:
         return {
           container: 'bg-white text-gray-900',

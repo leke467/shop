@@ -158,6 +158,20 @@ export default function TemplateAboutView({ shop, shopSlug, theme = 'default', p
           valueDesc: 'text-xs text-[#8B8B7A] mt-2 leading-relaxed font-sans',
           ctaBtn: 'px-8 py-3.5 bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold text-xs tracking-widest uppercase transition-all',
         }
+      case 'farmfresh':
+        return {
+          wrapper: 'bg-[#F8FAFC] text-slate-900 font-sans min-h-[80vh] py-12 px-4 sm:px-8',
+          heroCard: 'bg-gradient-to-br from-[#064E3B] to-[#0B4F37] text-white p-8 sm:p-12 rounded-3xl shadow-xl',
+          badge: 'bg-emerald-400 text-emerald-950 px-3.5 py-1 text-xs font-bold uppercase tracking-wider rounded-full shadow-xs',
+          title: 'text-3xl sm:text-5xl font-extrabold text-white leading-tight',
+          subtext: 'text-emerald-100 text-sm sm:text-base leading-relaxed',
+          highlightBox: 'border-l-4 border-emerald-400 bg-emerald-950/60 p-4 text-emerald-200 font-medium rounded-r-xl',
+          valueCard: 'bg-white border border-slate-200 p-6 rounded-2xl shadow-xs hover:border-emerald-600 hover:shadow-md transition-all',
+          valueIcon: 'text-3xl mb-3 text-emerald-700',
+          valueTitle: 'text-base font-bold text-slate-900',
+          valueDesc: 'text-xs text-slate-500 mt-2 leading-relaxed',
+          ctaBtn: 'px-8 py-3.5 bg-[#064E3B] hover:bg-[#047857] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md',
+        }
       default:
         return {
           wrapper: 'bg-gray-50 text-gray-900 font-sans min-h-[80vh] py-12 px-4 sm:px-8',

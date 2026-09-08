@@ -206,6 +206,16 @@ export const TEMPLATES = {
     pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
     component: () => import('./polaroid/PolaroidApp'),
   },
+  farmfresh: {
+    id: 'farmfresh',
+    name: 'FarmFresh & ColdStore',
+    description: 'Specialized agro-livestock, poultry, abattoir cuts, and cold-chain storefront. Built with flash-frozen condition badges, live animal inspection indicators, weight/unit pricing, and chilled express guarantees.',
+    category: 'Agro / Livestock & Cold Storage',
+    thumbnail: null,
+    minPlan: 'growth',
+    pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
+    component: () => import('./farmfresh/FarmFreshApp'),
+  },
 }
 
 /**

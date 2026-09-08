@@ -912,6 +912,61 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
     defaultFont: 'Caveat',
   },
 
+  farmfresh: {
+    id: 'farmfresh',
+    name: 'FarmFresh & ColdStore',
+    tagline: 'Specialized agro, livestock, poultry, and cold storage template',
+    hero: {
+      hasWelcomePrefix: false,
+      hasBadge: true,
+      badgeLabel: 'Cold-Chain Trust Badge (e.g. "❄️ Sub-Zero Freshness Guarantee")',
+      badgeDefault: '❄️ Sub-Zero Freshness Guarantee',
+      hasHeadline: true,
+      headlineLabel: 'Hero Main Headline',
+      headlineDefault: 'Farm-Fresh Livestock & Premium Flash-Frozen Foods',
+      hasSubtitle: true,
+      subtitleLabel: 'Hero Subtitle / Quality Promise',
+      subtitleDefault: 'From vetted local poultry farms and cold-storage facilities direct to your kitchen, deep freezer, or food business with temperature-guaranteed transit.',
+      hasCtaPrimary: true,
+      ctaPrimaryLabel: 'Primary Order Button',
+      ctaPrimaryDefault: 'Shop Frozen & Live Foods',
+      hasCtaSecondary: false,
+      imageSlots: [
+        { key: 'hero_image_1', label: 'Farm / Cold Hub Banner Photo', desc: 'High resolution banner photo of farm livestock or cold store produce', default: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=1200&q=80' },
+      ],
+    },
+    sections: {
+      hasFeaturedTitle: true,
+      featuredTitleLabel: 'Featured Products Title',
+      featuredTitleDefault: 'Featured Agro & Cold Produce',
+      hasCatalogTitle: true,
+      catalogTitleLabel: 'Full Catalog Title',
+      catalogTitleDefault: 'Browse Complete Farm Inventory',
+      categoriesSubtitleDefault: 'Select categories, condition types, or search specific cuts and breeds',
+      hasTestimonialsTitle: true,
+      testimonialsTitleDefault: 'Verified Customer Reviews & Farm Feedback',
+    },
+    features: {
+      hasFeaturesBanner: true,
+      bannerTitle: '4 Cold-Chain & Farm Trust Pillars',
+      defaultCards: [
+        { key1: 'feature1_title', val1: 'Sub-Zero Cold Chain', key2: 'feature1_desc', val2: 'Kept at -18°C with thermal coolers & ice packs' },
+        { key1: 'feature2_title', val1: 'Healthy Livestock', key2: 'feature2_desc', val2: '100% vaccinated, farm-raised and certified' },
+        { key1: 'feature3_title', val1: 'Hygienic Abattoir', key2: 'feature3_desc', val2: 'Dressed, portioned & vacuum-sealed cuts' },
+        { key1: 'feature4_title', val1: 'Same-Day Dispatch', key2: 'feature4_desc', val2: 'Swift temperature-controlled doorstep delivery' },
+      ]
+    },
+    palettePresets: [
+      { name: 'Fresh Agro Emerald', icon: '🌿', primary_color: '#064E3B', banner_color: '#0B4F37', background_color: '#F8FAFC', text_color: '#0F172A' },
+      { name: 'Arctic Cold Store', icon: '❄️', primary_color: '#0284C7', banner_color: '#0C4A6E', background_color: '#F0F9FF', text_color: '#082F49' },
+      { name: 'Golden Barn & Poultry', icon: '🐓', primary_color: '#D97706', banner_color: '#78350F', background_color: '#FFFBEB', text_color: '#451A03' },
+      { name: 'Abattoir Fresh Cut', icon: '🥩', primary_color: '#DC2626', banner_color: '#7F1D1D', background_color: '#FEF2F2', text_color: '#450A0A' },
+      { name: 'Deep Sea Catch', icon: '🐟', primary_color: '#0D9488', banner_color: '#134E4A', background_color: '#F0FDFA', text_color: '#042F2E' },
+    ],
+    defaultColors: { primary: '#064E3B', banner: '#0B4F37', bg: '#F8FAFC', text: '#0F172A' },
+    defaultFont: 'Inter',
+  },
+
   default: {
     id: 'default',
     name: 'Default Storefront',

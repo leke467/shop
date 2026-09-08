@@ -112,6 +112,15 @@ export default function TemplateMobileNav({
           btnCart: 'border border-dashed border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B] hover:text-black',
           badge: 'border border-dashed border-[#3D3D3D] bg-black text-xs text-[#E0D8C8]',
         }
+      case 'farmfresh':
+        return {
+          menuBg: 'bg-[#064E3B] text-white border-b border-emerald-800 font-sans',
+          drawerBg: 'bg-[#064E3B] text-white border-r border-emerald-700 font-sans',
+          activeLink: 'bg-emerald-600 text-white font-bold',
+          inactiveLink: 'text-emerald-200 hover:text-white hover:bg-emerald-800/60',
+          btnCart: 'bg-emerald-600 text-white font-bold shadow-xs',
+          badge: 'border border-emerald-700 bg-emerald-950 text-xs text-emerald-300',
+        }
       default:
         return {
           menuBg: 'bg-gray-900 text-white border-b border-gray-800 font-sans',
