@@ -37,11 +37,37 @@ def seed_categories(apps, schema_editor):
         ("Accessories", "accessories"),
     ]
 
+    max_tree_id = 0
+    try:
+        from django.db.models import Max
+        res = Category.objects.aggregate(Max("tree_id"))["tree_id__max"]
+        if res is not None:
+            max_tree_id = int(res)
+    except Exception:
+        pass
+
     for name, slug in categories:
-        Category.objects.get_or_create(
-            slug=slug,
-            defaults={"name": name, "is_active": True}
-        )
+        if not Category.objects.filter(slug=slug).exists():
+            max_tree_id += 1
+            try:
+                Category.objects.create(
+                    name=name,
+                    slug=slug,
+                    is_active=True,
+                    lft=1,
+                    rght=2,
+                    tree_id=max_tree_id,
+                    level=0,
+                    product_count=0,
+                )
+            except Exception as e:
+                print(f"Notice: skipped category {slug}: {e}")
+
+    try:
+        from products.models import Category as RealCategory
+        RealCategory.objects.rebuild()
+    except Exception:
+        pass
 
 
 def remove_categories(apps, schema_editor):
