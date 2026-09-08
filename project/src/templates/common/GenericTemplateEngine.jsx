@@ -385,29 +385,36 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
   const extra = shop?.theme?.extra_tokens || {}
   const catalogTitle = extra[`${config.id}_categories_title`] || extra.categories_title || extra.featured_title || config.catalogTitle || 'Our Collection'
   const catalogSubtitle = extra[`${config.id}_categories_subtitle`] || extra.categories_subtitle || extra.featured_subtitle || config.catalogSubtitle || ''
+  const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || (config?.id ? extra[`${config.id}_custom_catalogues`] : null) || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
 
   const categories = useMemo(() => {
     const set = new Set()
-    products.forEach(p => {
-      const catName = p.category?.name || p.category_name || p.category
-      if (catName) set.add(catName)
+    ;(products || []).forEach(p => {
+      set.add(getCategoryDisplay(p))
     })
     return ['all', ...Array.from(set)]
-  }, [products])
+  }, [products, customCatalogues])
 
   const filtered = useMemo(() => {
     let list = products.filter(p => {
-      const catName = p.category?.name || p.category_name || p.category
+      const catName = getCategoryDisplay(p)
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.description || '').toLowerCase().includes(search.toLowerCase())
-      const matchCategory = category === 'all' || catName === category
+      const matchCategory = category === 'all' || category === 'All' || catName === category
       return matchSearch && matchCategory
     })
 
     if (sort === 'low') list = [...list].sort((a, b) => Number(a.base_price || a.price || 0) - Number(b.base_price || b.price || 0))
     if (sort === 'high') list = [...list].sort((a, b) => Number(b.base_price || b.price || 0) - Number(a.base_price || a.price || 0))
     return list
-  }, [products, search, category, sort])
+  }, [products, search, category, sort, customCatalogues])
 
   return (
     <section className="py-16">
@@ -495,9 +502,7 @@ function EngineCatalogGrid({ config, products = [], shop, onQuickView }) {
 
                   <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
                     <div>
-                      {p.category?.name && (
-                        <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryAccent }}>{p.category.name}</span>
-                      )}
+                      <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider" style={{ color: primaryAccent }}>{getCategoryDisplay(p)}</span>
                       <h3 className="font-bold text-xs sm:text-base line-clamp-1 mt-0.5 cursor-pointer hover:underline" style={{ color: config.textColor }} onClick={() => onQuickView && onQuickView(p)}>{p.name}</h3>
                       <p className="text-[10px] sm:text-xs line-clamp-2 mt-1 hidden sm:block" style={{ color: config.subtextColor }}>{p.description || 'Quality product'}</p>
                     </div>

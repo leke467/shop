@@ -85,12 +85,15 @@ class UnifiedSearchView(APIView):
                 )
 
             if category_id:
-                # Include child categories via MPTT.
+                # Include child categories via MPTT (supports numeric ID or slug).
                 try:
-                    cat = Category.objects.get(pk=category_id)
+                    if str(category_id).isdigit():
+                        cat = Category.objects.get(pk=int(category_id))
+                    else:
+                        cat = Category.objects.get(slug=category_id)
                     descendants = cat.get_descendants(include_self=True)
                     products_qs = products_qs.filter(category__in=descendants)
-                except Category.DoesNotExist:
+                except (Category.DoesNotExist, ValueError):
                     products_qs = products_qs.none()
 
             if min_price:

@@ -13,24 +13,31 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
   const primaryAccent = extra.primary_color || '#8B5CF6'
   const catalogTitle = extra.categories_title || extra.obsidian_categories_title || 'Curated Catalog'
   const catalogSubtitle = extra.categories_subtitle || extra.obsidian_categories_subtitle || 'Our Products'
+  const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || extra[`${extra.template_id || 'obsidian'}_custom_catalogues`] || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
 
   // Extract categories
   const categories = useMemo(() => {
     const set = new Set()
-    products.forEach(p => {
-      const catName = p.category?.name || p.category_name || p.category
-      if (catName) set.add(catName)
+    ;(products || []).forEach(p => {
+      set.add(getCategoryDisplay(p))
     })
     return ['all', ...Array.from(set)]
-  }, [products])
+  }, [products, customCatalogues])
 
   // Filter products
   const filteredProducts = useMemo(() => {
-    let list = products.filter(p => {
+    let list = (products || []).filter(p => {
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.description || '').toLowerCase().includes(search.toLowerCase())
-      const catName = p.category?.name || p.category_name || p.category
-      const matchCategory = selectedCategory === 'all' || catName === selectedCategory
+      const catName = getCategoryDisplay(p)
+      const matchCategory = selectedCategory === 'all' || selectedCategory === 'All' || catName === selectedCategory
       return matchSearch && matchCategory
     })
 
@@ -41,7 +48,7 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
     }
 
     return list
-  }, [products, search, selectedCategory, sort])
+  }, [products, search, selectedCategory, sort, customCatalogues])
 
   return (
     <section className="py-16 relative">
@@ -153,11 +160,9 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
                     {/* Content */}
                     <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div>
-                        {product.category?.name && (
-                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-400">
-                            {product.category.name}
-                          </span>
-                        )}
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-400">
+                          {getCategoryDisplay(product)}
+                        </span>
                         <h3 className="font-bold text-lg text-white mt-1 group-hover:text-purple-300 transition-colors line-clamp-1">
                           {product.name}
                         </h3>

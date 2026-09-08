@@ -135,15 +135,26 @@ function EmeraldCatalog({ shop, products = [], onQuickView }) {
   const [sort, setSort] = useState('default')
   const extra = shop?.theme?.extra_tokens || {}
   const catalogTitle = extra.emerald_categories_title || (extra.template_id === 'emerald' ? extra.categories_title : null) || 'Botanical Collection'
+  const customCatalogues = extra.custom_catalogues || extra[`${extra.template_id || 'emerald'}_custom_catalogues`] || shop?.theme?.extra_tokens?.custom_catalogues || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
 
   const categories = useMemo(() => {
-    const cats = new Set((products || []).map(p => p.category?.name || p.category_name || p.category || 'Botanical'))
+    const cats = new Set()
+    ;(products || []).forEach(p => {
+      cats.add(getCategoryDisplay(p))
+    })
     return ['All', ...Array.from(cats)]
-  }, [products])
+  }, [products, customCatalogues])
 
   const filtered = useMemo(() => {
     let list = products.filter(p => {
-      const cat = p.category?.name || p.category_name || p.category || 'Botanical'
+      const cat = getCategoryDisplay(p)
       const matchCat = selectedCategory === 'All' || cat === selectedCategory
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.description || '').toLowerCase().includes(search.toLowerCase())
@@ -153,7 +164,7 @@ function EmeraldCatalog({ shop, products = [], onQuickView }) {
     if (sort === 'low') list = [...list].sort((a, b) => Number(a.base_price || a.price || 0) - Number(b.base_price || b.price || 0))
     if (sort === 'high') list = [...list].sort((a, b) => Number(b.base_price || b.price || 0) - Number(a.base_price || a.price || 0))
     return list
-  }, [products, search, selectedCategory, sort])
+  }, [products, search, selectedCategory, sort, customCatalogues])
 
   return (
     <section className="p-8 sm:p-12">
@@ -207,7 +218,7 @@ function EmeraldCatalog({ shop, products = [], onQuickView }) {
                     : <div className="w-full h-full flex items-center justify-center text-4xl">🌿</div>}
                 </div>
                 <div className={`${isLarge ? '' : 'md:col-span-2'} space-y-3 p-4`}>
-                  <span className="text-xs text-emerald-600 uppercase tracking-wider">{p.category?.name || p.category_name || 'Botanical'}</span>
+                  <span className="text-xs text-emerald-600 uppercase tracking-wider">{getCategoryDisplay(p)}</span>
                   <h3 className="text-xl font-light text-[#064E3B] cursor-pointer" onClick={() => onQuickView?.(p)}>{p.name}</h3>
                   <p className="text-sm text-emerald-700 line-clamp-2">{p.description || 'Pure organic botanical product.'}</p>
                   <div className="flex items-center justify-between pt-3">

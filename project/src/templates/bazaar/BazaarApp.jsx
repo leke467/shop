@@ -74,8 +74,8 @@ export default function BazaarApp({ shop, products = [], reviews = [], shopSlug 
       <main>
         <Routes>
           <Route index element={<BazaarHome shop={shop} products={products} base={base} onQuickView={setQuickView} />} />
-          <Route path="catalog" element={<BazaarCatalog products={products} onQuickView={setQuickView} />} />
-          <Route path="menu" element={<BazaarCatalog products={products} onQuickView={setQuickView} />} />
+          <Route path="catalog" element={<BazaarCatalog products={products} onQuickView={setQuickView} shop={shop} />} />
+          <Route path="menu" element={<BazaarCatalog products={products} onQuickView={setQuickView} shop={shop} />} />
           <Route path="about" element={<TemplateAboutView shop={shop} shopSlug={shopSlug} theme="default" products={products} />} />
           <Route path="reviews" element={<TemplateReviewsView reviews={reviews} shop={shop} shopSlug={shopSlug} theme="default" />} />
           <Route path="checkout" element={<BazaarCheckout shop={shop} shopSlug={shopSlug} />} />
@@ -155,16 +155,17 @@ function BazaarHome({ shop, products, base, onQuickView }) {
         </div>
       </section>
 
-      <BazaarCatalog products={products} onQuickView={onQuickView} />
+      <BazaarCatalog products={products} onQuickView={onQuickView} shop={shop} />
     </div>
   )
 }
 
-function BazaarCatalog({ products = [], onQuickView }) {
+function BazaarCatalog({ products = [], onQuickView, shop }) {
   const { addToCart } = useCart()
   const [searchParams] = useSearchParams()
   const queryParam = searchParams.get('q') || ''
   const [search, setSearch] = useState(queryParam)
+  const [selectedCategory, setSelectedCategory] = useState('All')
   const [sort, setSort] = useState('default')
 
   useEffect(() => {
@@ -173,15 +174,56 @@ function BazaarCatalog({ products = [], onQuickView }) {
     }
   }, [queryParam])
 
+  const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
+
+  const categories = useMemo(() => {
+    const cats = new Set()
+    ;(products || []).forEach(p => {
+      cats.add(getCategoryDisplay(p))
+    })
+    return ['All', ...Array.from(cats)]
+  }, [products, customCatalogues])
+
   const filtered = useMemo(() => {
-    let list = products.filter(p => (p.name || '').toLowerCase().includes(search.toLowerCase()))
+    let list = products.filter(p => {
+      const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase())
+      const cat = getCategoryDisplay(p)
+      const matchCat = selectedCategory === 'All' || cat === selectedCategory
+      return matchSearch && matchCat
+    })
     if (sort === 'low') list = [...list].sort((a, b) => Number(a.base_price || a.price || 0) - Number(b.base_price || b.price || 0))
     if (sort === 'high') list = [...list].sort((a, b) => Number(b.base_price || b.price || 0) - Number(a.base_price || a.price || 0))
     return list
-  }, [products, search, sort])
+  }, [products, search, selectedCategory, sort, customCatalogues])
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-8">
+      {/* Category Pills */}
+      {categories.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-6" style={{ scrollbarWidth: 'none' }}>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                selectedCategory === cat
+                  ? 'bg-[#FF6B35] text-white shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">

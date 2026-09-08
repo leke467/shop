@@ -46,6 +46,7 @@ export default function ShopPage() {
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('products')
+  const [selectedCategory, setSelectedCategory] = useState('All')
   const [loading, setLoading] = useState(true)
   const { user } = useUser()
   const { activeTemplateShop, setActiveTemplateShop } = useShop() || {}
@@ -168,6 +169,28 @@ export default function ShopPage() {
   const primaryColor = theme.primary_color || '#4f46e5'
   const textColor = theme.text_color || '#111827'
   const mutedTextColor = theme.muted_text_color || '#6B7280'
+
+  const customCatalogues = theme.extra_tokens?.custom_catalogues || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
+
+  const categories = useMemo(() => {
+    const cats = new Set()
+    ;(products || []).forEach(p => {
+      cats.add(getCategoryDisplay(p))
+    })
+    return ['All', ...Array.from(cats)]
+  }, [products, customCatalogues])
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === 'All') return products
+    return (products || []).filter(p => getCategoryDisplay(p) === selectedCategory)
+  }, [products, selectedCategory, customCatalogues])
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16 relative">
@@ -430,14 +453,32 @@ export default function ShopPage() {
         <AnimatePresence mode="wait">
           {tab === 'products' && (
             <motion.div key="products" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              {products.length > 0 ? (
+              {categories.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6" style={{ scrollbarWidth: 'none' }}>
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-sm ${
+                        selectedCategory === cat
+                          ? 'text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                      }`}
+                      style={selectedCategory === cat ? { backgroundColor: primaryColor } : {}}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-16">
-                  {products.map(p => <ProductCard key={p.slug || p.public_id} product={p} />)}
+                  {filteredProducts.map(p => <ProductCard key={p.slug || p.public_id} product={p} />)}
                 </div>
               ) : (
-                <div className="text-center py-20">
+                <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 mb-16">
                   <div className="text-5xl mb-3">📦</div>
-                  <p className="text-gray-500">This shop hasn't added products yet.</p>
+                  <p className="text-gray-500 font-medium">No products found in this category.</p>
                 </div>
               )}
             </motion.div>

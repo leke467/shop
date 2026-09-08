@@ -73,7 +73,7 @@ export default function DepartmentApp({ shop, products = [], reviews = [], shopS
         </Routes>
       </main>
 
-      {quickView && <DeptModal product={quickView} onClose={() => setQuickView(null)} />}
+      {quickView && <DeptModal product={quickView} onClose={() => setQuickView(null)} shop={shop} />}
       <DeptCart shop={shop} shopSlug={shopSlug} />
 
       <TemplateFooterView shop={shop} shopSlug={shopSlug} theme="default" setIsCartOpen={setIsCartOpen} />
@@ -124,20 +124,29 @@ function DeptCatalog({ shop, products = [], onQuickView }) {
   const [sort, setSort] = useState('default')
   const [cols, setCols] = useState(3)
 
+  const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
+
   const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category?.name || 'General'))
+    const cats = new Set((products || []).map(p => getCategoryDisplay(p)))
     return ['All', ...Array.from(cats)]
-  }, [products])
+  }, [products, customCatalogues])
 
   const filtered = useMemo(() => {
     let list = products
-    if (selectedCat !== 'All') list = list.filter(p => (p.category?.name || 'General') === selectedCat)
+    if (selectedCat !== 'All') list = list.filter(p => getCategoryDisplay(p) === selectedCat)
     if (search) list = list.filter(p => (p.name || '').toLowerCase().includes(search.toLowerCase()))
     if (sort === 'low') list = [...list].sort((a, b) => Number(a.base_price || a.price || 0) - Number(b.base_price || b.price || 0))
     if (sort === 'high') list = [...list].sort((a, b) => Number(b.base_price || b.price || 0) - Number(a.base_price || a.price || 0))
     if (sort === 'name') list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     return list
-  }, [products, selectedCat, search, sort])
+  }, [products, selectedCat, search, sort, customCatalogues])
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -212,7 +221,7 @@ function DeptCatalog({ shop, products = [], onQuickView }) {
                     </button>
                   </div>
                   <div className="p-3 space-y-1">
-                    <span className="text-[9px] text-gray-400 uppercase">{p.category?.name || 'General'}</span>
+                    <span className="text-[9px] text-gray-400 uppercase">{getCategoryDisplay(p)}</span>
                     <h3 className="text-xs font-semibold text-gray-800 line-clamp-2">{p.name}</h3>
                     <div className="flex items-center justify-between pt-1">
                       <span className="font-bold text-sm text-[#1B3A5C]">₦{price.toLocaleString()}</span>
@@ -232,13 +241,16 @@ function DeptCatalog({ shop, products = [], onQuickView }) {
   )
 }
 
-function DeptModal({ product, onClose }) {
+function DeptModal({ product, onClose, shop }) {
   const { addToCart } = useCart()
   const [quantity, setQuantity] = useState(1)
   if (!product) return null
   const price = Number(product.base_price || product.price || 0)
   const img = product.primary_image || product.image || product.images?.[0]?.medium || product.images?.[0]?.image
   const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
+  const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || {}
+  const rawCat = product.category?.name || product.category_name || product.category
+  const categoryDisplay = rawCat ? (customCatalogues[rawCat] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(rawCat).toLowerCase())?.[1] || rawCat) : 'Uncategorized'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
@@ -249,7 +261,7 @@ function DeptModal({ product, onClose }) {
             <img src={imgSrc} alt={product.name} className="w-full h-full object-cover" />
           </div>
         )}
-        <span className="text-[9px] text-gray-400 uppercase font-semibold">{product.category?.name || 'General'}</span>
+        <span className="text-[9px] text-gray-400 uppercase font-semibold">{categoryDisplay}</span>
         <h2 className="text-lg font-bold mt-1 mb-2 text-gray-900">{product.name}</h2>
         <p className="text-sm text-gray-600 mb-4">{product.description || 'Quality department merchandise.'}</p>
         

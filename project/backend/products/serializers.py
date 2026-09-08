@@ -66,6 +66,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     shop_logo = serializers.SerializerMethodField()
     shop_status = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
+    category = serializers.PrimaryKeyRelatedField(read_only=True)
     primary_image = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
     inventory_quantity = serializers.SerializerMethodField()
@@ -79,7 +80,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "has_variants", "variant_attributes",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
-            "shop_name", "shop_slug", "shop_logo", "shop_status", "category_name", "primary_image",
+            "shop_name", "shop_slug", "shop_logo", "shop_status", "category", "category_name", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields

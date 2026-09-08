@@ -162,6 +162,7 @@ function getInitialFormForTemplate(schema, shop, tokens = {}, currentTemplateId)
       : (tokens.logo_url !== undefined ? tokens.logo_url : (shop?.logo || '')),
     logo_position: tokens[`${currentTemplateId}_logo_position`] || tokens.logo_position || 'left',
     footer_note: tokens[`${currentTemplateId}_footer_note`] || (tokens.template_id === currentTemplateId ? tokens.footer_note : '') || '',
+    custom_catalogues: tokens[`${currentTemplateId}_custom_catalogues`] || tokens.custom_catalogues || {},
   }
 }
 
@@ -170,6 +171,8 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [newCatOriginal, setNewCatOriginal] = useState('')
+  const [newCatAlias, setNewCatAlias] = useState('')
 
   const currentTemplateId = templateId || shop?.template_id || 'default'
   const schema = getTemplateSchema(currentTemplateId)
@@ -353,10 +356,12 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
         logo_url: finalLogoUrl,
         logo_position: form.logo_position || 'left',
         footer_note: form.footer_note,
+        custom_catalogues: form.custom_catalogues || {},
 
         // Scoped overrides per template - ensures 100% isolation across templates
         [`${targetTemplate}_categories_title`]: form.categories_title,
         [`${targetTemplate}_categories_subtitle`]: form.categories_subtitle,
+        [`${targetTemplate}_custom_catalogues`]: form.custom_catalogues || {},
         [`${targetTemplate}_featured_title`]: form.featured_title,
         [`${targetTemplate}_featured_subtitle`]: form.featured_subtitle,
         [`${targetTemplate}_testimonials_title`]: form.testimonials_title,
@@ -739,6 +744,96 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                       className="w-full px-3.5 py-2.5 bg-white text-gray-900 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none text-xs sm:text-sm font-medium"
                       placeholder={schema.sections.categoriesSubtitleDefault || schema.tagline || 'Catalog description'}
                     />
+                  </div>
+
+                  {/* Custom Catalogue / Category Display Names */}
+                  <div className="pt-3 border-t border-gray-200 space-y-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span>🏷️</span> Storefront Catalogue Filter Tabs & Names
+                      </h4>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        Change how product categories appear in your template's catalogue navigation pills (e.g. rename "Men's Fashion" to "Suits & Formalwear").
+                      </p>
+                    </div>
+
+                    {/* Active Aliases */}
+                    <div className="space-y-1.5">
+                      {Object.entries(form.custom_catalogues || {}).length === 0 ? (
+                        <div className="text-[11px] text-gray-400 italic bg-white p-2.5 rounded-xl border border-gray-100 text-center">
+                          Standard category names will be used for your store's filter tabs.
+                        </div>
+                      ) : (
+                        Object.entries(form.custom_catalogues || {}).map(([orig, alias]) => (
+                          <div key={orig} className="flex items-center justify-between gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm text-xs">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="font-semibold text-gray-700 truncate">{orig}</span>
+                              <span className="text-gray-400">➔</span>
+                              <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 truncate">{alias}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm(prev => {
+                                  const next = { ...(prev.custom_catalogues || {}) }
+                                  delete next[orig]
+                                  return { ...prev, custom_catalogues: next }
+                                })
+                              }}
+                              className="text-gray-400 hover:text-red-500 px-1.5 py-0.5 font-bold text-xs"
+                              title="Delete alias"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add Alias Controls */}
+                    <div className="bg-white p-2.5 rounded-xl border border-gray-200 space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Product Category</label>
+                          <input
+                            type="text"
+                            value={newCatOriginal}
+                            onChange={e => setNewCatOriginal(e.target.value)}
+                            placeholder="e.g. Men's Fashion"
+                            className="w-full px-2.5 py-1.5 bg-gray-50 text-gray-900 rounded-lg border border-gray-300 focus:ring-1 focus:ring-amber-500 outline-none text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Custom Storefront Tab Name</label>
+                          <input
+                            type="text"
+                            value={newCatAlias}
+                            onChange={e => setNewCatAlias(e.target.value)}
+                            placeholder="e.g. Suits & Blazers"
+                            className="w-full px-2.5 py-1.5 bg-gray-50 text-gray-900 rounded-lg border border-gray-300 focus:ring-1 focus:ring-amber-500 outline-none text-xs font-semibold text-amber-900"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newCatOriginal.trim() || !newCatAlias.trim()) return
+                          setForm(prev => ({
+                            ...prev,
+                            custom_catalogues: {
+                              ...(prev.custom_catalogues || {}),
+                              [newCatOriginal.trim()]: newCatAlias.trim()
+                            }
+                          }))
+                          setNewCatOriginal('')
+                          setNewCatAlias('')
+                        }}
+                        disabled={!newCatOriginal.trim() || !newCatAlias.trim()}
+                        className="w-full py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
+                      >
+                        + Set Custom Catalogue Tab
+                      </button>
+                    </div>
                   </div>
                 </div>
 

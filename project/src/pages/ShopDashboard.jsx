@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shopAPI, productAPI, getImageUrl, handleImageError, getProductPlaceholderUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
+import { shopAPI, productAPI, searchAPI, getImageUrl, handleImageError, getProductPlaceholderUrl, orderAPI, payoutAPI, bulkAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import LimitReachedModal, { extractLimitError } from '../components/subscription/LimitReachedModal'
 import CustomDomainManager from '../components/shop/CustomDomainManager'
@@ -149,9 +149,43 @@ const NIGERIAN_BANKS = [
   { name: 'FairMoney MFB', code: '51318' }
 ]
 
+const DEFAULT_GLOBAL_CATEGORIES = [
+  { id: 'arts-crafts', name: 'Arts & Crafts' },
+  { id: 'automotive', name: 'Automotive' },
+  { id: 'baby', name: 'Baby' },
+  { id: 'beauty', name: 'Beauty & Personal Care' },
+  { id: 'books', name: 'Books' },
+  { id: 'boys-fashion', name: "Boys' Fashion" },
+  { id: 'computers', name: 'Computers & Tech' },
+  { id: 'electronics', name: 'Electronics' },
+  { id: 'girls-fashion', name: "Girls' Fashion" },
+  { id: 'health', name: 'Health & Household' },
+  { id: 'home-kitchen', name: 'Home & Kitchen' },
+  { id: 'industrial', name: 'Industrial & Scientific' },
+  { id: 'luggage', name: 'Luggage & Travel' },
+  { id: 'mens-fashion', name: "Men's Fashion" },
+  { id: 'movies-tv', name: 'Movies & TV' },
+  { id: 'music', name: 'Music & Audio' },
+  { id: 'pet-supplies', name: 'Pet Supplies' },
+  { id: 'sports', name: 'Sports & Outdoors' },
+  { id: 'tools', name: 'Tools & Home Improvement' },
+  { id: 'toys-games', name: 'Toys & Games' },
+  { id: 'video-games', name: 'Video Games' },
+  { id: 'womens-fashion', name: "Women's Fashion" },
+  { id: 'food-beverages', name: 'Food & Beverages' },
+  { id: 'jewelry-watches', name: 'Jewelry & Watches' },
+  { id: 'office-products', name: 'Office Products' },
+  { id: 'laptops', name: 'Laptops' },
+  { id: 'desktops', name: 'Desktops' },
+  { id: 'monitors', name: 'Monitors' },
+  { id: 'peripherals', name: 'Peripherals' },
+  { id: 'accessories', name: 'Accessories' },
+]
+
 const defaultProductForm = {
   name: '',
   description: '',
+  category: '',
   base_price: '',
   stock: 100,
   status: 'active',
@@ -222,6 +256,9 @@ export default function ShopDashboard() {
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
 
+  // Global Categories for product form
+  const [globalCategories, setGlobalCategories] = useState([])
+
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
     primary_color: '#2563EB',
@@ -280,6 +317,22 @@ export default function ShopDashboard() {
       })
     }
   }, [shop])
+
+  // Fetch global categories for product category picker
+  useEffect(() => {
+    searchAPI.categories().then(cats => {
+      // Flatten tree: extract top-level + children
+      const flat = []
+      const walk = (list) => {
+        (list || []).forEach(c => {
+          flat.push({ id: c.id, name: c.name, slug: c.slug })
+          if (c.children?.length) walk(c.children)
+        })
+      }
+      walk(Array.isArray(cats) ? cats : cats?.results || [])
+      setGlobalCategories(flat)
+    }).catch(() => {})
+  }, [])
 
   const handleSaveShopDetails = async (e) => {
     e.preventDefault()
@@ -503,7 +556,8 @@ export default function ShopDashboard() {
       let savedProduct;
       const { imageFiles, ...payload } = productForm;
 
-      // Ensure variants and visibility payload formatting
+      // Ensure category, variants, and visibility payload formatting
+      payload.category = productForm.category ? Number(productForm.category) : null
       payload.is_marketplace_visible = productForm.is_marketplace_visible !== undefined ? !!productForm.is_marketplace_visible : true
       payload.has_variants = !!productForm.has_variants
       payload.variants_data = productForm.has_variants ? (productForm.variants_data || []) : []
@@ -561,6 +615,7 @@ export default function ShopDashboard() {
     setProductForm({
       name: product.name || '',
       description: product.description || '',
+      category: product.category?.id || product.category || '',
       base_price: product.base_price || '',
       stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
       status: product.status || 'active',
@@ -1716,6 +1771,26 @@ export default function ShopDashboard() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                     <textarea rows={4} value={productForm.description} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all resize-none" placeholder="Describe your product…" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Category & Catalogue <span className="text-xs font-normal text-gray-500">(MultiShop Marketplace & Storefront Filter)</span>
+                    </label>
+                    <select
+                      value={productForm.category || ''}
+                      onChange={e => setProductForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium"
+                    >
+                      <option value="">Select a Category / Catalogue...</option>
+                      {(globalCategories.length > 0 ? globalCategories : DEFAULT_GLOBAL_CATEGORIES).map(cat => (
+                        <option key={cat.id || cat.slug || cat.name} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      Assigning a category makes your product searchable on MultiShop and generates the filter pills in your storefront template.
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>

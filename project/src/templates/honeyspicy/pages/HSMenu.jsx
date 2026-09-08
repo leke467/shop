@@ -16,15 +16,27 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
   const extra = shop?.theme?.extra_tokens || {}
   const menuTitle = extra.categories_title || extra.honeyspicy_categories_title || 'Our Menu'
   const menuSubtitle = extra.categories_subtitle || extra.honeyspicy_categories_subtitle || 'Discover our delicious gourmet selection made with love'
+  const customCatalogues = extra.custom_catalogues || extra[`${extra.template_id || 'honeyspicy'}_custom_catalogues`] || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p.category?.name || p.category_name || p.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
 
   const categories = useMemo(() => {
-    const cats = new Set((products || []).map(p => p.category_name || p.category || 'Other'))
+    const cats = new Set()
+    ;(products || []).forEach(p => {
+      cats.add(getCategoryDisplay(p))
+    })
     return ['All', ...Array.from(cats)]
-  }, [products])
+  }, [products, customCatalogues])
 
   const filtered = useMemo(() => {
     let list = (products || []).filter(p => {
-      const matchCat = activeCategory === 'All' || (p.category_name || p.category || 'Other') === activeCategory
+      const cat = getCategoryDisplay(p)
+      const matchCat = activeCategory === 'All' || cat === activeCategory
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.description || '').toLowerCase().includes(search.toLowerCase())
       return matchCat && matchSearch
@@ -37,7 +49,7 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
     }
 
     return list
-  }, [products, activeCategory, search, sort])
+  }, [products, activeCategory, search, sort, customCatalogues])
 
   return (
     <HSPageTransition>
@@ -127,7 +139,7 @@ export default function HSMenu({ shop, products = [], shopSlug }) {
                     <motion.div className="hs-menu-item" whileHover={{ y: -10, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
                       <div className="hs-menu-item-image" style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setQuickViewProduct(product)}>
                         {imgUrl ? <img src={imgUrl} alt={product.name} onError={(e) => handleImageError(e, 'product')} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>📦</div>}
-                        <div className="hs-menu-item-tag">{product.category_name || product.category || 'Other'}</div>
+                        <div className="hs-menu-item-tag">{getCategoryDisplay(product)}</div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setQuickViewProduct(product); }}
                           style={{
