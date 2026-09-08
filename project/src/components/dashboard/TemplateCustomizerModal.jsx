@@ -750,18 +750,18 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                   <div className="pt-3 border-t border-gray-200 space-y-3">
                     <div>
                       <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                        <span>🏷️</span> Storefront Catalogue Filter Tabs & Names
+                        <span>🏷️</span> Storefront Catalogue Tab Names
                       </h4>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        Change how product categories appear in your template's catalogue navigation pills (e.g. rename "Men's Fashion" to "Suits & Formalwear").
+                        Rename any category or catalogue filter tab on this storefront template.
                       </p>
                     </div>
 
-                    {/* Active Aliases */}
+                    {/* Active Custom Tab Names */}
                     <div className="space-y-1.5">
                       {Object.entries(form.custom_catalogues || {}).length === 0 ? (
                         <div className="text-[11px] text-gray-400 italic bg-white p-2.5 rounded-xl border border-gray-100 text-center">
-                          Standard category names will be used for your store's filter tabs.
+                          Standard category and catalogue names are used for your store's filter tabs.
                         </div>
                       ) : (
                         Object.entries(form.custom_catalogues || {}).map(([orig, alias]) => (
@@ -790,26 +790,26 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                       )}
                     </div>
 
-                    {/* Add Alias Controls */}
+                    {/* Add / Rename Tab Controls */}
                     <div className="bg-white p-2.5 rounded-xl border border-gray-200 space-y-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Product Category</label>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Original Category / Tab Name</label>
                           <input
                             type="text"
                             value={newCatOriginal}
                             onChange={e => setNewCatOriginal(e.target.value)}
-                            placeholder="e.g. Men's Fashion"
+                            placeholder="Current tab name to rename..."
                             className="w-full px-2.5 py-1.5 bg-gray-50 text-gray-900 rounded-lg border border-gray-300 focus:ring-1 focus:ring-amber-500 outline-none text-xs"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Custom Storefront Tab Name</label>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-0.5">New Storefront Display Name</label>
                           <input
                             type="text"
                             value={newCatAlias}
                             onChange={e => setNewCatAlias(e.target.value)}
-                            placeholder="e.g. Suits & Blazers"
+                            placeholder="New name to show on your store..."
                             className="w-full px-2.5 py-1.5 bg-gray-50 text-gray-900 rounded-lg border border-gray-300 focus:ring-1 focus:ring-amber-500 outline-none text-xs font-semibold text-amber-900"
                           />
                         </div>
@@ -831,7 +831,7 @@ export default function TemplateCustomizerModal({ shop, templateId, isOpen, onCl
                         disabled={!newCatOriginal.trim() || !newCatAlias.trim()}
                         className="w-full py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
                       >
-                        + Set Custom Catalogue Tab
+                        + Set Custom Tab Name
                       </button>
                     </div>
                   </div>

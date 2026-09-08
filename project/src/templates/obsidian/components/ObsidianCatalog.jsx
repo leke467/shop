@@ -16,7 +16,7 @@ export default function ObsidianCatalog({ products = [], shop, onQuickView }) {
   const customCatalogues = shop?.theme?.extra_tokens?.custom_catalogues || extra[`${extra.template_id || 'obsidian'}_custom_catalogues`] || {}
 
   const getCategoryDisplay = (p) => {
-    const raw = p.category?.name || p.category_name || p.category
+    const raw = p.store_catalogue || p.category?.name || p.category_name || p.category
     if (!raw) return 'Uncategorized'
     const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
     return custom || raw

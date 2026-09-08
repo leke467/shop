@@ -80,7 +80,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "has_variants", "variant_attributes",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
-            "shop_name", "shop_slug", "shop_logo", "shop_status", "category", "category_name", "primary_image",
+            "shop_name", "shop_slug", "shop_logo", "shop_status", "category", "category_name", "store_catalogue", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
@@ -191,7 +191,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "allow_custom_measurements", "custom_measurement_type",
             "custom_measurement_prompt", "custom_measurement_required",
             "rating_average", "rating_count", "view_count", "purchase_count",
-            "shop_name", "shop_slug", "shop_logo", "category",
+            "shop_name", "shop_slug", "shop_logo", "category", "store_catalogue",
             "variants", "images", "is_locked",
             "inventory_quantity", "is_out_of_stock",
             "created_at", "updated_at",
@@ -251,7 +251,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            "public_id", "name", "slug", "description", "category",
+            "public_id", "name", "slug", "description", "category", "store_catalogue",
             "base_price", "compare_at_price", "currency",
             "status", "is_featured", "is_marketplace_visible", "tags", "stock",
             "has_variants", "variant_attributes", "variants_data",

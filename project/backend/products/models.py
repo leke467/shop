@@ -94,6 +94,12 @@ class Product(BaseModel, SoftDeleteModel):
         blank=True,
         related_name="products",
     )
+    store_catalogue = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Storefront specific catalogue tab e.g. Cakes, Parfaits, Sweets",
+    )
     tags = models.JSONField(default=list, blank=True)
 
     # Base price is a display/fallback; variants hold authoritative pricing.

@@ -186,6 +186,7 @@ const defaultProductForm = {
   name: '',
   description: '',
   category: '',
+  store_catalogue: '',
   base_price: '',
   stock: 100,
   status: 'active',
@@ -258,6 +259,15 @@ export default function ShopDashboard() {
 
   // Global Categories for product form
   const [globalCategories, setGlobalCategories] = useState([])
+
+  // Existing store-specific catalogues used across this shop's products
+  const existingStoreCatalogues = useMemo(() => {
+    const set = new Set()
+    ;(products || []).forEach(p => {
+      if (p.store_catalogue?.trim()) set.add(p.store_catalogue.trim())
+    })
+    return Array.from(set)
+  }, [products])
 
   // Theme Builder State
   const [themeForm, setThemeForm] = useState({
@@ -556,8 +566,9 @@ export default function ShopDashboard() {
       let savedProduct;
       const { imageFiles, ...payload } = productForm;
 
-      // Ensure category, variants, and visibility payload formatting
+      // Ensure category, store_catalogue, variants, and visibility payload formatting
       payload.category = productForm.category ? Number(productForm.category) : null
+      payload.store_catalogue = (productForm.store_catalogue || '').trim()
       payload.is_marketplace_visible = productForm.is_marketplace_visible !== undefined ? !!productForm.is_marketplace_visible : true
       payload.has_variants = !!productForm.has_variants
       payload.variants_data = productForm.has_variants ? (productForm.variants_data || []) : []
@@ -616,6 +627,7 @@ export default function ShopDashboard() {
       name: product.name || '',
       description: product.description || '',
       category: product.category?.id || product.category || '',
+      store_catalogue: product.store_catalogue || '',
       base_price: product.base_price || '',
       stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
       status: product.status || 'active',
@@ -1772,25 +1784,49 @@ export default function ShopDashboard() {
                     <textarea rows={4} value={productForm.description} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all resize-none" placeholder="Describe your product…" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Category & Catalogue <span className="text-xs font-normal text-gray-500">(MultiShop Marketplace & Storefront Filter)</span>
-                    </label>
-                    <select
-                      value={productForm.category || ''}
-                      onChange={e => setProductForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium"
-                    >
-                      <option value="">Select a Category / Catalogue...</option>
-                      {(globalCategories.length > 0 ? globalCategories : DEFAULT_GLOBAL_CATEGORIES).map(cat => (
-                        <option key={cat.id || cat.slug || cat.name} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1.5">
-                      Assigning a category makes your product searchable on MultiShop and generates the filter pills in your storefront template.
-                    </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        MultiShop Category <span className="text-xs font-normal text-gray-500">(Marketplace Discovery)</span>
+                      </label>
+                      <select
+                        value={productForm.category || ''}
+                        onChange={e => setProductForm(f => ({ ...f, category: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium text-sm"
+                      >
+                        <option value="">Select Marketplace Category...</option>
+                        {(globalCategories.length > 0 ? globalCategories : DEFAULT_GLOBAL_CATEGORIES).map(cat => (
+                          <option key={cat.id || cat.slug || cat.name} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Used for marketplace search and discovery across MultiShop.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Your Store Catalogue Tab <span className="text-xs font-normal text-gray-500">(Personal Storefront)</span>
+                      </label>
+                      <input
+                        type="text"
+                        list="store-catalogues-datalist"
+                        value={productForm.store_catalogue || ''}
+                        onChange={e => setProductForm(f => ({ ...f, store_catalogue: e.target.value }))}
+                        placeholder="e.g. New Arrivals, Collection name, Item type..."
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm"
+                      />
+                      <datalist id="store-catalogues-datalist">
+                        {existingStoreCatalogues.map(cat => (
+                          <option key={cat} value={cat} />
+                        ))}
+                      </datalist>
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Creates the filter tab on your personal storefront. Leave blank to use the category above.
+                      </p>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
