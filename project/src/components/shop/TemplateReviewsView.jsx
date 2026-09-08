@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { shopAPI } from '../../services/api'
 
 /**
@@ -13,6 +13,21 @@ export default function TemplateReviewsView({ reviews = [], shop, shopSlug, them
   const [error, setError] = useState('')
 
   const slug = shopSlug || shop?.slug || ''
+
+  useEffect(() => {
+    if (reviews && reviews.length > 0) {
+      setReviewList(reviews)
+    } else if (slug) {
+      shopAPI.reviews(slug)
+        .then(data => {
+          const list = Array.isArray(data) ? data : (data?.results || [])
+          if (list.length > 0) {
+            setReviewList(list)
+          }
+        })
+        .catch(err => console.warn('Could not fetch reviews:', err))
+    }
+  }, [reviews, slug])
 
   const avgRating = reviewList.length > 0
     ? (reviewList.reduce((acc, r) => acc + Number(r.rating || 5), 0) / reviewList.length).toFixed(1)

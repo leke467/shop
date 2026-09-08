@@ -425,12 +425,19 @@ class ShopOrdersView(APIView):
             data.append({
                 "group_id": g.id,
                 "order_id": str(g.order.public_id),
-                "buyer_email": g.order.user.email,
-                "buyer_name": g.order.shipping_full_name,
+                "buyer_user_id": g.order.user.id if g.order.user else None,
+                "buyer_email": g.order.user.email if g.order.user else "",
+                "buyer_name": g.order.shipping_full_name or (g.order.user.get_full_name() if g.order.user else "Customer"),
+                "buyer_phone": g.order.shipping_phone or (getattr(g.order.user, "phone", "") if g.order.user else ""),
+                "shipping_line1": g.order.shipping_line1,
+                "shipping_city": g.order.shipping_city,
+                "shipping_state": g.order.shipping_state,
+                "notes": g.order.notes,
                 "status": g.status,
                 "escrow_status": g.escrow_status,
                 "subtotal": str(g.subtotal),
                 "shipping_total": str(g.shipping_total),
+                "commission_fee": str(g.commission_fee),
                 "delivery_code_confirmed": g.delivery_code_confirmed_at is not None,
                 "created_at": g.created_at.isoformat(),
                 "items": [
@@ -440,6 +447,7 @@ class ShopOrdersView(APIView):
                         "quantity": item.quantity,
                         "unit_price": str(item.unit_price),
                         "line_total": str(item.line_total),
+                        "custom_measurements": item.custom_measurements,
                     }
                     for item in g.items.all()
                 ],

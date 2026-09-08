@@ -146,6 +146,11 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             "facebook": obj.facebook_url,
             "instagram": obj.instagram_url,
             "twitter": obj.twitter_url,
+            "tiktok": getattr(obj, "tiktok_url", ""),
+            "youtube": getattr(obj, "youtube_url", ""),
+            "whatsapp": getattr(obj, "whatsapp_number", ""),
+            "linkedin": getattr(obj, "linkedin_url", ""),
+            "pinterest": getattr(obj, "pinterest_url", ""),
             "website": obj.website_url,
         }
         
@@ -163,7 +168,9 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             "name", "slug", "tagline", "description",
             "logo", "banner", "email", "phone", "address", "country",
-            "facebook_url", "instagram_url", "twitter_url", "website_url",
+            "facebook_url", "instagram_url", "twitter_url",
+            "tiktok_url", "youtube_url", "whatsapp_number", "linkedin_url", "pinterest_url",
+            "website_url",
             "enable_product_listings", "enable_custom_orders",
             "enable_reviews", "enable_contact",
             "enable_shipping", "enable_social_links",
@@ -187,6 +194,11 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             "facebook_url": {"required": False, "allow_blank": True},
             "instagram_url": {"required": False, "allow_blank": True},
             "twitter_url": {"required": False, "allow_blank": True},
+            "tiktok_url": {"required": False, "allow_blank": True},
+            "youtube_url": {"required": False, "allow_blank": True},
+            "whatsapp_number": {"required": False, "allow_blank": True},
+            "linkedin_url": {"required": False, "allow_blank": True},
+            "pinterest_url": {"required": False, "allow_blank": True},
             "website_url": {"required": False, "allow_blank": True},
             "template_id": {"required": False, "allow_blank": True},
         }
@@ -266,18 +278,21 @@ class ShopKYCSerializer(serializers.ModelSerializer):
 
 class ShopReviewSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ShopReview
         fields = (
-            "id", "shop", "user", "user_email",
+            "id", "shop", "user", "user_email", "user_name",
             "rating", "comment", "created_at",
         )
-        read_only_fields = ("id", "user", "created_at")
+        read_only_fields = ("id", "shop", "user", "user_email", "user_name", "created_at")
 
-    def create(self, validated_data):
-        validated_data["user"] = self.context["request"].user
-        return super().create(validated_data)
+    def get_user_name(self, obj):
+        if obj.user:
+            full = f"{obj.user.first_name} {obj.user.last_name}".strip()
+            return full or obj.user.username or obj.user.email.split("@")[0]
+        return "Verified Customer"
 
 
 # ---------------------------------------------------------------------------

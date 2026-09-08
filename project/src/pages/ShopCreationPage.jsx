@@ -179,6 +179,10 @@ function ShopCreationPage() {
       if (formData.socialLinks.facebook) payload.append('facebook_url', formatUrl(formData.socialLinks.facebook))
       if (formData.socialLinks.instagram) payload.append('instagram_url', formatUrl(formData.socialLinks.instagram))
       if (formData.socialLinks.twitter) payload.append('twitter_url', formatUrl(formData.socialLinks.twitter))
+      if (formData.socialLinks.tiktok) payload.append('tiktok_url', formatUrl(formData.socialLinks.tiktok))
+      if (formData.socialLinks.youtube) payload.append('youtube_url', formatUrl(formData.socialLinks.youtube))
+      if (formData.socialLinks.whatsapp) payload.append('whatsapp_number', formData.socialLinks.whatsapp.trim())
+      if (formData.socialLinks.linkedin) payload.append('linkedin_url', formatUrl(formData.socialLinks.linkedin))
     }
 
     setSubmitting(true)
@@ -590,16 +594,64 @@ function ShopCreationPage() {
                         <FieldError field="instagram_url" />
                       </div>
                       <div>
-                        <label htmlFor="twitter" className="block text-sm font-medium text-gray-700">Twitter URL</label>
+                        <label htmlFor="twitter" className="block text-sm font-medium text-gray-700">Twitter / X URL</label>
                         <input 
                           type="url" 
                           id="twitter" 
                           value={formData.socialLinks.twitter}
                           onChange={(e) => updateNestedForm('socialLinks', 'twitter', e.target.value)}
                           className={`input mt-1 ${fieldErrors.twitter_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
-                          placeholder="https://twitter.com/youraccount"
+                          placeholder="https://x.com/youraccount"
                         />
                         <FieldError field="twitter_url" />
+                      </div>
+                      <div>
+                        <label htmlFor="tiktok" className="block text-sm font-medium text-gray-700">TikTok URL</label>
+                        <input 
+                          type="url" 
+                          id="tiktok" 
+                          value={formData.socialLinks.tiktok}
+                          onChange={(e) => updateNestedForm('socialLinks', 'tiktok', e.target.value)}
+                          className={`input mt-1 ${fieldErrors.tiktok_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                          placeholder="https://tiktok.com/@yourbrand"
+                        />
+                        <FieldError field="tiktok_url" />
+                      </div>
+                      <div>
+                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700">WhatsApp Number or Link</label>
+                        <input 
+                          type="text" 
+                          id="whatsapp" 
+                          value={formData.socialLinks.whatsapp}
+                          onChange={(e) => updateNestedForm('socialLinks', 'whatsapp', e.target.value)}
+                          className={`input mt-1 ${fieldErrors.whatsapp_number ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                          placeholder="08012345678 or https://wa.me/2348012345678"
+                        />
+                        <FieldError field="whatsapp_number" />
+                      </div>
+                      <div>
+                        <label htmlFor="youtube" className="block text-sm font-medium text-gray-700">YouTube Channel URL</label>
+                        <input 
+                          type="url" 
+                          id="youtube" 
+                          value={formData.socialLinks.youtube}
+                          onChange={(e) => updateNestedForm('socialLinks', 'youtube', e.target.value)}
+                          className={`input mt-1 ${fieldErrors.youtube_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                          placeholder="https://youtube.com/@yourchannel"
+                        />
+                        <FieldError field="youtube_url" />
+                      </div>
+                      <div>
+                        <label htmlFor="linkedin" className="block text-sm font-medium text-gray-700">LinkedIn Profile URL</label>
+                        <input 
+                          type="url" 
+                          id="linkedin" 
+                          value={formData.socialLinks.linkedin}
+                          onChange={(e) => updateNestedForm('socialLinks', 'linkedin', e.target.value)}
+                          className={`input mt-1 ${fieldErrors.linkedin_url ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                          placeholder="https://linkedin.com/company/yourpage"
+                        />
+                        <FieldError field="linkedin_url" />
                       </div>
                     </div>
                   </div>

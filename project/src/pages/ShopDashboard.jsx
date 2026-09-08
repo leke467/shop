@@ -250,6 +250,13 @@ export default function ShopDashboard() {
     email: '',
     address: '',
     status: 'draft',
+    facebook_url: '',
+    instagram_url: '',
+    twitter_url: '',
+    tiktok_url: '',
+    whatsapp_number: '',
+    youtube_url: '',
+    linkedin_url: '',
   })
   const [savingShopInfo, setSavingShopInfo] = useState(false)
 
@@ -263,6 +270,13 @@ export default function ShopDashboard() {
         email: shop.email || '',
         address: shop.address || '',
         status: shop.status || 'draft',
+        facebook_url: shop.facebook_url || '',
+        instagram_url: shop.instagram_url || '',
+        twitter_url: shop.twitter_url || '',
+        tiktok_url: shop.tiktok_url || '',
+        whatsapp_number: shop.whatsapp_number || '',
+        youtube_url: shop.youtube_url || '',
+        linkedin_url: shop.linkedin_url || '',
       })
     }
   }, [shop])
@@ -1165,10 +1179,49 @@ export default function ShopDashboard() {
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-6">
-                        <div>
-                          <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Details</h5>
-                          <p className="text-sm font-semibold text-gray-800">{order.buyer_name}</p>
-                          <p className="text-xs text-gray-500">{order.buyer_email}</p>
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer & Delivery Details</h5>
+                          <p className="text-sm font-semibold text-gray-900">{order.buyer_name || 'Customer'}</p>
+                          {order.buyer_email && (
+                            <p className="text-xs text-gray-500">{order.buyer_email}</p>
+                          )}
+                          {order.buyer_phone && (
+                            <p className="text-xs text-gray-600 flex items-center gap-1">
+                              <span>📞</span> {order.buyer_phone}
+                            </p>
+                          )}
+                          {(order.shipping_line1 || order.shipping_city || order.shipping_state) && (
+                            <p className="text-xs text-gray-600 flex items-start gap-1">
+                              <span>📍</span> {[order.shipping_line1, order.shipping_city, order.shipping_state].filter(Boolean).join(', ')}
+                            </p>
+                          )}
+                          {order.notes && (
+                            <div className="p-2.5 bg-gray-50 rounded-xl text-xs text-gray-600 border border-gray-100">
+                              <span className="font-semibold text-gray-700">Customer Note:</span> "{order.notes}"
+                            </div>
+                          )}
+
+                          {/* Direct Contact Actions */}
+                          <div className="flex flex-wrap items-center gap-2 pt-2">
+                            {order.buyer_phone && (
+                              <a
+                                href={`https://wa.me/${order.buyer_phone.replace(/[^0-9]/g, '').startsWith('0') ? '234' + order.buyer_phone.replace(/[^0-9]/g, '').slice(1) : order.buyer_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${order.buyer_name || ''}, this is ${shop.name} regarding your order #${order.order_id}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                              >
+                                <span>📱</span> WhatsApp Buyer
+                              </a>
+                            )}
+                            {order.buyer_email && (
+                              <a
+                                href={`mailto:${order.buyer_email}?subject=${encodeURIComponent(`Order #${order.order_id} - ${shop.name}`)}&body=${encodeURIComponent(`Hello ${order.buyer_name || 'Customer'},\n\nThank you for your order (#${order.order_id}) at ${shop.name}.\n\n`)}`}
+                                className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition-all flex items-center gap-1.5"
+                              >
+                                <span>✉️</span> Email Buyer
+                              </a>
+                            )}
+                          </div>
                         </div>
 
                         <div>
@@ -2612,6 +2665,83 @@ export default function ShopDashboard() {
                           placeholder="Tell customers about your store, products, and vision..."
                           className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-gray-900 bg-white resize-y"
                         />
+                      </div>
+
+                      {/* Social Media Links */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">🌐 Social Media & Contact Links</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">WhatsApp (Number or Link)</label>
+                            <input
+                              type="text"
+                              value={shopNameForm.whatsapp_number}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, whatsapp_number: e.target.value }))}
+                              placeholder="e.g. 08012345678 or https://wa.me/..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Instagram URL</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.instagram_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, instagram_url: e.target.value }))}
+                              placeholder="https://instagram.com/..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">TikTok URL</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.tiktok_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, tiktok_url: e.target.value }))}
+                              placeholder="https://tiktok.com/@..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Twitter / X URL</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.twitter_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, twitter_url: e.target.value }))}
+                              placeholder="https://x.com/..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">Facebook URL</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.facebook_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, facebook_url: e.target.value }))}
+                              placeholder="https://facebook.com/..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">YouTube Channel</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.youtube_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, youtube_url: e.target.value }))}
+                              placeholder="https://youtube.com/@..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">LinkedIn URL</label>
+                            <input
+                              type="url"
+                              value={shopNameForm.linkedin_url}
+                              onChange={(e) => setShopNameForm(prev => ({ ...prev, linkedin_url: e.target.value }))}
+                              placeholder="https://linkedin.com/..."
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 bg-white focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 

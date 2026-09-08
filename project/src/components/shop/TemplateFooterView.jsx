@@ -133,7 +133,7 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
   return (
     <footer className={styles.wrapper}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Col 1: Branding & Bio */}
+        {/* Col 1: Branding & Bio & Social Profiles */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             {shopLogo ? (
@@ -144,6 +144,92 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           <p className={styles.brandText}>{shopTagline}</p>
           {footerNote && (
             <p className="text-[11px] opacity-75 italic">{footerNote}</p>
+          )}
+
+          {/* Social Icons / Links */}
+          {(shop?.whatsapp_number || shop?.instagram_url || shop?.tiktok_url || shop?.twitter_url || shop?.facebook_url || shop?.youtube_url || shop?.linkedin_url) && (
+            <div className="pt-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1.5">Connect with us</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {shop.whatsapp_number && (
+                  <a
+                    href={`https://wa.me/${shop.whatsapp_number.replace(/[^0-9]/g, '').startsWith('0') ? '234' + shop.whatsapp_number.replace(/[^0-9]/g, '').slice(1) : shop.whatsapp_number.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="WhatsApp"
+                  >
+                    💬
+                  </a>
+                )}
+                {shop.instagram_url && (
+                  <a
+                    href={shop.instagram_url.startsWith('http') ? shop.instagram_url : `https://${shop.instagram_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="Instagram"
+                  >
+                    📸
+                  </a>
+                )}
+                {shop.tiktok_url && (
+                  <a
+                    href={shop.tiktok_url.startsWith('http') ? shop.tiktok_url : `https://${shop.tiktok_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-gray-700/40 text-cyan-300 hover:bg-cyan-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="TikTok"
+                  >
+                    🎵
+                  </a>
+                )}
+                {shop.twitter_url && (
+                  <a
+                    href={shop.twitter_url.startsWith('http') ? shop.twitter_url : `https://${shop.twitter_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="Twitter / X"
+                  >
+                    𝕏
+                  </a>
+                )}
+                {shop.facebook_url && (
+                  <a
+                    href={shop.facebook_url.startsWith('http') ? shop.facebook_url : `https://${shop.facebook_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="Facebook"
+                  >
+                    f
+                  </a>
+                )}
+                {shop.youtube_url && (
+                  <a
+                    href={shop.youtube_url.startsWith('http') ? shop.youtube_url : `https://${shop.youtube_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="YouTube"
+                  >
+                    ▶
+                  </a>
+                )}
+                {shop.linkedin_url && (
+                  <a
+                    href={shop.linkedin_url.startsWith('http') ? shop.linkedin_url : `https://${shop.linkedin_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs transition-all"
+                    title="LinkedIn"
+                  >
+                    in
+                  </a>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

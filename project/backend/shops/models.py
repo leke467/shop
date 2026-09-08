@@ -106,6 +106,11 @@ class Shop(BaseModel, SoftDeleteModel):
     facebook_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
     twitter_url = models.URLField(blank=True)
+    tiktok_url = models.URLField(blank=True)
+    youtube_url = models.URLField(blank=True)
+    whatsapp_number = models.CharField(max_length=32, blank=True)
+    linkedin_url = models.URLField(blank=True)
+    pinterest_url = models.URLField(blank=True)
     website_url = models.URLField(blank=True)
 
     # Custom domain (feature-gated by the subscription plan).

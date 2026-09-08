@@ -642,7 +642,6 @@ class ShopByDomainView(APIView):
 # ---------------------------------------------------------------------------
 
 class ShopReviewListCreateView(generics.ListCreateAPIView):
-
     serializer_class = ShopReviewSerializer
 
     def get_permissions(self):
@@ -651,7 +650,11 @@ class ShopReviewListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        return ShopReview.objects.filter(shop__slug=self.kwargs["slug"])
+        return ShopReview.objects.filter(shop__slug=self.kwargs["slug"]).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        shop = generics.get_object_or_404(Shop, slug=self.kwargs["slug"])
+        serializer.save(shop=shop, user=self.request.user)
 
 
 # ---------------------------------------------------------------------------

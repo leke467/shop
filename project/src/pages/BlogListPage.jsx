@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import SEOHead from '../components/SEOHead'
+import { blogAPI } from '../services/api'
 
 export const BLOG_POSTS = [
   {
@@ -87,17 +88,57 @@ const ALL_TAGS = ['All', 'E-commerce', 'Guide', 'Marketing', 'Logistics', 'Growt
 export default function BlogListPage() {
   const [selectedTag, setSelectedTag] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [apiPosts, setApiPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+    blogAPI.list()
+      .then(data => {
+        if (!isMounted) return
+        const list = Array.isArray(data) ? data : (data?.results || [])
+        setApiPosts(list)
+      })
+      .catch(err => {
+        console.warn('Could not fetch blog posts from API, using curated posts:', err)
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false)
+      })
+    return () => { isMounted = false }
+  }, [])
+
+  const allPosts = useMemo(() => {
+    const formattedApi = apiPosts.map(p => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.excerpt || (p.content ? p.content.replace(/<[^>]+>/g, '').slice(0, 160) + '...' : ''),
+      image: p.featured_image || 'https://images.unsplash.com/photo-1556742049-0a67e55722c0?w=800&auto=format&fit=crop&q=80',
+      date: p.published_at ? new Date(p.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
+      readTime: `${Math.max(1, Math.ceil(((p.content || '') + ' ' + (p.excerpt || '')).split(' ').length / 150))} min read`,
+      author: p.author_name || 'Marketplace Contributor',
+      authorRole: 'Merchant Author',
+      tags: Array.isArray(p.tags) && p.tags.length ? p.tags : ['E-commerce', 'Growth'],
+      content: p.content,
+      isApi: true
+    }))
+
+    const apiSlugs = new Set(formattedApi.map(p => p.slug))
+    const curated = BLOG_POSTS.filter(p => !apiSlugs.has(p.slug))
+    return [...formattedApi, ...curated]
+  }, [apiPosts])
 
   const filteredPosts = useMemo(() => {
-    return BLOG_POSTS.filter(post => {
-      const matchesTag = selectedTag === 'All' || post.tags.includes(selectedTag)
+    return allPosts.filter(post => {
+      const matchesTag = selectedTag === 'All' || (post.tags && post.tags.includes(selectedTag))
       const matchesSearch = !searchQuery || 
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+        (post.title && post.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
+        (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (post.tags && post.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())))
       return matchesTag && matchesSearch
     })
-  }, [selectedTag, searchQuery])
+  }, [allPosts, selectedTag, searchQuery])
 
   return (
     <motion.div 

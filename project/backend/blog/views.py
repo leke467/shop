@@ -12,6 +12,11 @@ class BlogPostDetailView(generics.RetrieveAPIView):
     serializer_class = BlogPostDetailSerializer
     lookup_field = 'slug'
 
+    def get_object(self):
+        obj = super().get_object()
+        BlogPost.objects.filter(pk=obj.pk).update(view_count=BlogPost.objects.filter(pk=obj.pk).values_list('view_count', flat=True).first() + 1)
+        return obj
+
 class BlogPostCreateUpdateView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
     """
     List, create, update, and delete seller blog posts.

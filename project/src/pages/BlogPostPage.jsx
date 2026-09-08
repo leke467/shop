@@ -1,15 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import SEOHead from '../components/SEOHead'
 import { useUser } from '../context/UserContext'
+import { blogAPI } from '../services/api'
 import { BLOG_POSTS } from './BlogListPage'
 
 export default function BlogPostPage() {
   const { slug } = useParams()
   const { user } = useUser()
 
-  const post = BLOG_POSTS.find(p => p.slug === slug) || {
+  const [apiPost, setApiPost] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  // Curated fallback
+  const fallbackPost = BLOG_POSTS.find(p => p.slug === slug) || {
     slug: slug || 'how-to-start-selling-online-in-nigeria',
     title: slug ? slug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') : 'How to Start Selling Online in Nigeria in 2026',
     excerpt: 'Comprehensive insights into digital storefront operations and modern marketplace tactics in Nigeria.',
@@ -50,6 +55,48 @@ export default function BlogPostPage() {
     }
   ])
 
+  useEffect(() => {
+    let isMounted = true
+    if (!slug) return
+
+    blogAPI.detail(slug)
+      .then(data => {
+        if (!isMounted || !data) return
+        setApiPost(data)
+        if (data.comments && Array.isArray(data.comments) && data.comments.length > 0) {
+          setComments(data.comments.map(c => ({
+            id: c.id,
+            author: c.user_name || 'Reader',
+            avatar: (c.user_name || 'R')[0].toUpperCase(),
+            time: c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
+            content: c.content,
+            isAuthor: false,
+          })))
+        }
+      })
+      .catch(err => {
+        console.warn('API detail fetch error, falling back to curated guide:', err)
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false)
+      })
+    return () => { isMounted = false }
+  }, [slug])
+
+  const post = apiPost ? {
+    id: apiPost.id,
+    slug: apiPost.slug,
+    title: apiPost.title,
+    excerpt: apiPost.excerpt || (apiPost.content ? apiPost.content.replace(/<[^>]+>/g, '').slice(0, 160) + '...' : ''),
+    image: apiPost.featured_image || 'https://images.unsplash.com/photo-1556742049-0a67e55722c0?w=1200&auto=format&fit=crop&q=80',
+    date: apiPost.published_at ? new Date(apiPost.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
+    readTime: `${Math.max(1, Math.ceil((apiPost.content || '').split(' ').length / 150))} min read`,
+    author: apiPost.author_name || 'Marketplace Contributor',
+    authorRole: 'Merchant Author',
+    tags: Array.isArray(apiPost.tags) && apiPost.tags.length ? apiPost.tags : ['E-commerce', 'Growth'],
+    content: apiPost.content,
+  } : fallbackPost
+
   const [commentName, setCommentName] = useState(user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '')
   const [commentText, setCommentText] = useState('')
   const [copyToast, setCopyToast] = useState(false)
@@ -79,7 +126,7 @@ export default function BlogPostPage() {
     }
   }
 
-  const handleAddComment = (e) => {
+  const handleAddComment = async (e) => {
     e.preventDefault()
     if (!commentText.trim()) return
 
@@ -91,6 +138,14 @@ export default function BlogPostPage() {
       time: 'Just now',
       content: commentText.trim(),
       isAuthor: false,
+    }
+
+    if (post.id) {
+      try {
+        await blogAPI.addComment(post.id, { content: commentText.trim() })
+      } catch (err) {
+        console.warn('Could not post comment to server, keeping in local state:', err)
+      }
     }
 
     setComments(prev => [...prev, newComment])
