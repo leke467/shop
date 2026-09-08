@@ -640,6 +640,8 @@ export default function ShopDashboard() {
         stock: v.inventory?.quantity !== undefined ? v.inventory.quantity : 100,
         sku: v.sku || '',
         attributes: v.attributes || {},
+        image: v.image || '',
+        image_preview: v.image ? getImageUrl(v.image) : '',
       })),
       allow_custom_measurements: !!product.allow_custom_measurements,
       custom_measurement_type: product.custom_measurement_type || 'fashion',
@@ -1293,33 +1295,54 @@ export default function ShopDashboard() {
 
                         <div>
                           <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Items Purchased</h5>
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             {order.items.map((item, idx) => (
-                              <div key={idx} className="border-b border-gray-100 pb-1.5 last:border-0 text-xs">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-700 font-medium">
-                                    {item.quantity}x {item.product_name} {item.variant_name && item.variant_name !== 'Default' ? `(${item.variant_name})` : ''}
-                                  </span>
-                                  <span className="font-bold text-gray-800">₦{Number(item.line_total).toLocaleString()}</span>
-                                </div>
-                                {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
-                                  <div className="mt-1 p-2 bg-amber-50/80 rounded-lg border border-amber-200/80 text-[11px] text-amber-900 space-y-0.5">
-                                    <div className="font-bold flex items-center gap-1 text-amber-800">
-                                      <span>✂️</span> Custom Specs / Inscription:
-                                    </div>
-                                    {item.custom_measurements.custom_text ? (
-                                      <p className="italic">"{item.custom_measurements.custom_text}"</p>
-                                    ) : (
-                                      <div className="grid grid-cols-2 gap-1 text-[10px]">
-                                        {Object.entries(item.custom_measurements).filter(([k, v]) => k !== 'unit' && v).map(([k, v]) => (
-                                          <div key={k}>
-                                            <span className="capitalize font-semibold">{k.replace('_', ' ')}:</span> {v} {item.custom_measurements.unit || ''}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
+                              <div key={idx} className="border-b border-gray-100 pb-2.5 last:border-0 text-xs flex items-start gap-3">
+                                {item.image ? (
+                                  <img
+                                    src={getImageUrl(item.image)}
+                                    alt={item.product_name}
+                                    className="w-11 h-11 rounded-lg object-cover border border-gray-200 flex-shrink-0 bg-gray-50 shadow-xs"
+                                  />
+                                ) : (
+                                  <div className="w-11 h-11 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0 text-lg">
+                                    📦
                                   </div>
                                 )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <div>
+                                      <span className="text-gray-900 font-semibold line-clamp-1">
+                                        {item.quantity}x {item.product_name}
+                                      </span>
+                                      {item.variant_name && item.variant_name !== 'Default' && (
+                                        <div className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 text-[11px] font-bold border border-primary-200/70">
+                                          <span>🎨</span>
+                                          <span>{item.variant_name}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className="font-extrabold text-gray-900 whitespace-nowrap">₦{Number(item.line_total).toLocaleString()}</span>
+                                  </div>
+                                  {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
+                                    <div className="mt-1.5 p-2 bg-amber-50/80 rounded-lg border border-amber-200/80 text-[11px] text-amber-900 space-y-0.5">
+                                      <div className="font-bold flex items-center gap-1 text-amber-800">
+                                        <span>✂️</span> Custom Specs / Inscription:
+                                      </div>
+                                      {item.custom_measurements.custom_text ? (
+                                        <p className="italic">"{item.custom_measurements.custom_text}"</p>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-1 text-[10px]">
+                                          {Object.entries(item.custom_measurements).filter(([k, v]) => k !== 'unit' && v).map(([k, v]) => (
+                                            <div key={k}>
+                                              <span className="capitalize font-semibold">{k.replace('_', ' ')}:</span> {v} {item.custom_measurements.unit || ''}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -2003,6 +2026,7 @@ export default function ShopDashboard() {
                               <thead className="bg-gray-100/80 text-gray-600 font-semibold border-b border-gray-200">
                                 <tr>
                                   <th className="px-3 py-2.5">Variant / Option</th>
+                                  <th className="px-3 py-2.5 w-24 text-center">Photo</th>
                                   <th className="px-3 py-2.5 w-32">Price (₦)</th>
                                   <th className="px-3 py-2.5 w-24">Stock</th>
                                   <th className="px-3 py-2.5 w-10 text-center">✕</th>
@@ -2015,6 +2039,7 @@ export default function ShopDashboard() {
                                       <input
                                         type="text"
                                         value={v.name}
+                                        placeholder="e.g. Size M, Blue, Red..."
                                         onChange={e => {
                                           const val = e.target.value;
                                           setProductForm(f => {
@@ -2025,6 +2050,61 @@ export default function ShopDashboard() {
                                         }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-semibold bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
                                       />
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <div className="flex items-center justify-center">
+                                        {v.image_preview || v.image ? (
+                                          <div className="relative group inline-block">
+                                            <img
+                                              src={v.image_preview || getImageUrl(v.image)}
+                                              alt={v.name}
+                                              className="w-9 h-9 object-cover rounded-lg border border-gray-200 shadow-2xs"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setProductForm(f => {
+                                                  const updated = [...f.variants_data];
+                                                  updated[idx] = { ...updated[idx], image: '', image_preview: '', remove_image: true };
+                                                  return { ...f, variants_data: updated };
+                                                });
+                                              }}
+                                              className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center shadow hover:bg-red-600 transition-colors"
+                                              title="Remove photo"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <label className="cursor-pointer px-2 py-1 bg-gray-50 hover:bg-primary-50 hover:text-primary-600 border border-dashed border-gray-300 hover:border-primary-400 rounded-lg text-[10px] font-bold text-gray-500 flex items-center gap-1 transition-all">
+                                            <span>📷 +Photo</span>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              className="hidden"
+                                              onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                  const reader = new FileReader();
+                                                  reader.onload = ev => {
+                                                    setProductForm(f => {
+                                                      const updated = [...f.variants_data];
+                                                      updated[idx] = {
+                                                        ...updated[idx],
+                                                        image: ev.target.result,
+                                                        image_preview: ev.target.result,
+                                                        remove_image: false,
+                                                      };
+                                                      return { ...f, variants_data: updated };
+                                                    });
+                                                  };
+                                                  reader.readAsDataURL(file);
+                                                }
+                                              }}
+                                            />
+                                          </label>
+                                        )}
+                                      </div>
                                     </td>
                                     <td className="px-3 py-2">
                                       <input

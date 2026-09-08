@@ -211,6 +211,7 @@ class ProductVariant(BaseModel):
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     weight_grams = models.PositiveIntegerField(null=True, blank=True)
+    image = models.ImageField(upload_to="products/variants/", null=True, blank=True)
 
     class Meta:
         ordering = ("-is_default", "id")

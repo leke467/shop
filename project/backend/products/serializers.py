@@ -43,20 +43,38 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = (
             "id", "image", "thumbnail", "medium", "large",
             "placeholder", "alt_text", "position", "width", "height", "is_processed",
+            "variant",
         )
         read_only_fields = ("id", "thumbnail", "medium", "large", "placeholder", "width", "height", "is_processed")
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     inventory = InventorySerializer(read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductVariant
         fields = (
             "id", "public_id", "sku", "name", "attributes", "price",
-            "is_default", "is_active", "weight_grams", "inventory",
+            "is_default", "is_active", "weight_grams", "inventory", "image",
         )
         read_only_fields = ("id", "public_id",)
+
+    def get_image(self, obj):
+        try:
+            request = self.context.get("request")
+            if obj.image:
+                return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            # Fallback: check if any ProductImage is linked to this variant
+            variant_img = obj.images.first()
+            if variant_img:
+                if variant_img.medium:
+                    return request.build_absolute_uri(variant_img.medium.url) if request else variant_img.medium.url
+                elif variant_img.image:
+                    return request.build_absolute_uri(variant_img.image.url) if request else variant_img.image.url
+        except Exception:
+            pass
+        return None
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -351,6 +369,34 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
                     )
 
                 keep_variant_ids.add(variant.id)
+
+                # Process variant-specific image (file, base64, or existing product image link)
+                v_img = v_data.get("image")
+                if v_img:
+                    if hasattr(v_img, 'read'):
+                        variant.image = v_img
+                        variant.save(update_fields=['image'])
+                    elif isinstance(v_img, str) and v_img.startswith('data:'):
+                        import base64
+                        from django.core.files.base import ContentFile
+                        try:
+                            format_part, imgstr = v_img.split(';base64,')
+                            ext = format_part.split('/')[-1].split(';')[0]
+                            if ext == 'jpeg':
+                                ext = 'jpg'
+                            file_name = f"var_{variant.id}_{uuid.uuid4().hex[:6]}.{ext}"
+                            variant.image.save(file_name, ContentFile(base64.b64decode(imgstr)), save=True)
+                        except Exception:
+                            pass
+                    elif isinstance(v_img, (int, str)) and str(v_img).isdigit():
+                        p_img = product.images.filter(id=int(v_img)).first()
+                        if p_img:
+                            p_img.variant = variant
+                            p_img.save(update_fields=['variant'])
+                elif v_data.get("remove_image"):
+                    variant.image = None
+                    variant.save(update_fields=['image'])
+                    product.images.filter(variant=variant).update(variant=None)
 
                 inv, _ = Inventory.objects.get_or_create(
                     variant=variant,

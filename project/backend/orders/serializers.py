@@ -27,6 +27,15 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         try:
+            # 1. Variant direct image
+            if obj.variant and getattr(obj.variant, 'image', None):
+                return obj.variant.image.url
+            # 2. Variant linked ProductImage
+            if obj.variant:
+                v_img = obj.variant.images.first()
+                if v_img:
+                    return v_img.medium.url if hasattr(v_img, 'medium') and v_img.medium else v_img.image.url
+            # 3. Product primary image fallback
             prod = obj.variant.product
             img = prod.primary_image
             if img:
@@ -60,13 +69,46 @@ class CartItemCreateSerializer(serializers.Serializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     line_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    image = serializers.SerializerMethodField()
+    variant_attributes = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
         fields = (
             "id", "product_name", "variant_name", "sku",
             "quantity", "unit_price", "currency", "line_total", "custom_measurements",
+            "image", "variant_attributes",
         )
+
+    def get_image(self, obj):
+        try:
+            request = self.context.get("request")
+            # 1. Variant image
+            if obj.variant and getattr(obj.variant, 'image', None):
+                return request.build_absolute_uri(obj.variant.image.url) if request else obj.variant.image.url
+            # 2. Variant linked ProductImage
+            if obj.variant:
+                v_img = obj.variant.images.first()
+                if v_img:
+                    url = v_img.medium.url if hasattr(v_img, 'medium') and v_img.medium else v_img.image.url
+                    return request.build_absolute_uri(url) if request else url
+            # 3. Product fallback image
+            if obj.variant and obj.variant.product:
+                first_img = obj.variant.product.images.first()
+                if first_img:
+                    url = first_img.medium.url if hasattr(first_img, 'medium') and first_img.medium else first_img.image.url
+                    return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
+
+    def get_variant_attributes(self, obj):
+        try:
+            if obj.variant and obj.variant.attributes:
+                return obj.variant.attributes
+        except Exception:
+            pass
+        return {}
 
 
 class OrderGroupSerializer(serializers.ModelSerializer):

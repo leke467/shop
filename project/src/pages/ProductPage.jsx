@@ -15,6 +15,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState(null)
+  const [activeVariantImage, setActiveVariantImage] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
   const [addingToCart, setAddingToCart] = useState(false)
@@ -22,6 +23,22 @@ export default function ProductPage() {
   const [wishlistToast, setWishlistToast] = useState(null)
   const [tab, setTab] = useState('description')
   const [shopData, setShopData] = useState(null)
+
+  const handleSelectVariant = (v) => {
+    setSelectedVariant(v)
+    if (v?.image) {
+      setActiveVariantImage(v.image)
+      if (product?.images?.length) {
+        const imgIdx = product.images.findIndex(img => 
+          (img.image && img.image === v.image) || 
+          (img.variant && (img.variant === v.id || img.variant === v.public_id))
+        )
+        if (imgIdx !== -1) {
+          setSelectedImage(imgIdx)
+        }
+      }
+    }
+  }
 
   // Reviews State
   const [reviews, setReviews] = useState([])
@@ -173,8 +190,12 @@ export default function ProductPage() {
         id: product.public_id || product.id,
         public_id: product.public_id || product.id,
         name: 'Default',
-        price: product.base_price || product.price || 0
+        price: product.base_price || product.price || 0,
+        image: null
       }
+      const itemImage = activeVariant.image
+        ? getImageUrl(activeVariant.image)
+        : (activeVariantImage ? getImageUrl(activeVariantImage) : getImageUrl(product.images?.[selectedImage]?.large || product.images?.[selectedImage]?.image || product.images?.[0]?.large || product.images?.[0]?.image || ''))
       await addToCart({
         variant_id: activeVariant.public_id || activeVariant.id,
         product_id: product.public_id || product.id || productSlug,
@@ -182,6 +203,7 @@ export default function ProductPage() {
         product_name: product.name,
         variant_name: activeVariant.name || 'Default',
         unit_price: activeVariant.price || product.base_price || 0,
+        image: itemImage,
         custom_measurements: customMeasurementsPayload || undefined,
       })
       setCartSuccess(true)
@@ -285,8 +307,8 @@ export default function ProductPage() {
               <div className="aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm relative">
                 <AnimatePresence mode="wait">
                   <motion.img
-                    key={selectedImage}
-                    src={getImageUrl(currentImage?.large || currentImage?.image || '')}
+                    key={activeVariantImage ? `variant-${selectedVariant?.id || selectedVariant?.public_id || 'active'}` : selectedImage}
+                    src={activeVariantImage ? getImageUrl(activeVariantImage) : getImageUrl(currentImage?.large || currentImage?.image || '')}
                     alt={product.name}
                     className="w-full h-full object-contain p-4"
                     initial={{ opacity: 0 }}
@@ -324,8 +346,11 @@ export default function ProductPage() {
                   {images.map((img, i) => (
                     <button
                       key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${selectedImage === i ? 'border-primary-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                      onClick={() => {
+                        setSelectedImage(i)
+                        setActiveVariantImage(null)
+                      }}
+                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${!activeVariantImage && selectedImage === i ? 'border-primary-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
                       <img src={getImageUrl(img.thumbnail || img.image)} alt="" className="w-full h-full object-cover" />
@@ -442,20 +467,31 @@ export default function ProductPage() {
               {variants.length > 0 && (
                 <div className="mt-8">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Options</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {variants.map(v => (
-                      <button
-                        key={v.public_id || v.id}
-                        onClick={() => setSelectedVariant(v)}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${selectedVariant?.id === v.id || selectedVariant?.public_id === v.public_id
-                            ? 'border-primary-500 bg-primary-50 text-primary-700'
-                            : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                  <div className="flex flex-wrap gap-2.5">
+                    {variants.map(v => {
+                      const isSelected = selectedVariant?.id === v.id || selectedVariant?.public_id === v.public_id
+                      return (
+                        <button
+                          key={v.public_id || v.id}
+                          onClick={() => handleSelectVariant(v)}
+                          className={`px-3.5 py-2 rounded-xl text-sm font-medium border-2 transition-all flex items-center gap-2 ${
+                            isSelected
+                              ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-xs'
+                              : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
                           }`}
-                      >
-                        {v.name || v.sku}
-                        {v.price && <span className="ml-2 text-gray-400">₦{Number(v.price).toLocaleString()}</span>}
-                      </button>
-                    ))}
+                        >
+                          {v.image && (
+                            <img
+                              src={getImageUrl(v.image)}
+                              alt={v.name || 'Variant'}
+                              className="w-5 h-5 rounded-full object-cover border border-gray-300 shrink-0 shadow-2xs"
+                            />
+                          )}
+                          <span>{v.name || v.sku}</span>
+                          {v.price && <span className="ml-1 text-gray-400 font-normal text-xs">₦{Number(v.price).toLocaleString()}</span>}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}

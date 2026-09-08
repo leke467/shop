@@ -28,11 +28,37 @@ def send_order_placed_buyer_email(order, order_groups):
 
     subject = f"Order Confirmed: #{order.public_id} — MultiShop Marketplace"
 
+    # Collect items across order groups
+    all_items = []
+    for g in order_groups:
+        all_items.extend(g.items.all())
+
+    items_text_list = []
+    items_html_rows = []
+    for it in all_items:
+        v_label = f" ({it.variant_name})" if it.variant_name and it.variant_name != "Default" else ""
+        items_text_list.append(f"- {it.quantity}x {it.product_name}{v_label} — ₦{it.unit_price * it.quantity:,.2f}")
+        items_html_rows.append(f"""<tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;">
+                <strong style="color:#0F172A;">{it.product_name}</strong>
+                {f'<br/><span style="color:#2563EB;font-weight:600;font-size:12px;">Option: {it.variant_name}</span>' if it.variant_name and it.variant_name != 'Default' else ''}
+            </td>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:center;color:#475569;">{it.quantity}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:right;font-weight:600;color:#0F172A;">₦{(it.unit_price * it.quantity):,.2f}</td>
+        </tr>""")
+
+    items_text = "\n".join(items_text_list)
+    items_html = "".join(items_html_rows)
+
     # Build plain text lines
     body_lines = [
         f"Hi {buyer_name},",
         "",
         f"Thank you for shopping on MultiShop! Your order #{order.public_id} has been confirmed.",
+        "",
+        "Purchased Items:",
+        items_text,
+        "",
         f"Total Paid: ₦{order.grand_total:,.2f}",
         f"Delivery Address: {order.shipping_line1 or order.shipping_city}, {order.shipping_state}",
         "",
@@ -57,6 +83,20 @@ def send_order_placed_buyer_email(order, order_groups):
             <p style="font-size:14px;line-height:1.6;color:#475569;">
                 Your order <strong>#{order.public_id}</strong> has been placed and payment successfully received.
             </p>
+
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
+                <thead>
+                    <tr style="background:#F1F5F9;color:#475569;font-size:12px;text-transform:uppercase;">
+                        <th style="padding:10px 12px;text-align:left;">Item & Option</th>
+                        <th style="padding:10px 12px;text-align:center;">Qty</th>
+                        <th style="padding:10px 12px;text-align:right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items_html}
+                </tbody>
+            </table>
+
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin:20px 0;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;">
                     <span style="color:#64748B;">Total Amount:</span>
@@ -262,15 +302,22 @@ def send_order_placed_seller_email(order_group):
     subject = f"🛒 New Order Received: #{order.public_id} ({shop.name})"
 
     items = order_group.items.all()
-    items_text = "\n".join([f"- {it.quantity}x {it.product_name} (₦{it.unit_price:,.2f})" for it in items])
-    items_html = "".join([
-        f"""<tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;">{it.product_name}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:center;">{it.quantity}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:right;">₦{(it.unit_price * it.quantity):,.2f}</td>
-        </tr>"""
-        for it in items
-    ])
+    items_text_list = []
+    items_html_list = []
+    for it in items:
+        v_label = f" ({it.variant_name})" if it.variant_name and it.variant_name != "Default" else ""
+        items_text_list.append(f"- {it.quantity}x {it.product_name}{v_label} (₦{it.unit_price:,.2f})")
+        items_html_list.append(f"""<tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;">
+                <strong style="color:#0F172A;">{it.product_name}</strong>
+                {f'<br/><span style="color:#2563EB;font-weight:600;font-size:12px;">Option / Variant: {it.variant_name}</span>' if it.variant_name and it.variant_name != 'Default' else ''}
+            </td>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:center;color:#475569;">{it.quantity}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:right;font-weight:600;color:#0F172A;">₦{(it.unit_price * it.quantity):,.2f}</td>
+        </tr>""")
+
+    items_text = "\n".join(items_text_list)
+    items_html = "".join(items_html_list)
 
     text_content = (
         f"Hello {seller_name},\n\n"

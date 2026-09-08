@@ -284,7 +284,18 @@ class ProductImageUploadView(generics.CreateAPIView):
         except ValueError:
             product = generics.get_object_or_404(Product, slug=lookup, shop__owner=self.request.user)
 
-        serializer.save(product=product)
+        variant_id = self.request.data.get("variant_id") or self.request.data.get("variant")
+        variant = None
+        if variant_id:
+            if str(variant_id).isdigit():
+                variant = product.variants.filter(id=int(variant_id)).first()
+            if not variant:
+                variant = product.variants.filter(public_id=variant_id).first()
+
+        instance = serializer.save(product=product, variant=variant)
+        if variant and instance.image and not variant.image:
+            variant.image = instance.image
+            variant.save(update_fields=['image'])
 
 
 # ---------------------------------------------------------------------------

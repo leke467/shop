@@ -666,24 +666,60 @@ function EngineCheckoutPage({ config, shop, shopSlug }) {
 function EngineQuickViewModal({ config, product, onClose }) {
   const { addToCart } = useCart()
   const [quantity, setQuantity] = useState(1)
+  const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null)
   if (!product) return null
-  const price = Number(product.base_price || product.price || 0)
-  const img = product.primary_image || product.image || product.images?.[0]?.medium || product.images?.[0]?.image
+  const activeVariant = selectedVariant || product.variants?.[0]
+  const price = Number(activeVariant?.price || product.base_price || product.price || 0)
+  const variantImg = activeVariant?.image
+  const img = variantImg || product.primary_image || product.image || product.images?.[0]?.medium || product.images?.[0]?.image
   const imgSrc = img ? getImageUrl(typeof img === 'string' ? img : (img.medium || img.image || img)) : null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="p-6 sm:p-8 rounded-3xl border max-w-md w-full relative shadow-2xl space-y-4" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg }}>
+      <div className="p-6 sm:p-8 rounded-3xl border max-w-md w-full relative shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg }}>
         <button onClick={onClose} className="absolute top-4 right-4 font-bold text-lg">✕</button>
         
         {imgSrc && (
           <div className="h-52 rounded-2xl overflow-hidden bg-gray-100">
-            <img src={imgSrc} alt={product.name} className="w-full h-full object-cover" />
+            <img src={imgSrc} alt={product.name} className="w-full h-full object-cover transition-all" />
           </div>
         )}
 
         <h3 className="text-xl font-bold" style={{ color: config.textColor }}>{product.name}</h3>
         <p className="text-xs" style={{ color: config.subtextColor }}>{product.description || 'Quality product'}</p>
+
+        {product.variants?.length > 1 && (
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: config.subtextColor }}>Options</span>
+            <div className="flex flex-wrap gap-2">
+              {product.variants.map((v) => {
+                const isSelected = (selectedVariant?.id || selectedVariant?.public_id) === (v.id || v.public_id)
+                return (
+                  <button
+                    key={v.id || v.public_id}
+                    type="button"
+                    onClick={() => setSelectedVariant(v)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all"
+                    style={{
+                      borderColor: isSelected ? config.primaryColor || '#2563eb' : config.borderColor,
+                      backgroundColor: isSelected ? `${config.primaryColor || '#2563eb'}15` : 'transparent',
+                      color: isSelected ? config.primaryColor || '#2563eb' : config.textColor,
+                    }}
+                  >
+                    {v.image && (
+                      <img
+                        src={getImageUrl(typeof v.image === 'string' ? v.image : (v.image.medium || v.image.image || v.image))}
+                        alt=""
+                        className="w-4 h-4 rounded-full object-cover border border-gray-300 shrink-0"
+                      />
+                    )}
+                    <span>{v.name || v.sku}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
         
         <div className="flex items-center justify-between border-y py-3" style={{ borderColor: config.borderColor }}>
           <div className="text-2xl font-black" style={{ color: config.textColor }}>₦{(price * quantity).toLocaleString()}</div>
@@ -694,7 +730,23 @@ function EngineQuickViewModal({ config, product, onClose }) {
           </div>
         </div>
 
-        <button onClick={() => { addToCart({ ...product, quantity }); onClose() }} className="w-full py-3.5 rounded-xl text-white font-bold shadow-md hover:opacity-90" style={{ backgroundColor: config.primaryColor || '#2563eb' }}>Add to Cart 🛒</button>
+        <button
+          onClick={() => {
+            addToCart({
+              ...product,
+              variant_id: activeVariant?.public_id || activeVariant?.id,
+              variant_name: activeVariant?.name || 'Default',
+              unit_price: price,
+              image: imgSrc,
+              quantity,
+            })
+            onClose()
+          }}
+          className="w-full py-3.5 rounded-xl text-white font-bold shadow-md hover:opacity-90"
+          style={{ backgroundColor: config.primaryColor || '#2563eb' }}
+        >
+          Add to Cart 🛒
+        </button>
       </div>
     </div>
   )

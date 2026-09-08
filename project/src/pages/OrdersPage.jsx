@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { orderAPI } from '../services/api'
+import { orderAPI, getImageUrl } from '../services/api'
 import { useUser } from '../context/UserContext'
 import SEOHead from '../components/SEOHead'
 
@@ -451,11 +451,25 @@ export default function OrdersPage() {
                         {/* Items */}
                         <div className="space-y-3 min-w-0">
                           {group.items?.map(item => (
-                            <div key={item.id} className="flex justify-between items-start gap-2 min-w-0 text-xs sm:text-sm">
+                            <div key={item.id} className="flex items-start gap-3 min-w-0 text-xs sm:text-sm">
+                              {item.image ? (
+                                <img
+                                  src={getImageUrl(item.image)}
+                                  alt={item.product_name}
+                                  className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0 bg-gray-50 shadow-xs"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0 text-base">
+                                  📦
+                                </div>
+                              )}
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-gray-900 truncate">{item.product_name}</p>
+                                <p className="font-semibold text-gray-900 truncate">{item.product_name}</p>
                                 {item.variant_name && item.variant_name !== 'Default' && (
-                                  <p className="text-primary-600 font-semibold text-xs truncate">{item.variant_name}</p>
+                                  <div className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-semibold text-[11px] border border-primary-200/60">
+                                    <span>🎨</span>
+                                    <span>{item.variant_name}</span>
+                                  </div>
                                 )}
                                 {item.custom_measurements && Object.keys(item.custom_measurements).length > 0 && (
                                   <div className="mt-1 p-1.5 bg-amber-50 rounded text-[11px] text-amber-900 border border-amber-200/60 max-w-sm">
@@ -474,7 +488,7 @@ export default function OrdersPage() {
                                 )}
                                 <p className="text-gray-500 text-xs mt-0.5">Qty: {item.quantity}</p>
                               </div>
-                              <p className="font-medium text-gray-900 flex-shrink-0">₦{Number(item.line_total).toLocaleString()}</p>
+                              <p className="font-extrabold text-gray-900 flex-shrink-0">₦{Number(item.line_total).toLocaleString()}</p>
                             </div>
                           ))}
                         </div>
