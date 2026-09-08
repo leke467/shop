@@ -37,6 +37,8 @@ export default function ProductPage() {
           setSelectedImage(imgIdx)
         }
       }
+    } else {
+      setActiveVariantImage(null)
     }
   }
 

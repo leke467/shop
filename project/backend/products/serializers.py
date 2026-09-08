@@ -89,19 +89,31 @@ class ProductListSerializer(serializers.ModelSerializer):
     is_locked = serializers.SerializerMethodField()
     inventory_quantity = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
+    variants = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = (
             "public_id", "name", "slug", "base_price", "compare_at_price",
             "currency", "status", "is_featured", "is_marketplace_visible",
-            "has_variants", "variant_attributes",
+            "has_variants", "variant_attributes", "variants",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
             "shop_name", "shop_slug", "shop_logo", "shop_status", "category", "category_name", "store_catalogue", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
+
+    def get_variants(self, obj):
+        try:
+            request = self.context.get("request")
+            return ProductVariantSerializer(
+                obj.variants.filter(is_active=True),
+                many=True,
+                context={"request": request}
+            ).data
+        except Exception:
+            return []
 
     def get_shop_name(self, obj):
         try:
@@ -193,7 +205,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
     shop_logo = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
-    variants = ProductVariantSerializer(many=True, read_only=True)
+    variants = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     is_locked = serializers.SerializerMethodField()
     inventory_quantity = serializers.SerializerMethodField()
@@ -218,6 +230,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "public_id", "rating_average", "rating_count",
             "view_count", "purchase_count", "created_at", "updated_at",
         )
+
+    def get_variants(self, obj):
+        try:
+            request = self.context.get("request")
+            return ProductVariantSerializer(
+                obj.variants.filter(is_active=True),
+                many=True,
+                context={"request": request}
+            ).data
+        except Exception:
+            return []
 
     def get_shop_logo(self, obj):
         try:

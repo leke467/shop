@@ -532,17 +532,31 @@ export default function ShopDashboard() {
       }))
     }
 
+    const currentData = productForm.variants_data || []
+    const existingNames = new Set(currentData.map(v => (v.name || '').toLowerCase()))
+    const uniqueNew = newVariants.filter(v => !existingNames.has((v.name || '').toLowerCase()))
+
+    if (uniqueNew.length === 0) {
+      toast('These options are already in your list!', 'info')
+      return
+    }
+
     setProductForm(prev => ({
       ...prev,
       has_variants: true,
-      variants_data: [...(prev.variants_data || []), ...newVariants]
+      variants_data: [...(prev.variants_data || []), ...uniqueNew]
     }))
-    toast(`Added ${newVariants.length} option variants!`, 'success')
+    toast(`Added ${uniqueNew.length} option variant(s)!`, 'success')
   }
 
   const addCustomVariant = () => {
     if (!customOptionInput.trim()) return
     const opt = customOptionInput.trim()
+    const currentData = productForm.variants_data || []
+    if (currentData.some(v => (v.name || '').toLowerCase() === opt.toLowerCase())) {
+      toast(`Option '${opt}' is already in your list!`, 'info')
+      return
+    }
     const newVar = {
       name: opt,
       attributes: { option: opt },
@@ -566,12 +580,18 @@ export default function ShopDashboard() {
       let savedProduct;
       const { imageFiles, ...payload } = productForm;
 
+      if (productForm.has_variants && (!productForm.variants_data || productForm.variants_data.length === 0)) {
+        toast('Please add at least one variant option or turn off Product Variants.', 'error')
+        setSaving(false)
+        return
+      }
+
       // Ensure category, store_catalogue, variants, and visibility payload formatting
       payload.category = productForm.category ? Number(productForm.category) : null
       payload.store_catalogue = (productForm.store_catalogue || '').trim()
       payload.is_marketplace_visible = productForm.is_marketplace_visible !== undefined ? !!productForm.is_marketplace_visible : true
-      payload.has_variants = !!productForm.has_variants
-      payload.variants_data = productForm.has_variants ? (productForm.variants_data || []) : []
+      payload.has_variants = !!productForm.has_variants && (productForm.variants_data || []).length > 0
+      payload.variants_data = payload.has_variants ? (productForm.variants_data || []) : []
       payload.allow_custom_measurements = !!productForm.allow_custom_measurements
       payload.custom_measurement_type = productForm.custom_measurement_type || 'fashion'
       payload.custom_measurement_prompt = productForm.custom_measurement_prompt || ''
@@ -621,8 +641,28 @@ export default function ShopDashboard() {
     }
   }
 
-  const handleEditProduct = (product) => {
+  const handleEditProduct = async (product) => {
     setEditingProduct(product)
+
+    const mapVariants = (variantsList, basePrice, isHasVariants) => {
+      if (!isHasVariants || !variantsList || !Array.isArray(variantsList)) return []
+      return variantsList
+        .filter(v => v && v.is_active !== false && v.name !== 'Default')
+        .map(v => ({
+          id: v.id,
+          name: v.name || '',
+          price: v.price !== undefined ? v.price : (basePrice || ''),
+          stock: v.inventory?.quantity !== undefined ? v.inventory.quantity : (v.stock ?? 100),
+          sku: v.sku || '',
+          attributes: v.attributes || {},
+          image: v.image || '',
+          image_preview: v.image ? getImageUrl(v.image) : '',
+        }))
+    }
+
+    const hasVariants = !!product.has_variants || (Array.isArray(product.variants) && product.variants.some(v => v && v.is_active !== false && v.name !== 'Default'))
+    const initialVars = mapVariants(product.variants, product.base_price, hasVariants)
+
     setProductForm({
       name: product.name || '',
       description: product.description || '',
@@ -632,17 +672,8 @@ export default function ShopDashboard() {
       stock: product.inventory_quantity !== undefined ? product.inventory_quantity : (product.stock !== undefined ? product.stock : 100),
       status: product.status || 'active',
       is_marketplace_visible: product.is_marketplace_visible !== undefined ? !!product.is_marketplace_visible : true,
-      has_variants: !!product.has_variants,
-      variants_data: (product.variants || []).map(v => ({
-        id: v.id,
-        name: v.name || '',
-        price: v.price !== undefined ? v.price : (product.base_price || ''),
-        stock: v.inventory?.quantity !== undefined ? v.inventory.quantity : 100,
-        sku: v.sku || '',
-        attributes: v.attributes || {},
-        image: v.image || '',
-        image_preview: v.image ? getImageUrl(v.image) : '',
-      })),
+      has_variants: hasVariants,
+      variants_data: initialVars,
       allow_custom_measurements: !!product.allow_custom_measurements,
       custom_measurement_type: product.custom_measurement_type || 'fashion',
       custom_measurement_prompt: product.custom_measurement_prompt || '',
@@ -650,6 +681,23 @@ export default function ShopDashboard() {
       imageFiles: []
     })
     setTab('add-product')
+
+    // Always fetch fresh full detail from backend to get complete variants list and image links
+    try {
+      const full = await productAPI.detail(product.slug || product.public_id)
+      if (full) {
+        const fullHasVars = !!full.has_variants || (Array.isArray(full.variants) && full.variants.some(v => v && v.is_active !== false && v.name !== 'Default'))
+        const fullVars = mapVariants(full.variants, full.base_price, fullHasVars)
+        setProductForm(prev => ({
+          ...prev,
+          description: full.description || prev.description,
+          has_variants: fullHasVars,
+          variants_data: fullVars.length > 0 ? fullVars : prev.variants_data,
+        }))
+      }
+    } catch (err) {
+      console.warn('Failed to load full product detail for editing', err)
+    }
   }
 
   const handleToggleProductVisibility = async (product) => {
@@ -2020,142 +2068,163 @@ export default function ShopDashboard() {
                         </div>
 
                         {/* Variant List Table */}
-                        {productForm.variants_data?.length > 0 && (
-                          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-gray-100/80 text-gray-600 font-semibold border-b border-gray-200">
-                                <tr>
-                                  <th className="px-3 py-2.5">Variant / Option</th>
-                                  <th className="px-3 py-2.5 w-24 text-center">Photo</th>
-                                  <th className="px-3 py-2.5 w-32">Price (₦)</th>
-                                  <th className="px-3 py-2.5 w-24">Stock</th>
-                                  <th className="px-3 py-2.5 w-10 text-center">✕</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {productForm.variants_data.map((v, idx) => (
-                                  <tr key={idx} className="hover:bg-gray-50/70 transition-colors">
-                                    <td className="px-3 py-2">
-                                      <input
-                                        type="text"
-                                        value={v.name}
-                                        placeholder="e.g. Size M, Blue, Red..."
-                                        onChange={e => {
-                                          const val = e.target.value;
-                                          setProductForm(f => {
-                                            const updated = [...f.variants_data];
-                                            updated[idx] = { ...updated[idx], name: val };
-                                            return { ...f, variants_data: updated };
-                                          });
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-semibold bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
-                                      />
-                                    </td>
-                                    <td className="px-3 py-2 text-center">
-                                      <div className="flex items-center justify-center">
-                                        {v.image_preview || v.image ? (
-                                          <div className="relative group inline-block">
-                                            <img
-                                              src={v.image_preview || getImageUrl(v.image)}
-                                              alt={v.name}
-                                              className="w-9 h-9 object-cover rounded-lg border border-gray-200 shadow-2xs"
-                                            />
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setProductForm(f => {
-                                                  const updated = [...f.variants_data];
-                                                  updated[idx] = { ...updated[idx], image: '', image_preview: '', remove_image: true };
-                                                  return { ...f, variants_data: updated };
-                                                });
-                                              }}
-                                              className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center shadow hover:bg-red-600 transition-colors"
-                                              title="Remove photo"
-                                            >
-                                              ✕
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <label className="cursor-pointer px-2 py-1 bg-gray-50 hover:bg-primary-50 hover:text-primary-600 border border-dashed border-gray-300 hover:border-primary-400 rounded-lg text-[10px] font-bold text-gray-500 flex items-center gap-1 transition-all">
-                                            <span>📷 +Photo</span>
-                                            <input
-                                              type="file"
-                                              accept="image/*"
-                                              className="hidden"
-                                              onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                  const reader = new FileReader();
-                                                  reader.onload = ev => {
-                                                    setProductForm(f => {
-                                                      const updated = [...f.variants_data];
-                                                      updated[idx] = {
-                                                        ...updated[idx],
-                                                        image: ev.target.result,
-                                                        image_preview: ev.target.result,
-                                                        remove_image: false,
-                                                      };
-                                                      return { ...f, variants_data: updated };
-                                                    });
-                                                  };
-                                                  reader.readAsDataURL(file);
-                                                }
-                                              }}
-                                            />
-                                          </label>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      <input
-                                        type="number"
-                                        placeholder={productForm.base_price || "Base"}
-                                        value={v.price}
-                                        onChange={e => {
-                                          const val = e.target.value;
-                                          setProductForm(f => {
-                                            const updated = [...f.variants_data];
-                                            updated[idx] = { ...updated[idx], price: val };
-                                            return { ...f, variants_data: updated };
-                                          });
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
-                                      />
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      <input
-                                        type="number"
-                                        value={v.stock ?? 50}
-                                        onChange={e => {
-                                          const val = e.target.value;
-                                          setProductForm(f => {
-                                            const updated = [...f.variants_data];
-                                            updated[idx] = { ...updated[idx], stock: val };
-                                            return { ...f, variants_data: updated };
-                                          });
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
-                                      />
-                                    </td>
-                                    <td className="px-3 py-2 text-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setProductForm(f => ({
-                                            ...f,
-                                            variants_data: f.variants_data.filter((_, i) => i !== idx)
-                                          }));
-                                        }}
-                                        className="w-7 h-7 inline-flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-bold text-sm"
-                                        title="Remove option"
-                                      >
-                                        ✕
-                                      </button>
-                                    </td>
+                        {productForm.variants_data?.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-xs font-bold text-gray-700">
+                                Configured Options ({productForm.variants_data.length})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setProductForm(f => ({ ...f, variants_data: [] }))}
+                                className="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium"
+                              >
+                                Clear all
+                              </button>
+                            </div>
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                              <table className="w-full text-left text-xs">
+                                <thead className="bg-gray-100/80 text-gray-600 font-semibold border-b border-gray-200">
+                                  <tr>
+                                    <th className="px-3 py-2.5">Variant / Option</th>
+                                    <th className="px-3 py-2.5 w-24 text-center">Photo</th>
+                                    <th className="px-3 py-2.5 w-32">Price (₦)</th>
+                                    <th className="px-3 py-2.5 w-24">Stock</th>
+                                    <th className="px-3 py-2.5 w-10 text-center">✕</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {productForm.variants_data.map((v, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50/70 transition-colors">
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="text"
+                                          value={v.name}
+                                          placeholder="e.g. Size M, Blue, Red..."
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setProductForm(f => {
+                                              const updated = [...f.variants_data];
+                                              updated[idx] = { ...updated[idx], name: val };
+                                              return { ...f, variants_data: updated };
+                                            });
+                                          }}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-semibold bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2 text-center">
+                                        <div className="flex items-center justify-center">
+                                          {v.image_preview || v.image ? (
+                                            <div className="relative group inline-block">
+                                              <img
+                                                src={v.image_preview || getImageUrl(v.image)}
+                                                alt={v.name}
+                                                className="w-9 h-9 object-cover rounded-lg border border-gray-200 shadow-2xs"
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setProductForm(f => {
+                                                    const updated = [...f.variants_data];
+                                                    updated[idx] = { ...updated[idx], image: '', image_preview: '', remove_image: true };
+                                                    return { ...f, variants_data: updated };
+                                                  });
+                                                }}
+                                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center shadow hover:bg-red-600 transition-colors"
+                                                title="Remove photo"
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <label className="cursor-pointer px-2 py-1 bg-gray-50 hover:bg-primary-50 hover:text-primary-600 border border-dashed border-gray-300 hover:border-primary-400 rounded-lg text-[10px] font-bold text-gray-500 flex items-center gap-1 transition-all">
+                                              <span>📷 +Photo</span>
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={e => {
+                                                  const file = e.target.files?.[0];
+                                                  if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = ev => {
+                                                      setProductForm(f => {
+                                                        const updated = [...f.variants_data];
+                                                        updated[idx] = {
+                                                          ...updated[idx],
+                                                          image: ev.target.result,
+                                                          image_preview: ev.target.result,
+                                                          remove_image: false,
+                                                        };
+                                                        return { ...f, variants_data: updated };
+                                                      });
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }
+                                                }}
+                                              />
+                                            </label>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="number"
+                                          placeholder={productForm.base_price || "Base"}
+                                          value={v.price}
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setProductForm(f => {
+                                              const updated = [...f.variants_data];
+                                              updated[idx] = { ...updated[idx], price: val };
+                                              return { ...f, variants_data: updated };
+                                            });
+                                          }}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="number"
+                                          value={v.stock ?? 50}
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setProductForm(f => {
+                                              const updated = [...f.variants_data];
+                                              updated[idx] = { ...updated[idx], stock: val };
+                                              return { ...f, variants_data: updated };
+                                            });
+                                          }}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-medium bg-white text-gray-900 focus:bg-white focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 shadow-sm"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setProductForm(f => ({
+                                              ...f,
+                                              variants_data: f.variants_data.filter((_, i) => i !== idx)
+                                            }));
+                                          }}
+                                          className="w-7 h-7 inline-flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-bold text-sm"
+                                          title="Remove option"
+                                        >
+                                          ✕
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-5 rounded-xl border-2 border-dashed border-gray-200 bg-white text-center space-y-1.5">
+                            <p className="text-xs font-bold text-gray-700">No variant options added yet</p>
+                            <p className="text-[11px] text-gray-500 max-w-sm mx-auto">
+                              Click any of the <strong>1-Click Quick Presets</strong> above (e.g. Shoe Sizes, Colors) or type a name and click <strong>+ Add Option</strong>.
+                            </p>
                           </div>
                         )}
                       </div>
