@@ -112,6 +112,34 @@ export default function ShopPage() {
     }
   }, [shopSlug, setActiveTemplateShop])
 
+  // Apply shop theme colors if available
+  const theme = shop?.theme || {}
+  const primaryColor = theme.primary_color || '#4f46e5'
+  const textColor = theme.text_color || '#111827'
+  const mutedTextColor = theme.muted_text_color || '#6B7280'
+
+  const customCatalogues = theme.extra_tokens?.custom_catalogues || {}
+
+  const getCategoryDisplay = (p) => {
+    const raw = p?.store_catalogue || p?.category?.name || p?.category_name || p?.category
+    if (!raw) return 'Uncategorized'
+    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
+    return custom || raw
+  }
+
+  const categories = useMemo(() => {
+    const cats = new Set()
+    ;(products || []).forEach(p => {
+      cats.add(getCategoryDisplay(p))
+    })
+    return ['All', ...Array.from(cats)]
+  }, [products, customCatalogues])
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === 'All') return products || []
+    return (products || []).filter(p => getCategoryDisplay(p) === selectedCategory)
+  }, [products, selectedCategory, customCatalogues])
+
   if (loading) {
     const cachedTemplateId = getTemplateShopCache(shopSlug)
     const isTemplate = Boolean(shop?.template_id || activeTemplateShop?.template_id || cachedTemplateId)
@@ -163,34 +191,6 @@ export default function ShopPage() {
       />
     )
   }
-
-  // Apply shop theme colors if available
-  const theme = shop.theme || {}
-  const primaryColor = theme.primary_color || '#4f46e5'
-  const textColor = theme.text_color || '#111827'
-  const mutedTextColor = theme.muted_text_color || '#6B7280'
-
-  const customCatalogues = theme.extra_tokens?.custom_catalogues || {}
-
-  const getCategoryDisplay = (p) => {
-    const raw = p.store_catalogue || p.category?.name || p.category_name || p.category
-    if (!raw) return 'Uncategorized'
-    const custom = customCatalogues[raw] || Object.entries(customCatalogues).find(([k]) => k.toLowerCase() === String(raw).toLowerCase())?.[1]
-    return custom || raw
-  }
-
-  const categories = useMemo(() => {
-    const cats = new Set()
-    ;(products || []).forEach(p => {
-      cats.add(getCategoryDisplay(p))
-    })
-    return ['All', ...Array.from(cats)]
-  }, [products, customCatalogues])
-
-  const filteredProducts = useMemo(() => {
-    if (selectedCategory === 'All') return products
-    return (products || []).filter(p => getCategoryDisplay(p) === selectedCategory)
-  }, [products, selectedCategory, customCatalogues])
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16 relative">
