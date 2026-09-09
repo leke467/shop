@@ -439,7 +439,7 @@ export default function HomePage() {
             Create your own shop in minutes. Customize everything. Start selling today.
           </p>
           <Link
-            to="/create-shop"
+            to={isAuthenticated ? "/create-shop" : "/login?redirect=/create-shop"}
             className="inline-flex items-center gap-2 mt-8 px-8 py-4 rounded-xl bg-white text-primary-700 font-bold text-lg shadow-2xl shadow-black/20 hover:shadow-3xl hover:scale-105 transition-all duration-300"
           >
             Create your shop

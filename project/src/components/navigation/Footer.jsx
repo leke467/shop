@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useUser } from '../../context/UserContext'
 import Logo from '../Logo'
 
 function Footer() {
+  const { isAuthenticated } = useUser()
   const currentYear = new Date().getFullYear()
 
   return (
@@ -42,7 +44,7 @@ function Footer() {
             <ul className="space-y-1.5 text-gray-400">
               <li><Link to="/" className="hover:text-white transition">Home</Link></li>
               <li><Link to="/explore/products" className="hover:text-white transition">Explore Marketplace</Link></li>
-              <li><Link to="/create-shop" className="hover:text-white transition">Create a Shop</Link></li>
+              <li><Link to={isAuthenticated ? "/create-shop" : "/login?redirect=/create-shop"} className="hover:text-white transition">Create a Shop</Link></li>
               <li><Link to="/wishlist" className="hover:text-white transition">My Wishlist</Link></li>
               <li><Link to="/cart" className="hover:text-white transition">Shopping Cart</Link></li>
             </ul>

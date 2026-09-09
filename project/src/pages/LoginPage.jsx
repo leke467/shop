@@ -191,7 +191,10 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+            <Link
+              to={redirectUrl && redirectUrl !== '/' ? `/signup?redirect=${encodeURIComponent(redirectUrl)}` : "/signup"}
+              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+            >
               Create one free
             </Link>
           </p>

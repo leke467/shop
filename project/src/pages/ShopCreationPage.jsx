@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
@@ -7,7 +7,13 @@ import LimitReachedModal, { extractLimitError } from '../components/subscription
 
 function ShopCreationPage() {
   const navigate = useNavigate()
-  const { user } = useUser()
+  const { user, isAuthenticated, loading: userLoading } = useUser()
+
+  useEffect(() => {
+    if (!userLoading && !isAuthenticated) {
+      navigate('/login?redirect=/create-shop', { replace: true })
+    }
+  }, [userLoading, isAuthenticated, navigate])
 
   const [step, setStep] = useState(1)
   // Populated when the backend rejects creation with a plan-limit (402) so we
@@ -259,6 +265,17 @@ function ShopCreationPage() {
     const msg = fieldErrors[field]
     if (!msg) return null
     return <p className="text-red-600 text-sm mt-1">{msg}</p>
+  }
+
+  if (userLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-500 font-medium">Checking authentication…</p>
+        </div>
+      </div>
+    )
   }
 
   return (

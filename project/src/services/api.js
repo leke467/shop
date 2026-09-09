@@ -101,7 +101,8 @@ api.interceptors.response.use(
                                    currentPath.startsWith('/profile') ||
                                    currentPath.startsWith('/settings') ||
                                    currentPath.startsWith('/admin') ||
-                                   currentPath.startsWith('/orders')
+                                   currentPath.startsWith('/orders') ||
+                                   currentPath.startsWith('/create-shop')
           if (isProtectedRoute) {
             window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
           }

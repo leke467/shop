@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useUser } from '../../context/UserContext'
 
 function HeroSection() {
+  const { isAuthenticated } = useUser()
+
   return (
     <div className="relative h-screen max-h-[800px] min-h-[600px] overflow-hidden bg-gray-900">
       {/* Background image with overlay */}
@@ -48,7 +51,7 @@ function HeroSection() {
               Explore Products
             </Link>
             <Link 
-              to="/create-shop" 
+              to={isAuthenticated ? "/create-shop" : "/login?redirect=/create-shop"} 
               className="btn-outline bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 text-center py-3 px-8 text-lg"
             >
               Create Your Shop

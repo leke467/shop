@@ -9,6 +9,8 @@ export default function SignUpPage() {
   const { register } = useUser()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/'
+  const defaultRole = redirectUrl.startsWith('/create-shop') ? 'seller' : 'buyer'
   const [step, setStep] = useState(1)
   const [showReferralInput, setShowReferralInput] = useState(false)
 
@@ -24,7 +26,7 @@ export default function SignUpPage() {
 
   const [form, setForm] = useState({
     email: '', password: '', password2: '',
-    first_name: '', last_name: '', role: 'buyer',
+    first_name: '', last_name: '', role: defaultRole,
     referral_code: initialReferral,
   })
   const [error, setError] = useState('')
@@ -47,7 +49,7 @@ export default function SignUpPage() {
     try {
       await register(form)
       localStorage.removeItem('pending_referral_code')
-      navigate('/')
+      navigate(redirectUrl)
     } catch (err) {
       const data = err.response?.data
       const msg = data?.detail || data?.email?.[0] || data?.password?.[0] || 'Registration failed'
@@ -330,7 +332,10 @@ export default function SignUpPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+            <Link
+              to={redirectUrl && redirectUrl !== '/' ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : "/login"}
+              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+            >
               Sign in
             </Link>
           </p>
