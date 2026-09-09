@@ -967,6 +967,61 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
     defaultFont: 'Inter',
   },
 
+  seafood: {
+    id: 'seafood',
+    name: 'OceanCatch & Seafood Market',
+    tagline: 'Specialized ocean fishery, fresh seafood, shellfish, and coastal grill template',
+    hero: {
+      hasWelcomePrefix: false,
+      hasBadge: true,
+      badgeLabel: 'Ocean Trust Badge (e.g. "🌊 Ocean-Fresh & Cold-Packed Guarantee")',
+      badgeDefault: '🌊 Ocean-Fresh & Cold-Packed Guarantee',
+      hasHeadline: true,
+      headlineLabel: 'Hero Main Headline',
+      headlineDefault: 'Wild Ocean Catch, Fresh Seafood & Coastal Grills',
+      hasSubtitle: true,
+      subtitleLabel: 'Hero Subtitle / Catch Promise',
+      subtitleDefault: 'Harvested from coastal trawlers and local fisheries direct to your kitchen or restaurant. Delivered chilled on crushed flake ice with free kitchen cleaning.',
+      hasCtaPrimary: true,
+      ctaPrimaryLabel: 'Primary Order Button',
+      ctaPrimaryDefault: 'Shop Ocean Catch',
+      hasCtaSecondary: false,
+      imageSlots: [
+        { key: 'hero_image_1', label: 'Harbor / Seafood Showcase Banner', desc: 'Banner photo of fresh seafood, lobsters, or ocean fishery harvest', default: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80' },
+      ],
+    },
+    sections: {
+      hasFeaturedTitle: true,
+      featuredTitleLabel: 'Featured Products Title',
+      featuredTitleDefault: 'Catch of the Day & Best Sellers',
+      hasCatalogTitle: true,
+      catalogTitleLabel: 'Full Catalog Title',
+      catalogTitleDefault: 'Browse Seafood & Fishery Inventory',
+      categoriesSubtitleDefault: 'Filter by fresh catch, jumbo shellfish, kiln-smoked fish, or cooked seafood platters',
+      hasTestimonialsTitle: true,
+      testimonialsTitleDefault: 'Verified Customer Reviews & Chef Feedback',
+    },
+    features: {
+      hasFeaturesBanner: true,
+      bannerTitle: '4 Coastal Fishery & Quality Pillars',
+      defaultCards: [
+        { key1: 'feature1_title', val1: 'Wild & Fishery Direct', key2: 'feature1_desc', val2: 'Sourced directly from coastal trawlers & artisanal fishermen' },
+        { key1: 'feature2_title', val1: 'Flake Ice Transit', key2: 'feature2_desc', val2: 'Packed on crushed ice in insulated thermal boxes under 4°C' },
+        { key1: 'feature3_title', val1: 'Free Kitchen Prep', key2: 'feature3_desc', val2: 'Cleaned, descaled, gutted, or cut into steaks at no extra cost' },
+        { key1: 'feature4_title', val1: 'Doorstep Escrow', key2: 'feature4_desc', val2: 'Same-day delivery secured with your 6-digit confirmation code' },
+      ]
+    },
+    palettePresets: [
+      { name: 'Deep Atlantic Navy', icon: '🌊', primary_color: '#0A192F', banner_color: '#0C2340', background_color: '#F8FAFC', text_color: '#0F172A' },
+      { name: 'Coral Reef & Lobster', icon: '🦞', primary_color: '#E11D48', banner_color: '#881337', background_color: '#FFF1F2', text_color: '#4C0519' },
+      { name: 'Lagoon Aqua & Prawn', icon: '🦐', primary_color: '#0284C7', banner_color: '#075985', background_color: '#F0F9FF', text_color: '#082F49' },
+      { name: 'Smoked Fishery Amber', icon: '🪵', primary_color: '#D97706', banner_color: '#78350F', background_color: '#FFFBEB', text_color: '#451A03' },
+      { name: 'Coastal Mangrove Teal', icon: '🐟', primary_color: '#0D9488', banner_color: '#115E59', background_color: '#F0FDFA', text_color: '#042F2E' },
+    ],
+    defaultColors: { primary: '#0A192F', banner: '#0C2340', bg: '#F8FAFC', text: '#0F172A' },
+    defaultFont: 'Inter',
+  },
+
   default: {
     id: 'default',
     name: 'Default Storefront',

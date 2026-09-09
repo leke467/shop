@@ -126,6 +126,17 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           bottomBorder: 'border-t border-emerald-800 pt-6 mt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-emerald-300/60',
           poweredLink: 'text-emerald-300 hover:underline font-bold',
         }
+      case 'seafood':
+        return {
+          wrapper: 'bg-[#0A192F] border-t border-cyan-800 text-cyan-100 font-sans py-12 px-6',
+          brandTitle: 'text-lg font-bold text-white tracking-wide',
+          brandText: 'text-xs text-cyan-200/80',
+          heading: 'text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3',
+          link: 'text-xs text-cyan-200/80 hover:text-white transition-colors block py-1',
+          badge: 'border border-cyan-700 bg-cyan-950/60 p-3 rounded-xl text-xs text-cyan-200',
+          bottomBorder: 'border-t border-cyan-900 pt-6 mt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-cyan-300/60',
+          poweredLink: 'text-cyan-400 hover:underline font-bold',
+        }
       default:
         return {
           wrapper: 'bg-gray-900 border-t border-gray-800 text-white font-sans py-12 px-6',

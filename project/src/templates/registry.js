@@ -216,6 +216,16 @@ export const TEMPLATES = {
     pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
     component: () => import('./farmfresh/FarmFreshApp'),
   },
+  seafood: {
+    id: 'seafood',
+    name: 'OceanCatch & Seafood Market',
+    description: 'Specialized ocean fishery, fresh seafood, shellfish, smoked fish, and coastal food storefront. Features wild-catch badges, ice-pack cooling tags, kitchen prep options (gutted, descaled, steaks), and cold express delivery.',
+    category: 'Seafood / Fishery & Coastal Food',
+    thumbnail: null,
+    minPlan: 'growth',
+    pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
+    component: () => import('./seafood/SeafoodApp'),
+  },
 }
 
 /**

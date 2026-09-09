@@ -122,6 +122,15 @@ export default function TemplateMobileNav({
           btnCart: 'bg-emerald-600 text-white font-bold shadow-xs',
           badge: 'border border-emerald-700 bg-emerald-950 text-xs text-emerald-300',
         }
+      case 'seafood':
+        return {
+          menuBg: 'bg-[#0A192F] text-white border-b border-cyan-800/60 font-sans',
+          drawerBg: 'bg-[#071324] text-white border-r border-cyan-700/50 font-sans',
+          activeLink: 'bg-[#0284C7] text-white font-bold',
+          inactiveLink: 'text-cyan-200/80 hover:text-white hover:bg-cyan-900/40',
+          btnCart: 'bg-[#0284C7] text-white font-bold shadow-xs',
+          badge: 'border border-cyan-700 bg-cyan-950 text-xs text-cyan-300',
+        }
       default:
         return {
           menuBg: 'bg-gray-900 text-white border-b border-gray-800 font-sans',

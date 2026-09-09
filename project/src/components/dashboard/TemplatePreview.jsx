@@ -505,6 +505,43 @@ export default function TemplatePreview({ templateId }) {
         </div>
       )
 
+    case 'seafood':
+      return (
+        <div className="w-full h-full bg-[#F8FAFC] p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-slate-900">
+          {/* Coastal Navy Header */}
+          <div className="flex justify-between items-center bg-[#0A192F] text-white px-2 py-1 rounded text-[8px] font-bold">
+            <span className="flex items-center gap-1">🌊 OCEANCATCH</span>
+            <span className="text-[7px] text-cyan-300">FLAKE ICE</span>
+          </div>
+          {/* Banner */}
+          <div className="bg-gradient-to-r from-[#0A192F] to-[#0284C7] text-white p-2 rounded-lg flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-[8px] font-extrabold text-cyan-200">WILD CATCH & CRABS</div>
+              <div className="w-12 h-1 bg-white/40 rounded"></div>
+            </div>
+            <div className="text-sm">🦞</div>
+          </div>
+          {/* Seafood Cards */}
+          <div className="grid grid-cols-3 gap-1">
+            <div className="bg-white border border-cyan-100 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-cyan-50 rounded flex items-center justify-center text-[10px]">🐟</div>
+              <div className="w-6 h-1 bg-slate-400 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-sky-600 rounded mt-0.5"></div>
+            </div>
+            <div className="bg-white border border-cyan-100 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-rose-50 rounded flex items-center justify-center text-[10px]">🦐</div>
+              <div className="w-6 h-1 bg-slate-400 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-sky-600 rounded mt-0.5"></div>
+            </div>
+            <div className="bg-white border border-cyan-100 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-amber-50 rounded flex items-center justify-center text-[10px]">🪵</div>
+              <div className="w-6 h-1 bg-slate-400 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-sky-600 rounded mt-0.5"></div>
+            </div>
+          </div>
+        </div>
+      )
+
     default:
       return (
         <div className="w-full h-full bg-gradient-to-br from-amber-50 to-purple-50 flex items-center justify-center">
