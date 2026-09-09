@@ -13,6 +13,7 @@ import BlogTab from '../components/dashboard/BlogTab'
 import MessagesTab from '../components/dashboard/MessagesTab'
 import TemplatesTab from '../components/dashboard/TemplatesTab'
 import TemplateCustomizerModal from '../components/dashboard/TemplateCustomizerModal'
+import { getAllTemplates } from '../templates/registry'
 
 // Persist the last-selected shop so switching shops survives reloads.
 const SELECTED_SHOP_KEY = 'dashboard.selectedShopSlug'
@@ -2389,7 +2390,7 @@ export default function ShopDashboard() {
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    ✨ 20 Store Templates
+                    ✨ {getAllTemplates().length} Store Templates
                   </button>
                 </div>
               </div>
