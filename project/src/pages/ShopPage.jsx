@@ -8,6 +8,8 @@ import { useNotification } from '../context/NotificationContext'
 import SEOHead from '../components/SEOHead'
 import TemplateRouter from '../templates/TemplateRouter'
 import BrandLogoRenderer from '../components/shop/BrandLogoRenderer'
+import OffPlatformWarningModal from '../components/common/OffPlatformWarningModal'
+
 
 function ProductCard({ product }) {
   const img = product.primary_image || (product.images?.[0]?.medium || product.images?.[0]?.image)
@@ -58,6 +60,12 @@ export default function ShopPage() {
   const [reportDetails, setReportDetails] = useState('')
   const [reporting, setReporting] = useState(false)
   const [reportSuccess, setReportSuccess] = useState(false)
+  const [warningModal, setWarningModal] = useState({ isOpen: false, url: '', channel: 'WhatsApp' })
+
+  const handleExternalClick = (e, url, channel = 'WhatsApp') => {
+    e.preventDefault()
+    setWarningModal({ isOpen: true, url, channel })
+  }
 
   const handleReport = async (e) => {
     e.preventDefault()
@@ -310,17 +318,20 @@ export default function ShopPage() {
                     <span>🔗</span>
                     <span>Share Store</span>
                   </button>
-                  {shop.phone && (
-                    <a
-                      href={`https://wa.me/${shop.phone.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1.5 transition-all"
-                    >
-                      <span>💬</span>
-                      <span>Chat Seller</span>
-                    </a>
-                  )}
+                  {shop.phone && (() => {
+                    const cleanPhone = shop.phone.replace(/[^0-9]/g, '')
+                    const waUrl = `https://wa.me/${cleanPhone.startsWith('0') ? '234' + cleanPhone.slice(1) : cleanPhone}`
+                    return (
+                      <a
+                        href={waUrl}
+                        onClick={(e) => handleExternalClick(e, waUrl, 'WhatsApp')}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1.5 transition-all"
+                      >
+                        <span>💬</span>
+                        <span>Chat Seller</span>
+                      </a>
+                    )
+                  })()}
                   <button
                     onClick={() => setShowReportModal(true)}
                     className="px-3 py-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 text-xs font-medium transition-colors flex items-center gap-1"
@@ -596,6 +607,14 @@ export default function ShopPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <OffPlatformWarningModal
+        isOpen={warningModal.isOpen}
+        onClose={() => setWarningModal({ isOpen: false, url: '', channel: 'WhatsApp' })}
+        targetUrl={warningModal.url}
+        channelName={warningModal.channel}
+        shopName={shop?.name || 'this merchant'}
+      />
     </div>
   )
 }

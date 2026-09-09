@@ -63,8 +63,14 @@ def confirm_delivery_code(
 
         now = timezone.now()
 
-        # Calculate commission (on subtotal only)
-        commission = locked_group.subtotal * (locked_group.shop.commission_rate / Decimal("100.0"))
+        # Calculate commission: prioritize group's pre-calculated commission_fee from checkout,
+        # or fallback to active PlatformFeeSettings.
+        if locked_group.commission_fee is not None:
+            commission = locked_group.commission_fee
+        else:
+            from core.models import PlatformFeeSettings
+            fee_settings = PlatformFeeSettings.get_settings()
+            commission = (locked_group.subtotal * (fee_settings.seller_commission_percent / Decimal("100.0"))).quantize(Decimal("0.01"))
         
         # Release escrow.
         locked_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
@@ -140,7 +146,12 @@ def admin_release_escrow(
             )
 
         now = timezone.now()
-        commission = locked_group.subtotal * (locked_group.shop.commission_rate / Decimal("100.0"))
+        if locked_group.commission_fee is not None:
+            commission = locked_group.commission_fee
+        else:
+            from core.models import PlatformFeeSettings
+            fee_settings = PlatformFeeSettings.get_settings()
+            commission = (locked_group.subtotal * (fee_settings.seller_commission_percent / Decimal("100.0"))).quantize(Decimal("0.01"))
 
         locked_group.escrow_status = OrderGroup.EscrowStatus.RELEASED
         locked_group.escrow_released_at = now

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
 import Logo from '../components/Logo'
@@ -8,10 +8,24 @@ import GoogleLoginButton from '../components/GoogleLoginButton'
 export default function SignUpPage() {
   const { register } = useUser()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [step, setStep] = useState(1)
+  const [showReferralInput, setShowReferralInput] = useState(false)
+
+  const referralFromUrl = searchParams.get('ref') || searchParams.get('referral') || ''
+
+  useEffect(() => {
+    if (referralFromUrl) {
+      localStorage.setItem('pending_referral_code', referralFromUrl.trim().toUpperCase())
+    }
+  }, [referralFromUrl])
+
+  const initialReferral = referralFromUrl || localStorage.getItem('pending_referral_code') || ''
+
   const [form, setForm] = useState({
     email: '', password: '', password2: '',
     first_name: '', last_name: '', role: 'buyer',
+    referral_code: initialReferral,
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,6 +46,7 @@ export default function SignUpPage() {
     setLoading(true)
     try {
       await register(form)
+      localStorage.removeItem('pending_referral_code')
       navigate('/')
     } catch (err) {
       const data = err.response?.data
@@ -226,6 +241,59 @@ export default function SignUpPage() {
                     }`}
                     placeholder="••••••••••"
                   />
+                </div>
+
+                {/* Referral Code (Auto-captured or manual entry) */}
+                <div className="pt-1">
+                  {form.referral_code ? (
+                    <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between text-xs text-purple-700">
+                      <div className="flex items-center gap-2 font-medium">
+                        <span>🎁</span>
+                        <span>Referral Partner: <strong className="font-mono">{form.referral_code}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => update('referral_code', '')}
+                        className="text-purple-400 hover:text-red-500 font-bold px-1"
+                        title="Remove code"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {!showReferralInput ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowReferralInput(true)}
+                          className="text-xs text-primary-600 hover:underline font-semibold flex items-center gap-1"
+                        >
+                          <span>🎁</span>
+                          <span>Have a partner referral code?</span>
+                        </button>
+                      ) : (
+                        <div className="space-y-1">
+                          <label className="block text-xs font-semibold text-gray-700">Referral Code</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={form.referral_code}
+                              onChange={e => update('referral_code', e.target.value.toUpperCase())}
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 uppercase font-mono text-xs focus:ring-2 focus:ring-primary-500/30"
+                              placeholder="e.g. MULTI-1234"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowReferralInput(false)}
+                              className="text-xs text-gray-400 hover:text-gray-600 px-2"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3">

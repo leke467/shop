@@ -12,6 +12,7 @@ Design choices for scale & security:
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from django.db import models
 from django.utils import timezone
@@ -243,3 +244,83 @@ class SiteTheme(TimeStampedModel):
         if self.is_active:
             SiteTheme.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Platform Fee Settings (Singleton – Option A vs Option B)
+# ---------------------------------------------------------------------------
+class PlatformFeeSettings(TimeStampedModel):
+    """
+    Singleton model controlling platform escrow fee and seller commission structure.
+    Switchable directly via Django Admin:
+    - Option A: Zero-Deduction Seller (Buyer pays 5% Escrow Fee + Gateway Fee, Seller keeps 100%)
+    - Option B: 50/50 Escrow Split (Buyer pays 2.5% Escrow Fee + Gateway Fee, Seller pays 2.5%)
+    """
+    class FeeModel(models.TextChoices):
+        OPTION_A_BUYER_PAYS = "buyer_pays_all", "Option A: Zero-Deduction Seller (Buyer Covers 5% Escrow Fee + Gateway Fee)"
+        OPTION_B_SPLIT = "split_50_50", "Option B: 50/50 Escrow Split (Buyer Pays 2.5% Escrow Fee + Gateway Fee, Seller Pays 2.5% Commission)"
+
+    fee_model = models.CharField(
+        max_length=32,
+        choices=FeeModel.choices,
+        default=FeeModel.OPTION_A_BUYER_PAYS,
+        help_text="Active fee model. Switch between Option A (100% Buyer Covered) and Option B (50/50 Split)."
+    )
+    buyer_escrow_fee_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("5.00"),
+        help_text="Escrow & Buyer Protection Fee % charged to the buyer at checkout."
+    )
+    seller_commission_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Commission % deducted from the seller payout upon escrow release."
+    )
+    pass_gateway_fee_to_buyer = models.BooleanField(
+        default=True,
+        help_text="When enabled, payment processing gateway fee (Monnify) is passed to the buyer at checkout."
+    )
+    estimated_gateway_fee_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("1.50"),
+        help_text="Estimated payment gateway processing fee % (default: 1.50%)."
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Platform Fee Setting"
+        verbose_name_plural = "Platform Fee Settings"
+
+    def __str__(self):
+        return f"Fee Structure: {self.get_fee_model_display()}"
+
+    def save(self, *args, **kwargs):
+        # Auto-sync default percentages according to the selected model
+        if self.fee_model == self.FeeModel.OPTION_A_BUYER_PAYS:
+            self.buyer_escrow_fee_percent = Decimal("5.00")
+            self.seller_commission_percent = Decimal("0.00")
+        elif self.fee_model == self.FeeModel.OPTION_B_SPLIT:
+            self.buyer_escrow_fee_percent = Decimal("2.50")
+            self.seller_commission_percent = Decimal("2.50")
+
+        if self.is_active:
+            PlatformFeeSettings.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls):
+        """Fetch the active settings singleton or create default Option A."""
+        obj = cls.objects.filter(is_active=True).first()
+        if not obj:
+            obj = cls.objects.create(
+                fee_model=cls.FeeModel.OPTION_A_BUYER_PAYS,
+                buyer_escrow_fee_percent=Decimal("5.00"),
+                seller_commission_percent=Decimal("0.00"),
+                pass_gateway_fee_to_buyer=True,
+                estimated_gateway_fee_percent=Decimal("1.50"),
+                is_active=True,
+            )
+        return obj

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { orderAPI, shopAPI, getImageUrl, handleImageError, couponAPI } from '../services/api'
+import { orderAPI, shopAPI, getImageUrl, handleImageError, couponAPI, platformAPI } from '../services/api'
 import { useUser } from '../context/UserContext'
 import { useCart } from '../context/CartContext'
 import SEOHead from '../components/SEOHead'
@@ -109,13 +109,37 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
   const [couponError, setCouponError] = useState('')
   const [applyingCoupon, setApplyingCoupon] = useState(false)
 
+  // Platform Fee Settings (Option A vs Option B)
+  const [feeSettings, setFeeSettings] = useState({
+    fee_model: 'buyer_pays_all',
+    buyer_escrow_fee_percent: '5.00',
+    pass_gateway_fee_to_buyer: true,
+    estimated_gateway_fee_percent: '1.50',
+  })
+
+  useEffect(() => {
+    platformAPI.feeSettings()
+      .then(data => {
+        if (data) setFeeSettings(data)
+      })
+      .catch(() => {})
+  }, [])
+
   const subtotal = total || 0
-  const vatAmount = subtotal * 0.075
   const discountAmount = appliedCoupon?.discount_amount 
     ? Number(appliedCoupon.discount_amount)
     : appliedCoupon?.discount_percent 
       ? (subtotal * Number(appliedCoupon.discount_percent) / 100) 
       : Number(appliedCoupon?.discount || 0)
+
+  const netSubtotal = Math.max(0, subtotal - discountAmount)
+  const vatAmount = netSubtotal * 0.075
+
+  const escrowFeePercent = Number(feeSettings.buyer_escrow_fee_percent || 5.0)
+  const escrowFeeAmount = (netSubtotal * escrowFeePercent) / 100
+
+  const gatewayFeePercent = Number(feeSettings.estimated_gateway_fee_percent || 1.5)
+
 
   const handleApplyCoupon = async () => {
     if (!couponCode || !couponCode.trim()) return
@@ -223,7 +247,13 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
     }, 0)
   }, [deliveryFees, manualDeliverySelected])
 
-  const grandTotal = subtotal + vatAmount - discountAmount + (selectedState ? totalDeliveryFee : 0)
+  const effectiveDeliveryFee = selectedState ? totalDeliveryFee : 0
+
+  const gatewayFeeAmount = feeSettings.pass_gateway_fee_to_buyer
+    ? ((netSubtotal + effectiveDeliveryFee + vatAmount + escrowFeeAmount) * gatewayFeePercent) / 100
+    : 0
+
+  const grandTotal = netSubtotal + vatAmount + effectiveDeliveryFee + escrowFeeAmount + gatewayFeeAmount
   
   const unresolvedShops = unavailableShops.filter(slug => !manualDeliverySelected[slug])
   const canCheckout = selectedState && unresolvedShops.length === 0 && !deliveryLoading
@@ -511,9 +541,33 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 text-sm min-w-0">
                   <div className="flex justify-between items-center gap-2"><span className="text-gray-500 truncate">Subtotal ({items.length} items)</span><span className="font-semibold flex-shrink-0">₦{subtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between items-center gap-2 mt-2"><span className="text-gray-500 truncate">VAT (7.5%)</span><span className="font-semibold flex-shrink-0">₦{vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between items-center gap-2 mt-2"><span className="text-success-600 truncate">Discount</span><span className="font-semibold text-success-600 flex-shrink-0">-₦{discountAmount.toLocaleString()}</span></div>
+                  )}
+                  <div className="flex justify-between items-center gap-2 mt-2"><span className="text-gray-500 truncate">VAT (7.5%)</span><span className="font-semibold flex-shrink-0">₦{vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  
+                  {/* Escrow & Buyer Protection Fee */}
+                  <div className="flex justify-between items-center gap-2 mt-2">
+                    <span className="text-emerald-700 font-medium flex items-center gap-1 truncate text-xs sm:text-sm">
+                      <span>🛡️</span>
+                      <span>Escrow & Protection ({escrowFeePercent}%)</span>
+                    </span>
+                    <span className="font-semibold text-emerald-700 flex-shrink-0">
+                      ₦{escrowFeeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  {/* Payment Gateway Fee */}
+                  {feeSettings.pass_gateway_fee_to_buyer && (
+                    <div className="flex justify-between items-center gap-2 mt-2">
+                      <span className="text-gray-500 flex items-center gap-1 truncate text-xs sm:text-sm">
+                        <span>💳</span>
+                        <span>Payment Processing ({gatewayFeePercent}%)</span>
+                      </span>
+                      <span className="font-semibold text-gray-700 flex-shrink-0">
+                        ₦{gatewayFeeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   )}
 
                   {/* Coupon */}

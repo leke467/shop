@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getImageUrl } from '../../services/api'
+import OffPlatformWarningModal from '../common/OffPlatformWarningModal'
 
 /**
  * Universal Storefront Footer for all templates.
@@ -13,6 +15,13 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
   const shopTagline = shop?.tagline || (isVerified ? 'Verified Merchant on MultiShop' : 'Official Storefront on MultiShop')
   const shopLogo = extra.logo_url || shop?.logo || ''
   const footerNote = extra.footer_note || ''
+
+  const [warningModal, setWarningModal] = useState({ isOpen: false, url: '', channel: '' })
+
+  const handleExternalClick = (e, url, channel) => {
+    e.preventDefault()
+    setWarningModal({ isOpen: true, url, channel })
+  }
 
   const getThemeStyles = () => {
     switch (theme) {
@@ -185,83 +194,98 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
             <div className="pt-2">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1.5">Connect with us</p>
               <div className="flex flex-wrap items-center gap-2">
-                {shop.whatsapp_number && (
-                  <a
-                    href={`https://wa.me/${shop.whatsapp_number.replace(/[^0-9]/g, '').startsWith('0') ? '234' + shop.whatsapp_number.replace(/[^0-9]/g, '').slice(1) : shop.whatsapp_number.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="WhatsApp"
-                  >
-                    💬
-                  </a>
-                )}
-                {shop.instagram_url && (
-                  <a
-                    href={shop.instagram_url.startsWith('http') ? shop.instagram_url : `https://${shop.instagram_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="Instagram"
-                  >
-                    📸
-                  </a>
-                )}
-                {shop.tiktok_url && (
-                  <a
-                    href={shop.tiktok_url.startsWith('http') ? shop.tiktok_url : `https://${shop.tiktok_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-gray-700/40 text-cyan-300 hover:bg-cyan-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="TikTok"
-                  >
-                    🎵
-                  </a>
-                )}
-                {shop.twitter_url && (
-                  <a
-                    href={shop.twitter_url.startsWith('http') ? shop.twitter_url : `https://${shop.twitter_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="Twitter / X"
-                  >
-                    𝕏
-                  </a>
-                )}
-                {shop.facebook_url && (
-                  <a
-                    href={shop.facebook_url.startsWith('http') ? shop.facebook_url : `https://${shop.facebook_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="Facebook"
-                  >
-                    f
-                  </a>
-                )}
-                {shop.youtube_url && (
-                  <a
-                    href={shop.youtube_url.startsWith('http') ? shop.youtube_url : `https://${shop.youtube_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="YouTube"
-                  >
-                    ▶
-                  </a>
-                )}
-                {shop.linkedin_url && (
-                  <a
-                    href={shop.linkedin_url.startsWith('http') ? shop.linkedin_url : `https://${shop.linkedin_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs transition-all"
-                    title="LinkedIn"
-                  >
-                    in
-                  </a>
-                )}
+                {shop.whatsapp_number && (() => {
+                  const num = shop.whatsapp_number.replace(/[^0-9]/g, '')
+                  const waUrl = `https://wa.me/${num.startsWith('0') ? '234' + num.slice(1) : num}`
+                  return (
+                    <a
+                      href={waUrl}
+                      onClick={(e) => handleExternalClick(e, waUrl, 'WhatsApp')}
+                      className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="WhatsApp"
+                    >
+                      💬
+                    </a>
+                  )
+                })()}
+                {shop.instagram_url && (() => {
+                  const igUrl = shop.instagram_url.startsWith('http') ? shop.instagram_url : `https://${shop.instagram_url}`
+                  return (
+                    <a
+                      href={igUrl}
+                      onClick={(e) => handleExternalClick(e, igUrl, 'Instagram')}
+                      className="w-7 h-7 rounded-lg bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="Instagram"
+                    >
+                      📸
+                    </a>
+                  )
+                })()}
+                {shop.tiktok_url && (() => {
+                  const ttUrl = shop.tiktok_url.startsWith('http') ? shop.tiktok_url : `https://${shop.tiktok_url}`
+                  return (
+                    <a
+                      href={ttUrl}
+                      onClick={(e) => handleExternalClick(e, ttUrl, 'TikTok')}
+                      className="w-7 h-7 rounded-lg bg-gray-700/40 text-cyan-300 hover:bg-cyan-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="TikTok"
+                    >
+                      🎵
+                    </a>
+                  )
+                })()}
+                {shop.twitter_url && (() => {
+                  const twUrl = shop.twitter_url.startsWith('http') ? shop.twitter_url : `https://${shop.twitter_url}`
+                  return (
+                    <a
+                      href={twUrl}
+                      onClick={(e) => handleExternalClick(e, twUrl, 'Twitter / X')}
+                      className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="Twitter / X"
+                    >
+                      𝕏
+                    </a>
+                  )
+                })()}
+                {shop.facebook_url && (() => {
+                  const fbUrl = shop.facebook_url.startsWith('http') ? shop.facebook_url : `https://${shop.facebook_url}`
+                  return (
+                    <a
+                      href={fbUrl}
+                      onClick={(e) => handleExternalClick(e, fbUrl, 'Facebook')}
+                      className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="Facebook"
+                    >
+                      f
+                    </a>
+                  )
+                })()}
+                {shop.youtube_url && (() => {
+                  const ytUrl = shop.youtube_url.startsWith('http') ? shop.youtube_url : `https://${shop.youtube_url}`
+                  return (
+                    <a
+                      href={ytUrl}
+                      onClick={(e) => handleExternalClick(e, ytUrl, 'YouTube')}
+                      className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="YouTube"
+                    >
+                      ▶
+                    </a>
+                  )
+                })()}
+                {shop.linkedin_url && (() => {
+                  const liUrl = shop.linkedin_url.startsWith('http') ? shop.linkedin_url : `https://${shop.linkedin_url}`
+                  return (
+                    <a
+                      href={liUrl}
+                      onClick={(e) => handleExternalClick(e, liUrl, 'LinkedIn')}
+                      className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs transition-all"
+                      title="LinkedIn"
+                    >
+                      in
+                    </a>
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -344,6 +368,15 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           </div>
         </div>
       </div>
+
+      <OffPlatformWarningModal
+        isOpen={warningModal.isOpen}
+        onClose={() => setWarningModal({ isOpen: false, url: '', channel: '' })}
+        targetUrl={warningModal.url}
+        channelName={warningModal.channel}
+        shopName={shopName}
+      />
     </footer>
   )
 }
+

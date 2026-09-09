@@ -186,9 +186,15 @@ def checkout(
             group.subtotal += line_total
             subtotal += line_total
 
-        # Update group subtotals.
+        # --- Platform Fee Settings (Option A vs Option B) ---
+        from core.models import PlatformFeeSettings
+        fee_settings = PlatformFeeSettings.get_settings()
+        comm_pct = (fee_settings.seller_commission_percent or Decimal("0.00")) / Decimal("100.0")
+
+        # Update group subtotals and commission fees.
         for group in shops_seen.values():
-            group.save(update_fields=["subtotal"])
+            group.commission_fee = (group.subtotal * comm_pct).quantize(Decimal("0.01"))
+            group.save(update_fields=["subtotal", "commission_fee"])
 
         # --- Process Coupon / Discount ---
         discount_amount = Decimal("0.00")
@@ -220,13 +226,35 @@ def checkout(
             discount_amount = min(discount_amount, subtotal).quantize(Decimal("0.01"))
             applied_coupon_id = coupon.pk
 
-        # Update order totals.
+        # Update order totals with escrow & payment gateway fees.
+        net_subtotal = max(Decimal("0.00"), subtotal - discount_amount)
+        escrow_pct = (fee_settings.buyer_escrow_fee_percent or Decimal("0.00")) / Decimal("100.0")
+        escrow_fee = (net_subtotal * escrow_pct).quantize(Decimal("0.01"))
+
         order.subtotal = subtotal
         order.discount_total = discount_amount
-        order.tax_total = (max(Decimal("0.00"), subtotal - discount_amount) * Decimal("0.075")).quantize(Decimal("0.01"))
+        order.tax_total = (net_subtotal * Decimal("0.075")).quantize(Decimal("0.01"))
         order.shipping_total = sum(g.shipping_total for g in shops_seen.values())
-        order.grand_total = max(Decimal("0.00"), subtotal - discount_amount) + order.shipping_total + order.tax_total
-        order.save(update_fields=["subtotal", "discount_total", "tax_total", "shipping_total", "grand_total"])
+        order.escrow_fee = escrow_fee
+
+        if fee_settings.pass_gateway_fee_to_buyer:
+            gw_pct = (fee_settings.estimated_gateway_fee_percent or Decimal("1.50")) / Decimal("100.0")
+            pre_gateway_base = net_subtotal + order.shipping_total + order.tax_total + order.escrow_fee
+            order.gateway_fee = (pre_gateway_base * gw_pct).quantize(Decimal("0.01"))
+        else:
+            order.gateway_fee = Decimal("0.00")
+
+        order.grand_total = (
+            net_subtotal
+            + order.shipping_total
+            + order.tax_total
+            + order.escrow_fee
+            + order.gateway_fee
+        )
+        order.save(update_fields=[
+            "subtotal", "discount_total", "tax_total",
+            "shipping_total", "escrow_fee", "gateway_fee", "grand_total"
+        ])
 
         # --- Reserve inventory ---
         for item in cart_items:

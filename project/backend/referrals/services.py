@@ -120,6 +120,14 @@ def process_order_referral_reward(order_group) -> Decimal:
 
     referrer = referral.referrer
     commission = getattr(order_group, "commission_fee", Decimal("0.00"))
+    # If commission_fee is 0 (Option A where platform fee is collected as buyer escrow fee),
+    # calculate platform earnings from this order group's escrow fee proportion.
+    if commission <= Decimal("0.00"):
+        order = getattr(order_group, "order", None)
+        escrow_fee = getattr(order, "escrow_fee", Decimal("0.00")) if order else Decimal("0.00")
+        if escrow_fee > Decimal("0.00") and order.subtotal > Decimal("0.00"):
+            commission = (escrow_fee * (order_group.subtotal / order.subtotal)).quantize(Decimal("0.01"))
+
     if commission <= Decimal("0.00"):
         return Decimal("0.00")
 

@@ -429,6 +429,13 @@ export const paymentSettingsAPI = {
   },
 }
 
+// ── Platform Fee Settings ────────────────────────────────────
+export const platformAPI = {
+  feeSettings: () =>
+    api.get('/platform/fee-settings/').then(r => r.data),
+}
+
+
 // ── Addresses ────────────────────────────────────────────────
 export const addressAPI = {
   list: () => api.get('/users/addresses/').then(r => r.data),

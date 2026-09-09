@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useUser } from '../../context/UserContext'
-import { orderAPI, shopAPI, couponAPI, paymentSettingsAPI } from '../../services/api'
+import { orderAPI, shopAPI, couponAPI, paymentSettingsAPI, platformAPI } from '../../services/api'
 
 export const NIGERIAN_STATES = [
   { value: 'abia', label: 'Abia' },
@@ -139,12 +139,35 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
     }
   }, [form.provider])
 
+  // Platform Fee Settings
+  const [feeSettings, setFeeSettings] = useState({
+    fee_model: 'buyer_pays_all',
+    buyer_escrow_fee_percent: '5.00',
+    pass_gateway_fee_to_buyer: true,
+    estimated_gateway_fee_percent: '1.50',
+  })
+
+  useEffect(() => {
+    platformAPI.feeSettings()
+      .then(d => { if (d) setFeeSettings(d) })
+      .catch(() => {})
+  }, [])
+
   // Financial calculations
   const effectiveDeliveryFee = manualDeliverySelected ? 0 : (deliveryFee || 0)
   const discount = Number(couponDiscount || 0)
   const netSubtotal = Math.max(0, subtotal - discount)
   const vat = Math.round(netSubtotal * 0.075)
-  const grandTotal = netSubtotal + effectiveDeliveryFee + vat
+
+  const escrowFeePercent = Number(feeSettings.buyer_escrow_fee_percent || 5.0)
+  const escrowFee = Math.round((netSubtotal * escrowFeePercent) / 100)
+
+  const gatewayFeePercent = Number(feeSettings.estimated_gateway_fee_percent || 1.5)
+  const gatewayFee = feeSettings.pass_gateway_fee_to_buyer
+    ? Math.round(((netSubtotal + effectiveDeliveryFee + vat + escrowFee) * gatewayFeePercent) / 100)
+    : 0
+
+  const grandTotal = netSubtotal + effectiveDeliveryFee + vat + escrowFee + gatewayFee
 
   const canSubmit = deliveryAvailable || manualDeliverySelected || shop?.allow_manual_delivery
 
@@ -571,6 +594,26 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
               <span>VAT (7.5%)</span>
               <span className="font-medium">₦{vat.toLocaleString()}</span>
             </div>
+
+            {/* Escrow & Buyer Protection Fee */}
+            <div className="flex justify-between text-emerald-700 font-medium">
+              <span className="flex items-center gap-1">
+                <span>🛡️</span>
+                <span>Escrow & Protection ({escrowFeePercent}%)</span>
+              </span>
+              <span className="font-semibold">₦{escrowFee.toLocaleString()}</span>
+            </div>
+
+            {/* Payment Gateway Fee */}
+            {feeSettings.pass_gateway_fee_to_buyer && (
+              <div className="flex justify-between text-gray-600">
+                <span className="flex items-center gap-1">
+                  <span>💳</span>
+                  <span>Payment Gateway ({gatewayFeePercent}%)</span>
+                </span>
+                <span className="font-medium">₦{gatewayFee.toLocaleString()}</span>
+              </div>
+            )}
 
             <div className="border-t border-gray-200 pt-4 flex justify-between items-baseline">
               <span className="text-base font-bold text-gray-900">Total Amount</span>

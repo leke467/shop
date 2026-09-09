@@ -150,14 +150,14 @@ class OrderSerializer(serializers.ModelSerializer):
             "shipping_line1", "shipping_line2", "shipping_city",
             "shipping_state", "shipping_postal_code", "shipping_country",
             "subtotal", "shipping_total", "tax_total",
-            "discount_total", "grand_total", "currency",
+            "discount_total", "escrow_fee", "gateway_fee", "grand_total", "currency",
             "idempotency_key", "notes",
             "confirmed_at", "shipped_at", "delivered_at", "cancelled_at",
             "groups", "created_at",
         )
         read_only_fields = (
             "public_id", "status", "subtotal", "shipping_total",
-            "tax_total", "discount_total", "grand_total",
+            "tax_total", "discount_total", "escrow_fee", "gateway_fee", "grand_total",
             "idempotency_key",
             "confirmed_at", "shipped_at", "delivered_at", "cancelled_at",
             "created_at",

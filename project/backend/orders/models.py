@@ -187,6 +187,14 @@ class Order(BaseModel):
     discount_total = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
+    escrow_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0"),
+        help_text="Escrow & Buyer Protection Fee charged to buyer."
+    )
+    gateway_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0"),
+        help_text="Payment processing gateway fee (Monnify/Paystack)."
+    )
     grand_total = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
