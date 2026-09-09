@@ -393,9 +393,15 @@ export default function ProductPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Vendor</span>
-                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            ✓ Verified Seller
-                          </span>
+                          {(product.shop_is_verified || shopData?.is_verified) ? (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                              ✓ Verified Seller
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                              Official Merchant
+                            </span>
+                          )}
                         </div>
                         <Link
                           to={`/shop/${product.shop_slug || ''}`}

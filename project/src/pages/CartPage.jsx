@@ -263,7 +263,7 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
 
         if (window.MonnifySDK) {
           window.MonnifySDK.initialize({
-            amount: grandTotal,
+            amount: Number(monnifyData.amount || result.order?.grand_total || grandTotal),
             currency: 'NGN',
             currencyCode: 'NGN',
             customerName: checkoutForm.full_name || user?.email || 'Customer',
@@ -280,28 +280,20 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
                   refreshCart()
                   navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
                 })
-
                 .catch((verifyErr) => {
                   setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
-                })
-                .finally(() => {
                   setCheckoutLoading(false)
                 })
             },
             onClose: function(data) {
               setCheckoutError('Monnify payment popup closed. Order reserved — you can retry payment or check your orders.')
               setCheckoutLoading(false)
-            },
+            }
           })
-          return
         } else if (monnifyData.checkout_url) {
           window.location.href = monnifyData.checkout_url
-          return
         }
-      }
-
-      // Paystack inline popup flow
-      if (result.payment && result.payment.provider === 'paystack') {
+      } else if (result.payment && result.payment.provider === 'paystack') {
         const paystackData = result.payment
         const accessCode = paystackData.access_code
         const reference = paystackData.reference
@@ -310,7 +302,7 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
           const handler = window.PaystackPop.setup({
             key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
             email: checkoutForm.email || user?.email,
-            amount: Math.round(grandTotal * 100),
+            amount: Math.round(Number(paystackData.amount || result.order?.grand_total || grandTotal) * 100),
             ref: reference,
             access_code: accessCode,
             onSuccess: async (transaction) => {

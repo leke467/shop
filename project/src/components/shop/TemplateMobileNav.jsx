@@ -25,6 +25,7 @@ export default function TemplateMobileNav({
   const reviewsUrl = base ? `/shop/${base}/reviews` : '/reviews'
   const shopName = shop?.name || 'Storefront'
   const shopLogo = extra.logo_url || shop?.logo || ''
+  const isVerified = Boolean(shop?.is_verified)
 
   const isActive = (path) => location.pathname === path
 
@@ -195,8 +196,13 @@ export default function TemplateMobileNav({
                       <span className="text-2xl">🏪</span>
                     )}
                     <div>
-                      <h3 className="font-bold text-sm leading-tight">{shopName}</h3>
-                      <p className="text-[10px] opacity-60">Verified Storefront</p>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-sm leading-tight">{shopName}</h3>
+                        {isVerified && (
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black shrink-0" title="KYC Verified Seller">✓</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] opacity-60">{isVerified ? '✓ Verified Storefront' : 'Official Storefront'}</p>
                     </div>
                   </div>
                   <button

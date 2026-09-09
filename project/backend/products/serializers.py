@@ -83,6 +83,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     shop_slug = serializers.SerializerMethodField()
     shop_logo = serializers.SerializerMethodField()
     shop_status = serializers.SerializerMethodField()
+    shop_is_verified = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
     category = serializers.PrimaryKeyRelatedField(read_only=True)
     primary_image = serializers.SerializerMethodField()
@@ -99,7 +100,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "has_variants", "variant_attributes", "variants",
             "allow_custom_measurements", "custom_measurement_type", "custom_measurement_prompt",
             "rating_average", "rating_count", "view_count",
-            "shop_name", "shop_slug", "shop_logo", "shop_status", "category", "category_name", "store_catalogue", "primary_image",
+            "shop_name", "shop_slug", "shop_logo", "shop_status", "shop_is_verified", "category", "category_name", "store_catalogue", "primary_image",
             "is_locked", "inventory_quantity", "is_out_of_stock", "created_at",
         )
         read_only_fields = fields
@@ -150,6 +151,12 @@ class ProductListSerializer(serializers.ModelSerializer):
             return obj.shop.status if obj.shop else "active"
         except Exception:
             return "active"
+
+    def get_shop_is_verified(self, obj):
+        try:
+            return bool(obj.shop and obj.shop.is_verified)
+        except Exception:
+            return False
 
     def get_category_name(self, obj):
         try:
@@ -204,6 +211,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True)
     shop_slug = serializers.CharField(source="shop.slug", read_only=True)
     shop_logo = serializers.SerializerMethodField()
+    shop_is_verified = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
     variants = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
@@ -221,7 +229,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "allow_custom_measurements", "custom_measurement_type",
             "custom_measurement_prompt", "custom_measurement_required",
             "rating_average", "rating_count", "view_count", "purchase_count",
-            "shop_name", "shop_slug", "shop_logo", "category", "store_catalogue",
+            "shop_name", "shop_slug", "shop_logo", "shop_is_verified", "category", "store_catalogue",
             "variants", "images", "is_locked",
             "inventory_quantity", "is_out_of_stock",
             "created_at", "updated_at",
@@ -230,6 +238,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "public_id", "rating_average", "rating_count",
             "view_count", "purchase_count", "created_at", "updated_at",
         )
+
+    def get_shop_is_verified(self, obj):
+        try:
+            return bool(obj.shop and obj.shop.is_verified)
+        except Exception:
+            return False
 
     def get_variants(self, obj):
         try:

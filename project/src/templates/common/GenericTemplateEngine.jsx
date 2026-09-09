@@ -827,7 +827,8 @@ function EngineFooter({ config, shop, shopSlug }) {
   const extra = shop?.theme?.extra_tokens || {}
   const base = shopSlug || shop?.slug || ''
   const shopName = shop?.name || 'Storefront'
-  const shopTagline = extra.hero_subtitle || shop?.tagline || 'Verified Merchant on MultiShop'
+  const isVerified = Boolean(shop?.is_verified)
+  const shopTagline = extra.hero_subtitle || shop?.tagline || (isVerified ? 'Verified Merchant on MultiShop' : 'Official Storefront on MultiShop')
 
   return (
     <footer className="border-t py-12 px-6" style={{ borderColor: config.borderColor, backgroundColor: config.cardBg || '#111827', color: config.textColor || '#ffffff' }}>
@@ -850,8 +851,19 @@ function EngineFooter({ config, shop, shopSlug }) {
           <p className="text-xs opacity-75 leading-relaxed">Every transaction is secured with MultiShop Buyer Protection. Verified delivery through secure 6-digit confirmation codes.</p>
         </div>
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-90">Official Store</h4>
-          <p className="text-xs opacity-75">Verified storefront on MultiShop Nigeria. Accepting cards, bank transfers, and USSD.</p>
+          <div className="flex items-center gap-1.5 mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider opacity-90">
+              {isVerified ? 'Verified Store' : 'Official Store'}
+            </h4>
+            {isVerified && (
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black shrink-0" title="KYC Verified Seller">✓</span>
+            )}
+          </div>
+          <p className="text-xs opacity-75">
+            {isVerified
+              ? 'Verified storefront on MultiShop Nigeria. Accepting cards, bank transfers, and USSD.'
+              : 'Official storefront on MultiShop Nigeria. Accepting cards, bank transfers, and USSD.'}
+          </p>
         </div>
       </div>
       <div className="max-w-7xl mx-auto border-t mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs opacity-60" style={{ borderColor: config.borderColor }}>

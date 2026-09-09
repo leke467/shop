@@ -9,7 +9,8 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
   const extra = shop?.theme?.extra_tokens || {}
   const base = shopSlug || shop?.slug || ''
   const shopName = shop?.name || 'Storefront'
-  const shopTagline = shop?.tagline || 'Verified Merchant on MultiShop'
+  const isVerified = Boolean(shop?.is_verified)
+  const shopTagline = shop?.tagline || (isVerified ? 'Verified Merchant on MultiShop' : 'Official Storefront on MultiShop')
   const shopLogo = extra.logo_url || shop?.logo || ''
   const footerNote = extra.footer_note || ''
 
@@ -273,18 +274,38 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           </div>
         </div>
 
-        {/* Col 4: Verified Badge */}
+        {/* Col 4: Store Status / Verified Badge */}
         <div>
-          <h4 className={styles.heading}>Verified Merchant</h4>
-          <div className="space-y-2">
-            <p className="text-xs opacity-80 leading-relaxed">
-              Official storefront on <strong className="opacity-100">MultiShop Nigeria</strong>. 100% genuine products with secured payment checkout.
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] opacity-90 font-medium">Storefront Online & Accepting Orders</span>
-            </div>
-          </div>
+          {isVerified ? (
+            <>
+              <div className="flex items-center gap-1.5 mb-2">
+                <h4 className={styles.heading}>Verified Merchant</h4>
+                <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-black shadow-xs" title="KYC Verified Seller">✓</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs opacity-80 leading-relaxed">
+                  Identity & KYC verified merchant on <strong className="opacity-100">MultiShop Nigeria</strong>. 100% genuine products with secured payment checkout.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[11px] opacity-90 font-medium">Verified Storefront Online</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h4 className={styles.heading}>Official Storefront</h4>
+              <div className="space-y-2">
+                <p className="text-xs opacity-80 leading-relaxed">
+                  Active storefront on <strong className="opacity-100">MultiShop Nigeria</strong>. 100% genuine products with secured payment checkout.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[11px] opacity-90 font-medium">Storefront Online & Accepting Orders</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
