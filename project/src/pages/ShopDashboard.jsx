@@ -2069,7 +2069,7 @@ export default function ShopDashboard() {
 
                         {/* Variant List Table */}
                         {productForm.variants_data?.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             <div className="flex items-center justify-between px-1">
                               <span className="text-xs font-bold text-gray-700">
                                 Configured Options ({productForm.variants_data.length})
@@ -2082,12 +2082,21 @@ export default function ShopDashboard() {
                                 Clear all
                               </button>
                             </div>
-                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                              <table className="w-full text-left text-xs">
+
+                            {/* Tip Banner for Variant Photos */}
+                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/60 text-blue-900 text-[11px] leading-relaxed shadow-2xs">
+                              <span className="text-base shrink-0">📸</span>
+                              <span>
+                                <strong>Variant Photos:</strong> Click <strong>+ Photo</strong> on any option row below (e.g. Red, Blue, Size M) to attach an image. When shoppers click that option on your storefront, the product photo automatically switches!
+                              </span>
+                            </div>
+
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm">
+                              <table className="w-full text-left text-xs min-w-[520px]">
                                 <thead className="bg-gray-100/80 text-gray-600 font-semibold border-b border-gray-200">
                                   <tr>
                                     <th className="px-3 py-2.5">Variant / Option</th>
-                                    <th className="px-3 py-2.5 w-24 text-center">Photo</th>
+                                    <th className="px-3 py-2.5 w-28 text-center">Photo</th>
                                     <th className="px-3 py-2.5 w-32">Price (₦)</th>
                                     <th className="px-3 py-2.5 w-24">Stock</th>
                                     <th className="px-3 py-2.5 w-10 text-center">✕</th>
@@ -2119,7 +2128,7 @@ export default function ShopDashboard() {
                                               <img
                                                 src={v.image_preview || getImageUrl(v.image)}
                                                 alt={v.name}
-                                                className="w-9 h-9 object-cover rounded-lg border border-gray-200 shadow-2xs"
+                                                className="w-10 h-10 object-cover rounded-lg border border-gray-200 shadow-2xs"
                                               />
                                               <button
                                                 type="button"
@@ -2137,8 +2146,9 @@ export default function ShopDashboard() {
                                               </button>
                                             </div>
                                           ) : (
-                                            <label className="cursor-pointer px-2 py-1 bg-gray-50 hover:bg-primary-50 hover:text-primary-600 border border-dashed border-gray-300 hover:border-primary-400 rounded-lg text-[10px] font-bold text-gray-500 flex items-center gap-1 transition-all">
-                                              <span>📷 +Photo</span>
+                                            <label className="cursor-pointer inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gray-50 hover:bg-primary-50 text-gray-700 hover:text-primary-700 border border-dashed border-gray-300 hover:border-primary-400 rounded-lg text-[11px] font-bold transition-all shadow-2xs">
+                                              <span>📷</span>
+                                              <span>+ Photo</span>
                                               <input
                                                 type="file"
                                                 accept="image/*"
