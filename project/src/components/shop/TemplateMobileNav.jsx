@@ -131,6 +131,15 @@ export default function TemplateMobileNav({
           btnCart: 'bg-[#0284C7] text-white font-bold shadow-xs',
           badge: 'border border-cyan-700 bg-cyan-950 text-xs text-cyan-300',
         }
+      case 'gadgets':
+        return {
+          menuBg: 'bg-[#0F172A] text-white border-b border-slate-700 font-sans',
+          drawerBg: 'bg-[#0B0F19] text-white border-r border-slate-700 font-sans',
+          activeLink: 'bg-[#2563EB] text-white font-bold',
+          inactiveLink: 'text-slate-300 hover:text-white hover:bg-slate-800',
+          btnCart: 'bg-[#2563EB] text-white font-bold shadow-xs',
+          badge: 'border border-blue-500 bg-blue-950 text-xs text-blue-300',
+        }
       default:
         return {
           menuBg: 'bg-gray-900 text-white border-b border-gray-800 font-sans',

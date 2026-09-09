@@ -542,6 +542,43 @@ export default function TemplatePreview({ templateId }) {
         </div>
       )
 
+    case 'gadgets':
+      return (
+        <div className="w-full h-full bg-[#0B0F19] p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-white">
+          {/* Tech Header */}
+          <div className="flex justify-between items-center bg-[#1E293B] text-white px-2 py-1 rounded text-[8px] font-bold">
+            <span className="flex items-center gap-1">⚡ TECHVAULT</span>
+            <span className="text-[7px] text-emerald-400 font-mono">GENUINE</span>
+          </div>
+          {/* Banner */}
+          <div className="bg-gradient-to-r from-[#1E293B] to-[#2563EB] text-white p-2 rounded-lg flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-[8px] font-extrabold text-blue-200">FLAGSHIPS & LAPTOPS</div>
+              <div className="w-12 h-1 bg-white/40 rounded"></div>
+            </div>
+            <div className="text-sm">📱</div>
+          </div>
+          {/* Tech Cards */}
+          <div className="grid grid-cols-3 gap-1">
+            <div className="bg-[#161F30] border border-slate-700/60 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-slate-800 rounded flex items-center justify-center text-[10px]">📱</div>
+              <div className="w-6 h-1 bg-slate-500 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-blue-500 rounded mt-0.5"></div>
+            </div>
+            <div className="bg-[#161F30] border border-slate-700/60 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-slate-800 rounded flex items-center justify-center text-[10px]">💻</div>
+              <div className="w-6 h-1 bg-slate-500 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-blue-500 rounded mt-0.5"></div>
+            </div>
+            <div className="bg-[#161F30] border border-slate-700/60 rounded p-1 flex flex-col items-center shadow-2xs">
+              <div className="w-full h-6 bg-slate-800 rounded flex items-center justify-center text-[10px]">🎮</div>
+              <div className="w-6 h-1 bg-slate-500 rounded mt-1"></div>
+              <div className="w-4 h-1 bg-blue-500 rounded mt-0.5"></div>
+            </div>
+          </div>
+        </div>
+      )
+
     default:
       return (
         <div className="w-full h-full bg-gradient-to-br from-amber-50 to-purple-50 flex items-center justify-center">

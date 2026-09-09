@@ -226,6 +226,16 @@ export const TEMPLATES = {
     pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
     component: () => import('./seafood/SeafoodApp'),
   },
+  gadgets: {
+    id: 'gadgets',
+    name: 'TechVault Gadgets & Smartphones',
+    description: 'Sleek, high-performance electronics and smartphone storefront. Features factory-sealed vs Grade A+ used condition badges, battery health chips, storage/RAM spec filters, variant photo switching, and escrow protection.',
+    category: 'Consumer Electronics / Phones & Gadgets',
+    thumbnail: null,
+    minPlan: 'growth',
+    pages: ['home', 'catalog', 'reviews', 'about', 'contact'],
+    component: () => import('./gadgets/GadgetsApp'),
+  },
 }
 
 /**

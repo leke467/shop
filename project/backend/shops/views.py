@@ -288,7 +288,7 @@ class ShopTemplateView(APIView):
         "royal", "boho", "popart", "retro", "pastel",
         "industrial", "zenith", "monochrome", "artisan", "futura",
         "lookbook", "bazaar", "timeline", "department", "polaroid",
-        "farmfresh", "seafood"
+        "farmfresh", "seafood", "gadgets"
     }
 
     def patch(self, request, slug):

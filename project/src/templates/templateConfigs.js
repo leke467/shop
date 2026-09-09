@@ -1022,6 +1022,61 @@ export const TEMPLATE_CUSTOMIZATION_SCHEMAS = {
     defaultFont: 'Inter',
   },
 
+  gadgets: {
+    id: 'gadgets',
+    name: 'TechVault Gadgets & Smartphones',
+    tagline: 'Sleek, high-performance electronics, phones, laptops, and accessories template',
+    hero: {
+      hasWelcomePrefix: false,
+      hasBadge: true,
+      badgeLabel: 'Tech Trust Badge (e.g. "⚡ 100% Genuine Devices & Escrow Protected")',
+      badgeDefault: '⚡ 100% Genuine Devices & Escrow Protected',
+      hasHeadline: true,
+      headlineLabel: 'Hero Main Headline',
+      headlineDefault: 'Flagship Smartphones, Laptops & Premium Gadgets',
+      hasSubtitle: true,
+      subtitleLabel: 'Hero Subtitle / Quality Promise',
+      subtitleDefault: 'Shop factory-sealed and pristine Grade A+ devices. Verified battery health, multi-point diagnostic testing, and doorstep escrow inspection.',
+      hasCtaPrimary: true,
+      ctaPrimaryLabel: 'Primary Order Button',
+      ctaPrimaryDefault: 'Explore Tech Deals',
+      hasCtaSecondary: false,
+      imageSlots: [
+        { key: 'hero_image_1', label: 'Tech Showcase / Flagship Phone Banner', desc: 'High-res banner photo of modern smartphones, laptops, or gear', default: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80' },
+      ],
+    },
+    sections: {
+      hasFeaturedTitle: true,
+      featuredTitleLabel: 'Featured Products Title',
+      featuredTitleDefault: 'Trending Devices & New Drops',
+      hasCatalogTitle: true,
+      catalogTitleLabel: 'Full Catalog Title',
+      catalogTitleDefault: 'Browse Complete Tech Inventory',
+      categoriesSubtitleDefault: 'Filter by iPhones, Android, MacBooks, gaming consoles, smartwatches, and accessories',
+      hasTestimonialsTitle: true,
+      testimonialsTitleDefault: 'Verified Customer Reviews & Tech Feedback',
+    },
+    features: {
+      hasFeaturesBanner: true,
+      bannerTitle: '4 TechVault Hardware Guarantees',
+      defaultCards: [
+        { key1: 'feature1_title', val1: '100% Authentic Gear', key2: 'feature1_desc', val2: 'Clean IMEI, unlocked devices, and genuine accessories only' },
+        { key1: 'feature2_title', val1: 'Tested Battery Health', key2: 'feature2_desc', val2: '90%+ battery health certified on all Grade A+ devices' },
+        { key1: 'feature3_title', val1: 'Doorstep Inspection', key2: 'feature3_desc', val2: 'Test device cameras, screen & sound before code confirmation' },
+        { key1: 'feature4_title', val1: 'Warranty Protection', key2: 'feature4_desc', val2: 'Guaranteed warranty and MultiShop escrow fund release' },
+      ]
+    },
+    palettePresets: [
+      { name: 'Titanium Space Gray', icon: '📱', primary_color: '#0F172A', banner_color: '#1E293B', background_color: '#F8FAFC', text_color: '#0F172A' },
+      { name: 'Electric Cobalt', icon: '⚡', primary_color: '#2563EB', banner_color: '#1E40AF', background_color: '#EFF6FF', text_color: '#1E3A8A' },
+      { name: 'Midnight Obsidian', icon: '🌑', primary_color: '#0B0F19', banner_color: '#111827', background_color: '#F9FAFB', text_color: '#111827' },
+      { name: 'Cyber Emerald', icon: '🔋', primary_color: '#059669', banner_color: '#065F46', background_color: '#F0FDF4', text_color: '#064E3B' },
+      { name: 'Neon Purple Ultra', icon: '👾', primary_color: '#7C3AED', banner_color: '#5B21B6', background_color: '#FAF5FF', text_color: '#4C1D95' },
+    ],
+    defaultColors: { primary: '#0F172A', banner: '#1E293B', bg: '#F8FAFC', text: '#0F172A' },
+    defaultFont: 'Inter',
+  },
+
   default: {
     id: 'default',
     name: 'Default Storefront',

@@ -137,6 +137,17 @@ export default function TemplateFooterView({ shop, shopSlug, theme = 'default', 
           bottomBorder: 'border-t border-cyan-900 pt-6 mt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-cyan-300/60',
           poweredLink: 'text-cyan-400 hover:underline font-bold',
         }
+      case 'gadgets':
+        return {
+          wrapper: 'bg-[#0B0F19] border-t border-slate-800 text-slate-200 font-sans py-12 px-6',
+          brandTitle: 'text-lg font-bold text-white tracking-wide',
+          brandText: 'text-xs text-slate-400',
+          heading: 'text-xs font-bold uppercase tracking-wider text-blue-400 mb-3',
+          link: 'text-xs text-slate-300 hover:text-white transition-colors block py-1',
+          badge: 'border border-slate-700 bg-slate-900 p-3 rounded-xl text-xs text-slate-200',
+          bottomBorder: 'border-t border-slate-800 pt-6 mt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400',
+          poweredLink: 'text-blue-400 hover:underline font-bold',
+        }
       default:
         return {
           wrapper: 'bg-gray-900 border-t border-gray-800 text-white font-sans py-12 px-6',
