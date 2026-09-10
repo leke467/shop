@@ -143,8 +143,8 @@ export default function ReferralDashboard() {
     setWithdrawError('')
     const num = Number(withdrawAmount)
     const available = Number(stats?.wallet_balance || 0)
-    if (!num || isNaN(num) || num < 100) {
-      setWithdrawError('Minimum withdrawal amount is ₦100.00')
+    if (!num || isNaN(num) || num < 1000) {
+      setWithdrawError('Minimum withdrawal amount is ₦1,000.00')
       return
     }
     if (num > available) {
@@ -300,7 +300,7 @@ export default function ReferralDashboard() {
               <p className="text-xs uppercase tracking-wider opacity-80 font-bold">Referral Wallet</p>
               <button
                 onClick={handleOpenWithdraw}
-                disabled={Number(stats?.wallet_balance || 0) < 100}
+                disabled={Number(stats?.wallet_balance || 0) < 1000}
                 className="px-2.5 py-1 bg-white/20 hover:bg-white text-white hover:text-indigo-900 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
               >
                 Withdraw ₦
@@ -623,7 +623,7 @@ export default function ReferralDashboard() {
                   </p>
                   <button
                     onClick={handleOpenWithdraw}
-                    disabled={Number(stats?.wallet_balance || 0) < 100}
+                    disabled={Number(stats?.wallet_balance || 0) < 1000}
                     className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition-all disabled:opacity-40"
                   >
                     Withdraw to Bank Account
@@ -869,17 +869,17 @@ export default function ReferralDashboard() {
                     </span>
                     <input
                       type="number"
-                      min="100"
+                      min="1000"
                       max={stats?.wallet_balance || 0}
                       step="0.01"
                       required
-                      placeholder="e.g. 500.00"
+                      placeholder="e.g. 1,000.00"
                       value={withdrawAmount}
                       onChange={(e) => setWithdrawAmount(e.target.value)}
                       className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-4 py-3 text-gray-900 dark:text-white font-mono font-bold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1">Minimum payout: ₦100.00 • Zero withdrawal fees</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Minimum payout: ₦1,000.00 • Zero withdrawal fees</p>
                 </div>
 
                 {/* Bank Account Selection */}
@@ -1006,7 +1006,7 @@ export default function ReferralDashboard() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={withdrawing || Number(stats?.wallet_balance || 0) < 100}
+                    disabled={withdrawing || Number(stats?.wallet_balance || 0) < 1000}
                     className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
                   >
                     {withdrawing ? 'Processing Payout Request…' : `Confirm Withdrawal${withdrawAmount ? ` (₦${Number(withdrawAmount).toLocaleString()})` : ''}`}

@@ -326,7 +326,7 @@ class ReferralWithdrawView(APIView):
         ser.is_valid(raise_exception=True)
 
         amount = ser.validated_data["amount"]
-        min_payout = Decimal("100.00")
+        min_payout = Decimal("1000.00")
         if amount < min_payout:
             return Response({"detail": f"Minimum payout is ₦{min_payout:,.2f}."}, status=status.HTTP_400_BAD_REQUEST)
 
