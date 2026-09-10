@@ -12,10 +12,6 @@ export default function SignUpPage() {
   const [searchParams] = useSearchParams()
   const redirectUrl = searchParams.get('redirect') || '/'
   const defaultRole = redirectUrl.startsWith('/create-shop') ? 'seller' : 'buyer'
-  const [step, setStep] = useState(1)
-  const [showReferralInput, setShowReferralInput] = useState(false)
-  const [referralValidation, setReferralValidation] = useState(null)
-
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referral') || ''
 
   useEffect(() => {
@@ -25,6 +21,10 @@ export default function SignUpPage() {
   }, [referralFromUrl])
 
   const initialReferral = referralFromUrl || localStorage.getItem('pending_referral_code') || ''
+
+  const [step, setStep] = useState(1)
+  const [showReferralInput, setShowReferralInput] = useState(Boolean(initialReferral))
+  const [referralValidation, setReferralValidation] = useState(null)
 
   const [form, setForm] = useState({
     email: '', password: '', password2: '',
@@ -42,8 +42,9 @@ export default function SignUpPage() {
       return
     }
 
+    // While typing fewer than 4 characters, simply wait without showing an error
     if (code.length < 4) {
-      setReferralValidation({ valid: false, detail: 'Code too short' })
+      setReferralValidation(null)
       return
     }
 
@@ -289,81 +290,82 @@ export default function SignUpPage() {
 
                 {/* Referral Code (Auto-captured or manual entry) */}
                 <div className="pt-1">
-                  {form.referral_code ? (
-                    <div className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                      referralValidation?.valid
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : referralValidation?.valid === false
-                        ? 'bg-amber-50 border-amber-200 text-amber-800'
-                        : 'bg-purple-50 border-purple-200 text-purple-700'
-                    }`}>
-                      <div className="flex items-center gap-2 font-medium">
-                        <span>🎁</span>
-                        <div>
-                          <div>
-                            Referral Partner: <strong className="font-mono">{form.referral_code}</strong>
-                          </div>
-                          {referralValidation?.valid && (
-                            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                              ✓ Invited by {referralValidation.referrer_name}
-                            </p>
-                          )}
-                          {referralValidation?.valid === false && (
-                            <p className="text-[11px] text-amber-600 mt-0.5">
-                              ⚠ {referralValidation.detail || 'Code not found'}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          update('referral_code', '')
-                          setReferralValidation(null)
-                          localStorage.removeItem('pending_referral_code')
-                        }}
-                        className="text-gray-400 hover:text-red-500 font-bold px-2 py-1"
-                        title="Remove code"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                  {!showReferralInput && !form.referral_code ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowReferralInput(true)}
+                      className="text-xs text-primary-600 hover:underline font-semibold flex items-center gap-1.5"
+                    >
+                      <span>🎁</span>
+                      <span>Have a partner referral code?</span>
+                    </button>
                   ) : (
-                    <div>
-                      {!showReferralInput ? (
+                    <div className="space-y-1.5 p-3 rounded-xl bg-gray-50 border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-gray-700">
+                          🎁 Referral Partner Code (Optional)
+                        </label>
                         <button
                           type="button"
-                          onClick={() => setShowReferralInput(true)}
-                          className="text-xs text-primary-600 hover:underline font-semibold flex items-center gap-1"
+                          onClick={() => {
+                            setShowReferralInput(false)
+                            update('referral_code', '')
+                            setReferralValidation(null)
+                            localStorage.removeItem('pending_referral_code')
+                          }}
+                          className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors"
                         >
-                          <span>🎁</span>
-                          <span>Have a partner referral code?</span>
+                          {form.referral_code ? 'Remove' : 'Cancel'}
                         </button>
-                      ) : (
-                        <div className="space-y-1">
-                          <label className="block text-xs font-semibold text-gray-700">Referral Code</label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={form.referral_code}
-                              onChange={e => update('referral_code', e.target.value.toUpperCase())}
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 uppercase font-mono text-xs focus:ring-2 focus:ring-primary-500/30"
-                              placeholder="e.g. MULTI-1234"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowReferralInput(false)
-                                update('referral_code', '')
-                                setReferralValidation(null)
-                                localStorage.removeItem('pending_referral_code')
-                              }}
-                              className="text-xs text-gray-400 hover:text-gray-600 px-2"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={form.referral_code || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+                            update('referral_code', val)
+                          }}
+                          className={`w-full pl-3.5 pr-8 py-2.5 rounded-xl border font-mono text-xs uppercase bg-white transition-all ${
+                            referralValidation?.valid
+                              ? 'border-emerald-500 bg-emerald-50/20 text-emerald-900 focus:ring-2 focus:ring-emerald-500/30'
+                              : referralValidation?.valid === false && (form.referral_code || '').length >= 4
+                              ? 'border-amber-400 bg-amber-50/20 text-amber-900 focus:ring-2 focus:ring-amber-400/30'
+                              : 'border-gray-200 text-gray-900 focus:ring-2 focus:ring-primary-500/30'
+                          }`}
+                          placeholder="e.g. MULTI-1234"
+                          maxLength={25}
+                          autoFocus={showReferralInput && !form.referral_code}
+                        />
+                        {form.referral_code && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              update('referral_code', '')
+                              setReferralValidation(null)
+                              localStorage.removeItem('pending_referral_code')
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-xs px-1"
+                            title="Clear code"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Validation feedback */}
+                      {referralValidation?.valid && (
+                        <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                          <span>✓</span>
+                          <span>Verified Partner: Invited by <strong>{referralValidation.referrer_name}</strong></span>
+                        </p>
+                      )}
+                      {referralValidation?.valid === false && (form.referral_code || '').length >= 4 && (
+                        <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                          <span>⚠</span>
+                          <span>Referral code not found (check spelling or clear it)</span>
+                        </p>
                       )}
                     </div>
                   )}
