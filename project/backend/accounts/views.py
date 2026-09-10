@@ -23,6 +23,9 @@ from .serializers import (
     UserProfileSerializer,
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 User = get_user_model()
 
 
@@ -341,6 +344,28 @@ class GoogleAuthView(APIView):
                 })
             except Exception as e:
                 logger.error("Failed to send welcome email on Google sign up: %s", e)
+
+        # Link referral code if passed during Google sign-up/login
+        ref_code_str = (request.data.get("referral_code") or request.data.get("ref") or "").strip().upper()
+        if ref_code_str:
+            try:
+                from referrals.models import Referral, ReferralCode
+                if not Referral.objects.filter(referred_user=user).exists():
+                    ref_obj = ReferralCode.objects.select_related("user").get(code__iexact=ref_code_str)
+                    if ref_obj.user != user:
+                        Referral.objects.create(
+                            referred_user=user,
+                            referrer=ref_obj.user,
+                            referral_code=ref_obj,
+                        )
+                        if getattr(user, "role", "") == "seller":
+                            ref_obj.total_referred_sellers += 1
+                        else:
+                            ref_obj.total_referred_buyers += 1
+                        ref_obj.save(update_fields=["total_referred_sellers", "total_referred_buyers", "updated_at"])
+                        logger.info("Linked Google signup user %s to referrer %s via code %s", user.email, ref_obj.user.email, ref_obj.code)
+            except Exception as exc:
+                logger.warning("Could not link referral code %s for Google user %s: %s", ref_code_str, user.email, exc)
 
         # Generate SimpleJWT Tokens
         from rest_framework_simplejwt.tokens import RefreshToken

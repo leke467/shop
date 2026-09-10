@@ -67,8 +67,12 @@ export function UserProvider({ children }) {
     }
   }, [])
 
-  const googleLogin = useCallback(async (token) => {
-    const data = await authAPI.googleLogin(token)
+  const googleLogin = useCallback(async (token, referralCode) => {
+    const code = referralCode || localStorage.getItem('pending_referral_code') || new URLSearchParams(window.location.search).get('ref') || ''
+    const data = await authAPI.googleLogin(token, code)
+    if (code) {
+      localStorage.removeItem('pending_referral_code')
+    }
     setUser(data.user)
     return data
   }, [])

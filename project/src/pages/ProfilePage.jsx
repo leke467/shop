@@ -297,6 +297,26 @@ function ProfileTab() {
             {saving ? 'Saving Changes…' : 'Save Changes'}
           </button>
         </form>
+
+        {/* Referral Partner Section */}
+        <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>🤝</span> Referral Program & Partner Link
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Earn 20% on subscriptions & sales, withdraw to your bank account, or link who referred you.
+              </p>
+            </div>
+            <Link
+              to="/referrals"
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap self-start sm:self-auto"
+            >
+              <span>🎁</span> Open Referral Hub →
+            </Link>
+          </div>
+        </div>
       </div>
     </motion.div>
   )

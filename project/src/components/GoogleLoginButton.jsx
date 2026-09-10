@@ -59,7 +59,8 @@ export default function GoogleLoginButton({ onSuccess, onError, text = "Continue
     setLoading(true)
     setError('')
     try {
-      await googleLogin(response.credential)
+      const pendingRef = localStorage.getItem('pending_referral_code') || new URLSearchParams(window.location.search).get('ref') || ''
+      await googleLogin(response.credential, pendingRef)
       if (onSuccess) onSuccess()
       else navigate('/')
     } catch (err) {

@@ -140,8 +140,8 @@ export const authAPI = {
     api.post('/users/forgot-password/', { email }).then(r => r.data),
   resetPassword: (data) =>
     api.post('/users/reset-password/', data).then(r => r.data),
-  googleLogin: (token) =>
-    api.post('/users/google/', { token }).then(r => {
+  googleLogin: (token, referral_code = '') =>
+    api.post('/users/google/', { token, referral_code }).then(r => {
       if (r.data?.access) localStorage.setItem('access_token', r.data.access)
       return r.data
     }),
@@ -581,6 +581,7 @@ export const referralAPI = {
   addBankAccount: (data) => api.post('/referrals/bank-accounts/', data).then(r => r.data),
   deleteBankAccount: (id) => api.delete(`/referrals/bank-accounts/${id}/`).then(r => r.data),
   withdraw: (data) => api.post('/referrals/withdraw/', data).then(r => r.data),
+  claimReferral: (referral_code) => api.post('/referrals/claim/', { referral_code }).then(r => r.data),
 }
 
 // ── Superadmin Dashboard ─────────────────────────────────────

@@ -157,6 +157,21 @@ class ReferralMyStatsView(APIView):
         earnings_serializer = ReferralEarningSerializer(earnings, many=True)
         code_serializer = ReferralCodeSerializer(ref_obj, context={"request": request})
 
+        # Check who referred current user (if any)
+        my_ref = (
+            Referral.objects.filter(referred_user=request.user)
+            .select_related("referrer", "referral_code")
+            .first()
+        )
+        referred_by_info = None
+        if my_ref:
+            referrer_display = my_ref.referrer.get_full_name() or my_ref.referrer.username or "Partner"
+            referred_by_info = {
+                "referrer_name": referrer_display,
+                "referral_code": my_ref.referral_code.code if my_ref.referral_code else "",
+                "created_at": my_ref.created_at,
+            }
+
         return Response({
             "code": ref_obj.code,
             "referral_url": code_serializer.data.get("referral_url"),
@@ -175,7 +190,71 @@ class ReferralMyStatsView(APIView):
             "transactions": ReferralTransactionSerializer(transactions, many=True).data,
             "referred_users": referred_users_list,
             "earnings_history": earnings_serializer.data,
+            "referred_by": referred_by_info,
         })
+
+
+class ReferralClaimView(APIView):
+    """
+    POST /api/referrals/claim/
+    Allows an authenticated user who did NOT enter a referral code during signup
+    (e.g., signed up with Google or skipped it) to link a referral code retroactively.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code_str = (request.data.get("referral_code") or request.data.get("code") or "").strip().upper()
+        if not code_str:
+            return Response({"detail": "Please enter a valid referral code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if user is already linked to a referrer
+        if Referral.objects.filter(referred_user=request.user).exists():
+            return Response(
+                {"detail": "You have already linked a referral partner to your account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ref_obj = ReferralCode.objects.select_related("user").get(code__iexact=code_str)
+        except ReferralCode.DoesNotExist:
+            return Response(
+                {"detail": f"Referral code '{code_str}' was not found or is no longer active."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if ref_obj.user == request.user:
+            return Response(
+                {"detail": "You cannot use your own referral code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            Referral.objects.create(
+                referred_user=request.user,
+                referrer=ref_obj.user,
+                referral_code=ref_obj,
+            )
+            if getattr(request.user, "role", "") == "seller":
+                ref_obj.total_referred_sellers += 1
+            else:
+                ref_obj.total_referred_buyers += 1
+            ref_obj.save(update_fields=["total_referred_sellers", "total_referred_buyers", "updated_at"])
+
+        referrer_name = ref_obj.user.get_full_name() or ref_obj.user.username or "Partner"
+        logger.info(
+            "User %s retroactively linked to referrer %s via code %s",
+            request.user.email, ref_obj.user.email, ref_obj.code
+        )
+
+        return Response({
+            "detail": f"Successfully linked to referrer: {referrer_name}!",
+            "referrer_name": referrer_name,
+            "referral_code": ref_obj.code,
+            "referred_by": {
+                "referrer_name": referrer_name,
+                "referral_code": ref_obj.code,
+            },
+        }, status=status.HTTP_200_OK)
 
 
 class ReferralValidateCodeView(APIView):

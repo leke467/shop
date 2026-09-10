@@ -62,6 +62,33 @@ export default function ReferralDashboard() {
   const [withdrawError, setWithdrawError] = useState('')
   const [ledgerTab, setLedgerTab] = useState('withdrawals') // 'withdrawals', 'earnings', 'transactions'
 
+  // Retroactive Claim State
+  const [claimCode, setClaimCode] = useState('')
+  const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState('')
+  const [claimSuccess, setClaimSuccess] = useState('')
+
+  const handleClaimReferral = async (e) => {
+    e.preventDefault()
+    if (!claimCode.trim()) return
+    setClaiming(true)
+    setClaimError('')
+    setClaimSuccess('')
+    try {
+      const res = await referralAPI.claimReferral(claimCode.trim())
+      setClaimSuccess(res.detail || 'Successfully linked referrer!')
+      toast(res.detail || 'Successfully linked referrer!', 'success')
+      setClaimCode('')
+      loadStats()
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to claim referral code. Please verify the code.'
+      setClaimError(msg)
+      toast(msg, 'error')
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   useEffect(() => {
     loadStats()
   }, [])
@@ -289,6 +316,69 @@ export default function ReferralDashboard() {
             </button>
           </form>
         </div>
+
+        {/* Linked Referrer Info / Retroactive Claim Card */}
+        {stats?.referred_by ? (
+          <div className="px-5 py-3.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🤝</span>
+              <div>
+                <p className="text-xs text-indigo-900 dark:text-indigo-200 font-medium">
+                  You were referred by <strong className="font-bold">{stats.referred_by.referrer_name}</strong>
+                </p>
+                <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono">
+                  Partner Code: {stats.referred_by.referral_code}
+                </p>
+              </div>
+            </div>
+            <span className="self-start sm:self-auto text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+              ✓ Partner Linked
+            </span>
+          </div>
+        ) : (
+          <div className="p-6 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/30 dark:via-indigo-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800/40 rounded-2xl space-y-3 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span>🎁</span> Were you invited by a friend or creator?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  If you signed up with Google or skipped entering a referral code during registration, you can link your partner's code below.
+                </p>
+              </div>
+            </div>
+            <form onSubmit={handleClaimReferral} className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              <input
+                type="text"
+                placeholder="ENTER REFERRER'S CODE (e.g. PARTNER123)"
+                value={claimCode}
+                onChange={(e) => {
+                  setClaimCode(e.target.value.toUpperCase())
+                  setClaimError('')
+                  setClaimSuccess('')
+                }}
+                className="w-full sm:w-80 bg-white dark:bg-gray-900 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-sm focus:outline-none uppercase font-mono font-bold"
+              />
+              <button
+                type="submit"
+                disabled={claiming || !claimCode.trim()}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl transition-all shadow disabled:opacity-50 whitespace-nowrap"
+              >
+                {claiming ? 'Linking Partner…' : 'Link Referrer Code'}
+              </button>
+              {claimSuccess && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <span>✓</span> {claimSuccess}
+                </span>
+              )}
+              {claimError && (
+                <span className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <span>⚠️</span> {claimError}
+                </span>
+              )}
+            </form>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
