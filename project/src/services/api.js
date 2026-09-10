@@ -571,6 +571,11 @@ export const referralAPI = {
   validateCode: (code) => api.get('/referrals/validate/', { params: { code } }).then(r => r.data),
   trackClick: (code) => api.post('/referrals/click/', { code }).then(r => r.data),
   setCustomCode: (custom_code) => api.post('/referrals/custom-code/', { custom_code }).then(r => r.data),
+  getBanks: () => api.get('/referrals/banks/').then(r => r.data),
+  getBankAccounts: () => api.get('/referrals/bank-accounts/').then(r => r.data),
+  addBankAccount: (data) => api.post('/referrals/bank-accounts/', data).then(r => r.data),
+  deleteBankAccount: (id) => api.delete(`/referrals/bank-accounts/${id}/`).then(r => r.data),
+  withdraw: (data) => api.post('/referrals/withdraw/', data).then(r => r.data),
 }
 
 // ── Superadmin Dashboard ─────────────────────────────────────

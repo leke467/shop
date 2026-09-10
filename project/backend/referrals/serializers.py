@@ -5,7 +5,15 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from referrals.models import Referral, ReferralCode, ReferralEarning
+from referrals.models import (
+    Referral,
+    ReferralCode,
+    ReferralEarning,
+    ReferralWallet,
+    ReferralBankAccount,
+    ReferralPayoutRequest,
+    ReferralTransaction,
+)
 
 
 class ReferralCodeSerializer(serializers.ModelSerializer):
@@ -91,4 +99,65 @@ class ReferralStatsSerializer(serializers.Serializer):
     wallet_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
     referred_users = ReferredUserSerializer(many=True)
     earnings_history = ReferralEarningSerializer(many=True)
+
+
+class ReferralWalletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReferralWallet
+        fields = ["id", "balance", "total_earned", "total_withdrawn", "currency", "updated_at"]
+        read_only_fields = fields
+
+
+class ReferralBankAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReferralBankAccount
+        fields = ["id", "bank_name", "account_number", "account_name", "bank_code", "is_default", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class ReferralPayoutRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReferralPayoutRequest
+        fields = [
+            "id",
+            "amount",
+            "status",
+            "bank_name",
+            "account_number",
+            "account_name",
+            "bank_code",
+            "provider_reference",
+            "failure_reason",
+            "processed_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class ReferralTransactionSerializer(serializers.ModelSerializer):
+    kind_display = serializers.CharField(source="get_kind_display", read_only=True)
+
+    class Meta:
+        model = ReferralTransaction
+        fields = [
+            "id",
+            "kind",
+            "kind_display",
+            "amount",
+            "balance_after",
+            "reference",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class ReferralWithdrawInputSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=100)
+    bank_account_id = serializers.IntegerField(required=False, allow_null=True)
+    bank_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    account_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    account_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    bank_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    save_account = serializers.BooleanField(required=False, default=True)
 

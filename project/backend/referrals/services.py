@@ -9,8 +9,13 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 
-from orders.models import SellerWallet, WalletTransaction
-from referrals.models import Referral, ReferralCode, ReferralEarning
+from referrals.models import (
+    Referral,
+    ReferralCode,
+    ReferralEarning,
+    ReferralWallet,
+    ReferralTransaction,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +27,7 @@ def process_subscription_referral_reward(subscription, actual_amount_paid=None) 
     - Calculates the referral reward as exactly 20% of the actual net amount paid.
     - If a coupon reduced the price (e.g. to ₦300), the bonus is 20% of ₦300 = ₦60.
     - If a coupon made the subscription free (₦0), the bonus is ₦0.00.
-    This guarantees the platform retains 80% and never incurs a loss on discounted subscriptions.
+    - Credits the referrer's dedicated ReferralWallet (no shop required).
     """
     shop = getattr(subscription, "shop", None)
     owner = getattr(subscription, "user", None) or (shop.owner if shop else None)
@@ -55,34 +60,19 @@ def process_subscription_referral_reward(subscription, actual_amount_paid=None) 
     gross = net_paid
 
     ref_key = f"ref-sub-{subscription.pk}"
-    if WalletTransaction.objects.filter(reference=ref_key).exists():
+    if ReferralTransaction.objects.filter(reference=ref_key).exists():
         logger.info("Subscription referral reward already processed for %s", ref_key)
         return Decimal("0.00")
 
     with transaction.atomic():
-        # Get or create seller wallet for referrer
-        from shops.models import Shop
-        referrer_shop = Shop.objects.filter(owner=referrer).first()
-        if not referrer_shop:
-            # Create a placeholder shop or associate wallet directly
-            referrer_shop, _ = Shop.objects.get_or_create(
-                owner=referrer,
-                defaults={"name": f"{referrer.email.split('@')[0]}'s Store", "slug": f"user-{referrer.pk}-wallet"},
-            )
-
-        wallet, _ = SellerWallet.objects.select_for_update().get_or_create(
-            shop=referrer_shop,
+        wallet, _ = ReferralWallet.objects.select_for_update().get_or_create(
+            user=referrer,
             defaults={"currency": "NGN"},
         )
-        wallet.credit(bonus)
-
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            kind=WalletTransaction.Kind.ESCROW_RELEASE,
-            amount=bonus,
-            balance_after=wallet.balance,
-            reference=ref_key,
+        wallet.credit(
+            bonus,
             notes=f"Referral reward: {owner.email} subscribed to {getattr(subscription, 'plan_name', 'Plan')}",
+            reference=ref_key,
         )
 
         ReferralEarning.objects.create(
@@ -98,7 +88,7 @@ def process_subscription_referral_reward(subscription, actual_amount_paid=None) 
             referral.referral_code.total_earnings += bonus
             referral.referral_code.save(update_fields=["total_earnings", "updated_at"])
 
-    logger.info("Subscription referral reward ₦%s credited to %s for %s", bonus, referrer.email, owner.email)
+    logger.info("Subscription referral reward ₦%s credited to %s's ReferralWallet for %s", bonus, referrer.email, owner.email)
     return bonus
 
 
@@ -107,6 +97,7 @@ def process_order_referral_reward(order_group) -> Decimal:
     Called when order escrow is released.
     If the order group's shop owner was referred, rewards the referrer with 20%
     (or COMMISSION_REFERRAL_SHARE setting) of MultiShopNG's platform commission.
+    Credits the referrer's dedicated ReferralWallet directly.
     """
     shop = getattr(order_group, "shop", None)
     if not shop or not shop.owner:
@@ -120,8 +111,6 @@ def process_order_referral_reward(order_group) -> Decimal:
 
     referrer = referral.referrer
     commission = getattr(order_group, "commission_fee", Decimal("0.00"))
-    # If commission_fee is 0 (Option A where platform fee is collected as buyer escrow fee),
-    # calculate platform earnings from this order group's escrow fee proportion.
     if commission <= Decimal("0.00"):
         order = getattr(order_group, "order", None)
         escrow_fee = getattr(order, "escrow_fee", Decimal("0.00")) if order else Decimal("0.00")
@@ -138,32 +127,19 @@ def process_order_referral_reward(order_group) -> Decimal:
         return Decimal("0.00")
 
     ref_ord_key = f"ref-ord-{order_group.pk}"
-    if WalletTransaction.objects.filter(reference=ref_ord_key).exists():
+    if ReferralTransaction.objects.filter(reference=ref_ord_key).exists():
         logger.info("Order referral reward already processed for %s", ref_ord_key)
         return Decimal("0.00")
 
     with transaction.atomic():
-        from shops.models import Shop
-        referrer_shop = Shop.objects.filter(owner=referrer).first()
-        if not referrer_shop:
-            referrer_shop, _ = Shop.objects.get_or_create(
-                owner=referrer,
-                defaults={"name": f"{referrer.email.split('@')[0]}'s Store", "slug": f"user-{referrer.pk}-wallet"},
-            )
-
-        wallet, _ = SellerWallet.objects.select_for_update().get_or_create(
-            shop=referrer_shop,
+        wallet, _ = ReferralWallet.objects.select_for_update().get_or_create(
+            user=referrer,
             defaults={"currency": "NGN"},
         )
-        wallet.credit(reward_amount)
-
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            kind=WalletTransaction.Kind.ESCROW_RELEASE,
-            amount=reward_amount,
-            balance_after=wallet.balance,
-            reference=ref_ord_key,
+        wallet.credit(
+            reward_amount,
             notes=f"Referral share ({share_pct}%) of commission on order #{order_group.order.public_id}",
+            reference=ref_ord_key,
         )
 
         ReferralEarning.objects.create(
@@ -179,5 +155,5 @@ def process_order_referral_reward(order_group) -> Decimal:
             referral.referral_code.total_earnings += reward_amount
             referral.referral_code.save(update_fields=["total_earnings", "updated_at"])
 
-    logger.info("Order referral reward ₦%s credited to %s for shop %s", reward_amount, referrer.email, shop.name)
+    logger.info("Order referral reward ₦%s credited to %s's ReferralWallet for shop %s", reward_amount, referrer.email, shop.name)
     return reward_amount

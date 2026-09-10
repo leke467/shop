@@ -3,7 +3,15 @@ Django Admin registration for referrals.
 """
 from django.contrib import admin
 
-from referrals.models import Referral, ReferralCode, ReferralEarning
+from referrals.models import (
+    Referral,
+    ReferralCode,
+    ReferralEarning,
+    ReferralWallet,
+    ReferralBankAccount,
+    ReferralPayoutRequest,
+    ReferralTransaction,
+)
 
 
 @admin.register(ReferralCode)
@@ -24,3 +32,29 @@ class ReferralEarningAdmin(admin.ModelAdmin):
     list_display = ["referrer", "referred_user", "earning_type", "gross_amount", "reward_amount", "created_at"]
     list_filter = ["earning_type"]
     search_fields = ["referrer__email", "referred_user__email", "notes"]
+
+
+@admin.register(ReferralWallet)
+class ReferralWalletAdmin(admin.ModelAdmin):
+    list_display = ["user", "balance", "total_earned", "total_withdrawn", "currency", "updated_at"]
+    search_fields = ["user__email"]
+
+
+@admin.register(ReferralBankAccount)
+class ReferralBankAccountAdmin(admin.ModelAdmin):
+    list_display = ["user", "bank_name", "account_number", "account_name", "bank_code", "is_default"]
+    search_fields = ["user__email", "account_number", "account_name"]
+
+
+@admin.register(ReferralPayoutRequest)
+class ReferralPayoutRequestAdmin(admin.ModelAdmin):
+    list_display = ["user", "amount", "status", "bank_name", "account_number", "account_name", "provider_reference", "created_at"]
+    list_filter = ["status", "bank_name"]
+    search_fields = ["user__email", "account_number", "account_name", "provider_reference"]
+
+
+@admin.register(ReferralTransaction)
+class ReferralTransactionAdmin(admin.ModelAdmin):
+    list_display = ["user", "kind", "amount", "balance_after", "reference", "created_at"]
+    list_filter = ["kind"]
+    search_fields = ["user__email", "reference", "notes"]
