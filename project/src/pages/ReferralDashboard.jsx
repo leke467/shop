@@ -310,7 +310,7 @@ export default function ReferralDashboard() {
               ₦{Number(stats?.wallet_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-indigo-200 mt-1 flex items-center gap-1">
-              <span>⚡</span> Available for direct payout
+              <span>⚡</span> {Number(stats?.wallet_balance || 0) >= 1000 ? 'Available for direct payout (Min. ₦1,000)' : 'Minimum withdrawal: ₦1,000.00'}
             </p>
           </motion.div>
 
@@ -620,6 +620,9 @@ export default function ReferralDashboard() {
                   <p className="font-semibold text-gray-800 dark:text-gray-200">No withdrawal requests yet</p>
                   <p className="text-xs max-w-sm mx-auto text-gray-500">
                     You have <strong>₦{Number(stats?.wallet_balance || 0).toLocaleString()}</strong> available in your referral wallet.
+                    {Number(stats?.wallet_balance || 0) < 1000 && (
+                      <span className="block text-amber-500 font-medium mt-1">Minimum withdrawal amount is ₦1,000.00</span>
+                    )}
                   </p>
                   <button
                     onClick={handleOpenWithdraw}

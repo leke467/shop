@@ -95,8 +95,23 @@ def checkout(
             ).select_for_update()
         }
 
-        # Validate stock.
+        # Validate stock and shop/product availability (soft-delete & fraud protection)
         for item in cart_items:
+            product = item.variant.product
+            shop = product.shop
+            if not shop or shop.deleted_at is not None or shop.status != "active":
+                raise CheckoutError(
+                    f"Shop '{shop.name if shop else 'Unknown'}' is currently inactive or has closed."
+                )
+            if product.deleted_at is not None or product.status != "active":
+                raise CheckoutError(
+                    f"Product '{product.name}' is no longer available."
+                )
+            if not item.variant.is_active:
+                raise CheckoutError(
+                    f"Item variant '{item.variant.name or product.name}' is no longer available."
+                )
+
             inv = inventories.get(item.variant_id)
             if inv and inv.track_inventory:
                 available = inv.quantity - inv.reserved
