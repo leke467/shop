@@ -576,8 +576,8 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         "discount_applied": str(discount),
         "final_price": str(final_price),
         "amount": str(final_price),
-        "apiKey": result.raw_response.get("apiKey", "") if isinstance(result.raw_response, dict) else "",
-        "contractCode": result.raw_response.get("contractCode", "") if isinstance(result.raw_response, dict) else "",
+        "apiKey": (result.raw_response.get("apiKey") if isinstance(result.raw_response, dict) else "") or settings.PAYMENTS.get("MONNIFY", {}).get("API_KEY", ""),
+        "contractCode": (result.raw_response.get("contractCode") if isinstance(result.raw_response, dict) else "") or settings.PAYMENTS.get("MONNIFY", {}).get("CONTRACT_CODE", "8757701677"),
     }
 
 

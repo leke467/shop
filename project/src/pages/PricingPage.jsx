@@ -143,9 +143,9 @@ export default function PricingPage() {
           paymentReference: reference,
           reference: reference,
           paymentDescription: `Subscription upgrade to ${plan.name}`,
-          contractCode: res.contractCode || '286935449446',
-          apiKey: res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
-          isTestMode: (res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
+          contractCode: res.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
+          apiKey: res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
+          isTestMode: (res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
           onComplete: function(response) {
             setUpgrading(plan.code)
             subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
@@ -161,6 +161,9 @@ export default function PricingPage() {
           }
         })
         setUpgrading(null)
+        return
+      } else if ((provider === 'monnify' || res.provider === 'monnify') && res.checkout_url) {
+        window.location.href = res.checkout_url
         return
       }
 

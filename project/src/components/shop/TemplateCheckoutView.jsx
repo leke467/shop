@@ -263,9 +263,9 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
             customerEmail: form.email || user?.email,
             paymentReference: reference,
             paymentDescription: `Order ${result.order?.public_id || ''}`,
-            contractCode: monnifyData.contractCode || '286935449446',
-            apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
-            isTestMode: (monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
+            contractCode: monnifyData.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
+            apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
+            isTestMode: (monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
             onComplete: function(response) {
               setLoading(true)
               orderAPI.verifyMonnify(reference)

@@ -100,9 +100,9 @@ export default function SubscriptionDashboard() {
           paymentReference: reference,
           reference: reference,
           paymentDescription: `Subscription upgrade to ${targetPlan.name}`,
-          contractCode: upRes.contractCode || '286935449446',
-          apiKey: upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
-          isTestMode: (upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
+          contractCode: upRes.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
+          apiKey: upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
+          isTestMode: (upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
           onComplete: function(response) {
             subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
               .then((verifyRes) => {
