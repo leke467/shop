@@ -21,7 +21,7 @@ const fmtPrice = (plan) => {
 }
 
 export default function PricingPage() {
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, user } = useUser()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const highlightCode = searchParams.get('plan')
@@ -124,13 +124,77 @@ export default function PricingPage() {
         provider: provider,
         coupon_code: appliedCoupon?.code || '',
       })
+
       if (res.free || res.coupon_applied) {
         navigate('/subscription')
-      } else if (res.authorization_url || res.checkout_url) {
-        window.location.href = res.authorization_url || res.checkout_url
-      } else {
-        navigate('/subscription')
+        return
       }
+
+      // Monnify (Moniepoint) inline popup flow
+      if ((provider === 'monnify' || res.provider === 'monnify') && window.MonnifySDK) {
+        const reference = res.reference || res.payment_reference
+        window.MonnifySDK.initialize({
+          amount: Number(res.final_price || res.amount || plan.monthly_price),
+          currency: 'NGN',
+          currencyCode: 'NGN',
+          customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
+          customerEmail: user?.email,
+          paymentReference: reference,
+          paymentDescription: `Subscription upgrade to ${plan.name}`,
+          contractCode: res.contractCode || '286935449446',
+          apiKey: res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
+          isTestMode: (res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
+          onComplete: async function(response) {
+            setUpgrading(plan.code)
+            try {
+              await subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
+              navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
+            } catch (vErr) {
+              navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
+            }
+          },
+          onClose: function(data) {
+            setUpgrading(null)
+          }
+        })
+        setUpgrading(null)
+        return
+      }
+
+      // Paystack inline popup flow
+      if ((provider === 'paystack' || res.provider === 'paystack') && window.PaystackPop && (res.access_code || res.reference)) {
+        const reference = res.reference || res.payment_reference
+        const handler = window.PaystackPop.setup({
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
+          email: user?.email,
+          amount: Math.round(Number(res.final_price || res.amount || plan.monthly_price) * 100),
+          ref: reference,
+          access_code: res.access_code,
+          onSuccess: async (transaction) => {
+            setUpgrading(plan.code)
+            try {
+              await subscriptionAPI.verifyPayment({ reference: reference, provider: 'paystack' })
+              navigate(`/subscription?reference=${encodeURIComponent(reference)}`)
+            } catch (vErr) {
+              navigate(`/subscription?reference=${encodeURIComponent(reference)}`)
+            }
+          },
+          onClose: () => {
+            setUpgrading(null)
+          }
+        })
+        handler.openIframe()
+        setUpgrading(null)
+        return
+      }
+
+      // Fallback: full page redirect if inline SDK is not available
+      if (res.authorization_url || res.checkout_url) {
+        window.location.href = res.authorization_url || res.checkout_url
+        return
+      }
+
+      navigate('/subscription')
     } catch (err) {
       const errData = err?.response?.data?.error || err?.response?.data
       if (errData?.type === 'DowngradeBlocked') {

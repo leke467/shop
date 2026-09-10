@@ -570,10 +570,14 @@ def initiate_subscription_upgrade(user, plan: SubscriptionPlan, *,
         "checkout_url": auth_url,
         "access_code": result.provider_txn_id,
         "reference": result.provider_payment_id or idempotency_key,
+        "payment_reference": result.provider_payment_id or idempotency_key,
         "payment_id": str(payment.pk),
         "plan": plan.code,
         "discount_applied": str(discount),
         "final_price": str(final_price),
+        "amount": str(final_price),
+        "apiKey": result.raw_response.get("apiKey", "") if isinstance(result.raw_response, dict) else "",
+        "contractCode": result.raw_response.get("contractCode", "") if isinstance(result.raw_response, dict) else "",
     }
 
 

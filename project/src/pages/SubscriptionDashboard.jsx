@@ -49,7 +49,7 @@ function UsageBar({ label, used, limit, remaining }) {
 }
 
 export default function SubscriptionDashboard() {
-  const { isAuthenticated, loading: userLoading } = useUser()
+  const { isAuthenticated, loading: userLoading, user } = useUser()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
@@ -88,6 +88,50 @@ export default function SubscriptionDashboard() {
         setCouponInput('')
         subscriptionAPI.current().then(setData)
         subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
+      } else if (upRes.provider === 'monnify' && window.MonnifySDK) {
+        const reference = upRes.reference || upRes.payment_reference
+        window.MonnifySDK.initialize({
+          amount: Number(upRes.final_price || upRes.amount || targetPlan.monthly_price),
+          currency: 'NGN',
+          currencyCode: 'NGN',
+          customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
+          customerEmail: user?.email,
+          paymentReference: reference,
+          paymentDescription: `Subscription upgrade to ${targetPlan.name}`,
+          contractCode: upRes.contractCode || '286935449446',
+          apiKey: upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
+          isTestMode: (upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
+          onComplete: async function() {
+            try {
+              const verifyRes = await subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
+              setPaymentNotice(verifyRes)
+              subscriptionAPI.current().then(setData)
+              subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
+            } catch (vErr) {
+              subscriptionAPI.current().then(setData)
+            }
+          },
+        })
+      } else if (upRes.provider === 'paystack' && window.PaystackPop && (upRes.access_code || upRes.reference)) {
+        const reference = upRes.reference || upRes.payment_reference
+        const handler = window.PaystackPop.setup({
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
+          email: user?.email,
+          amount: Math.round(Number(upRes.final_price || upRes.amount || targetPlan.monthly_price) * 100),
+          ref: reference,
+          access_code: upRes.access_code,
+          onSuccess: async () => {
+            try {
+              const verifyRes = await subscriptionAPI.verifyPayment({ reference: reference, provider: 'paystack' })
+              setPaymentNotice(verifyRes)
+              subscriptionAPI.current().then(setData)
+              subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
+            } catch (vErr) {
+              subscriptionAPI.current().then(setData)
+            }
+          },
+        })
+        handler.openIframe()
       } else if (upRes.authorization_url || upRes.checkout_url) {
         window.location.href = upRes.authorization_url || upRes.checkout_url
       }
@@ -101,10 +145,17 @@ export default function SubscriptionDashboard() {
 
   useEffect(() => {
     if (userLoading) return
-    if (!isAuthenticated) { navigate('/login'); return }
 
     const searchParams = new URLSearchParams(window.location.search)
     const paymentRef = searchParams.get('paymentReference') || searchParams.get('transactionReference') || searchParams.get('reference') || searchParams.get('trxref')
+
+    if (!isAuthenticated) {
+      if (paymentRef) {
+        subscriptionAPI.verifyPayment({ paymentReference: paymentRef }).catch(() => {})
+      }
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search))
+      return
+    }
 
     setLoading(true)
     const promises = [

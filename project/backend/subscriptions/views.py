@@ -151,7 +151,7 @@ class VerifySubscriptionPaymentView(APIView):
     GET /api/subscription/verify-payment/?reference=<ref>&paymentReference=<ref>&provider=<provider>
     Verifies subscription payment status with Monnify or Paystack and activates plan.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         ref = (
@@ -171,13 +171,18 @@ class VerifySubscriptionPaymentView(APIView):
             try:
                 from notifications.tasks import send_subscription_success_email
                 plan_name = res.get("plan", "")
-                # Look up plan details for the email
                 from .models import SubscriptionPlan, Subscription
                 plan = SubscriptionPlan.objects.filter(code=plan_name).first()
-                sub = Subscription.objects.filter(user=request.user, is_active=True).first()
-                if plan and request.user.email:
-                    send_subscription_success_email.delay(request.user.email, {
-                        "user_name": request.user.first_name or request.user.email.split("@")[0],
+                target_user = request.user if (request.user and request.user.is_authenticated) else None
+                if not target_user:
+                    from payments.models import Payment
+                    pay_obj = Payment.objects.filter(provider_payment_id=ref).first()
+                    if pay_obj:
+                        target_user = pay_obj.user
+                sub = Subscription.objects.filter(user=target_user, is_active=True).first() if target_user else None
+                if plan and target_user and target_user.email:
+                    send_subscription_success_email.delay(target_user.email, {
+                        "user_name": target_user.first_name or target_user.email.split("@")[0],
                         "plan_name": plan.name,
                         "plan_price": str(plan.monthly_price),
                         "billing_period": "month",
