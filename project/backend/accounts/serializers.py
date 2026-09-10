@@ -33,19 +33,20 @@ class RegisterSerializer(serializers.ModelSerializer):
                 from referrals.models import Referral, ReferralCode
                 ref_obj = ReferralCode.objects.select_related("user").get(code__iexact=ref_code_str)
                 if ref_obj.user != user:
-                    Referral.objects.get_or_create(
+                    _ref, created = Referral.objects.get_or_create(
                         referred_user=user,
                         defaults={
                             "referrer": ref_obj.user,
                             "referral_code": ref_obj,
                         },
                     )
-                    if user.role == User.Roles.SELLER:
-                        ref_obj.total_referred_sellers += 1
-                    else:
-                        ref_obj.total_referred_buyers += 1
-                    ref_obj.save(update_fields=["total_referred_sellers", "total_referred_buyers", "updated_at"])
-                    logger.info("Linked user %s to referrer %s via code %s", user.email, ref_obj.user.email, ref_obj.code)
+                    if created:
+                        if user.role == User.Roles.SELLER:
+                            ref_obj.total_referred_sellers += 1
+                        else:
+                            ref_obj.total_referred_buyers += 1
+                        ref_obj.save(update_fields=["total_referred_sellers", "total_referred_buyers", "updated_at"])
+                        logger.info("Linked user %s to referrer %s via code %s", user.email, ref_obj.user.email, ref_obj.code)
             except Exception as exc:
                 logger.warning("Could not link referral code %s for user %s: %s", ref_code_str, user.email, exc)
 

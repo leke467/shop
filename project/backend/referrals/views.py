@@ -210,7 +210,7 @@ class ReferralClaimView(APIView):
         # Check if user is already linked to a referrer
         if Referral.objects.filter(referred_user=request.user).exists():
             return Response(
-                {"detail": "You have already linked a referral partner to your account."},
+                {"detail": "You have already linked a referral partner to your account. Each user can only be referred by 1 person."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
