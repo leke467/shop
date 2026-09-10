@@ -95,21 +95,27 @@ export default function SubscriptionDashboard() {
           currency: 'NGN',
           currencyCode: 'NGN',
           customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
+          customerFullName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
           customerEmail: user?.email,
           paymentReference: reference,
+          reference: reference,
           paymentDescription: `Subscription upgrade to ${targetPlan.name}`,
           contractCode: upRes.contractCode || '286935449446',
           apiKey: upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
           isTestMode: (upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
-          onComplete: async function() {
-            try {
-              const verifyRes = await subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
-              setPaymentNotice(verifyRes)
-              subscriptionAPI.current().then(setData)
-              subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
-            } catch (vErr) {
-              subscriptionAPI.current().then(setData)
-            }
+          onComplete: function(response) {
+            subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
+              .then((verifyRes) => {
+                setPaymentNotice(verifyRes)
+                subscriptionAPI.current().then(setData)
+                subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
+              })
+              .catch(() => {
+                subscriptionAPI.current().then(setData)
+              })
+          },
+          onClose: function(data) {
+            // popup closed
           },
         })
       } else if (upRes.provider === 'paystack' && window.PaystackPop && (upRes.access_code || upRes.reference)) {

@@ -138,20 +138,23 @@ export default function PricingPage() {
           currency: 'NGN',
           currencyCode: 'NGN',
           customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
+          customerFullName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
           customerEmail: user?.email,
           paymentReference: reference,
+          reference: reference,
           paymentDescription: `Subscription upgrade to ${plan.name}`,
           contractCode: res.contractCode || '286935449446',
           apiKey: res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '',
           isTestMode: (res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || '').startsWith('MK_TEST'),
-          onComplete: async function(response) {
+          onComplete: function(response) {
             setUpgrading(plan.code)
-            try {
-              await subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
-              navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
-            } catch (vErr) {
-              navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
-            }
+            subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
+              .then(() => {
+                navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
+              })
+              .catch(() => {
+                navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
+              })
           },
           onClose: function(data) {
             setUpgrading(null)
