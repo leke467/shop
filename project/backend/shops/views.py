@@ -113,12 +113,31 @@ class ShopUpdateView(generics.UpdateAPIView):
         return Shop.objects.filter(owner=self.request.user)
 
 
-class ShopDeleteView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    lookup_field = "slug"
+class ShopDeleteView(APIView):
+    """
+    DELETE /api/shops/<slug>/delete/
+    Soft-deletes the shop and archives its products.
+    Preserves all orders, payments, delivery notes, and payout records for legal and fraud audits.
+    """
+    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Shop.objects.filter(owner=self.request.user)
+    def delete(self, request, slug):
+        shop = Shop.objects.filter(owner=request.user, slug=slug).first()
+        if not shop:
+            return Response(
+                {"detail": "Shop not found or not owned by you."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        shop.delete()  # calls the overridden soft-delete method
+
+        return Response(
+            {
+                "status": "success",
+                "detail": "Shop deleted successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class MyShopView(generics.ListAPIView):

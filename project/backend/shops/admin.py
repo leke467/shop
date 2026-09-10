@@ -68,25 +68,29 @@ class ShopStaffInline(admin.TabularInline):
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
     list_display = (
-        "name", "slug", "owner", "status", "is_verified",
+        "name", "slug", "owner", "status", "is_verified", "deleted_at",
         "rating_average", "product_count", "created_at",
     )
-    list_filter = ("status", "is_verified", "currency", "created_at")
+    list_filter = ("status", "is_verified", "currency", "deleted_at", "created_at")
     search_fields = ("name", "slug", "owner__email")
     readonly_fields = (
         "public_id", "rating_average", "rating_count",
-        "product_count", "total_sales",
+        "product_count", "total_sales", "deleted_at",
     )
     raw_id_fields = ("owner",)
     prepopulated_fields = {"slug": ("name",)}
     date_hierarchy = "created_at"
     inlines = [ShopThemeInline, ShopStaffInline]
 
+    def get_queryset(self, request):
+        """Allow compliance and admin officers to view all shops, including soft-deleted ones for legal audits."""
+        return Shop.all_objects.all()
+
     fieldsets = (
         (None, {
             "fields": (
                 "public_id", "owner", "name", "slug", "tagline", "description",
-                "status", "is_verified", "currency",
+                "status", "is_verified", "currency", "deleted_at",
             ),
         }),
         ("Branding", {

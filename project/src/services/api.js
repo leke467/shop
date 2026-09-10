@@ -145,6 +145,11 @@ export const authAPI = {
       if (r.data?.access) localStorage.setItem('access_token', r.data.access)
       return r.data
     }),
+  deleteAccount: (data = {}) =>
+    api.post('/users/delete-account/', data).then(r => {
+      localStorage.removeItem('access_token')
+      return r.data
+    }),
 }
 
 // ── Shops ────────────────────────────────────────────────────

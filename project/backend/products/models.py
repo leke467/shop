@@ -190,6 +190,13 @@ class Product(BaseModel, SoftDeleteModel):
             self.slug = slug
         super().save(*args, **kwargs)
 
+    def delete(self, using=None, keep_parents=False):
+        """Soft-delete product and archive status for legal and inventory audit safety."""
+        from django.utils import timezone
+        self.deleted_at = timezone.now()
+        self.status = self.Status.ARCHIVED
+        self.save(update_fields=["deleted_at", "status"])
+
     @property
     def is_available(self) -> bool:
         return self.status == self.Status.ACTIVE

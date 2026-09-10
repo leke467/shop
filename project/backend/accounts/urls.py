@@ -13,6 +13,7 @@ from .views import (
     TwoFactorVerifyView,
     TwoFactorDisableView,
     GoogleAuthView,
+    DeleteAccountView,
 )
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
     # Registration & profile
     path("register/", RegisterView.as_view(), name="register"),
     path("profile/", ProfileView.as_view(), name="profile"),
+    path("delete-account/", DeleteAccountView.as_view(), name="delete-account"),
     path("forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
     path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),
     path("<int:pk>/change-password/", AdminChangePasswordView.as_view(), name="admin-change-password"),

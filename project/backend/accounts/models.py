@@ -12,6 +12,7 @@ import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.models import TimeStampedModel
@@ -74,6 +75,16 @@ class User(AbstractUser):
 
     is_email_verified = models.BooleanField(default=False)
 
+    # Soft-deletion / Legal & police audit retention fields
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, db_index=True,
+        help_text="Timestamp when account was deactivated/soft-deleted. Preserved for fraud/legal audits."
+    )
+    deletion_reason = models.CharField(
+        max_length=255, blank=True, default="",
+        help_text="Reason recorded when the account was deactivated."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -85,6 +96,7 @@ class User(AbstractUser):
     class Meta:
         indexes = [
             models.Index(fields=["role", "is_active"]),
+            models.Index(fields=["deleted_at"]),
         ]
 
     def __str__(self) -> str:
@@ -97,6 +109,29 @@ class User(AbstractUser):
     @property
     def is_buyer(self) -> bool:
         return self.role == self.Roles.BUYER
+
+    def soft_delete(self, reason="User requested deletion via Danger Zone"):
+        """
+        Deactivate user without destroying records.
+        Preserves all transaction, order, KYC, and payment history for legal/police compliance.
+        """
+        now = timezone.now()
+        self.is_active = False
+        self.deleted_at = now
+        self.deletion_reason = reason[:255]
+        self.save(update_fields=["is_active", "deleted_at", "deletion_reason"])
+
+        # Soft-delete all shops owned by this user
+        for shop in self.shops.all():
+            shop.delete()
+
+    def delete(self, using=None, keep_parents=False):
+        """Override delete to soft-delete by default to prevent catastrophic data loss and legal liability."""
+        self.soft_delete(reason="Account delete requested")
+
+    def hard_delete(self, using=None, keep_parents=False):
+        """Hard delete only when explicitly called."""
+        super().delete(using=using, keep_parents=keep_parents)
 
     def promote_to_seller(self):
         if self.role == self.Roles.BUYER:

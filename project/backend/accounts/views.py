@@ -355,3 +355,45 @@ class GoogleAuthView(APIView):
         }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
         return _set_auth_cookies(response, str(refresh.access_token), str(refresh))
+
+
+class DeleteAccountView(APIView):
+    """
+    POST /api/users/delete-account/
+    Soft-deletes the user account for legal/compliance retention and fraud protection.
+    - Marks user.is_active = False and records timestamp in deleted_at.
+    - Preserves all transaction, order, KYC, and payment records for police/court audits.
+    - Soft-deletes owned shops and archives their products.
+    - Clears cookies and revokes JWT tokens.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        password = request.data.get("password")
+        reason = request.data.get("reason", "User requested account deletion via Danger Zone")
+
+        # Security check: if user has a usable password, require it to authorize deletion
+        if user.has_usable_password():
+            if not password:
+                return Response(
+                    {"detail": "Please enter your current password to confirm account deletion."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not user.check_password(password):
+                return Response(
+                    {"detail": "Incorrect password. Account deletion aborted."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Soft-delete the user (this also soft-deletes their shops and archives products)
+        user.soft_delete(reason=reason)
+
+        # Prepare response & clear authentication cookies
+        from .cookie_views import _clear_auth_cookies
+        response = Response({
+            "status": "success",
+            "detail": "Your account has been deleted successfully.",
+        }, status=status.HTTP_200_OK)
+        return _clear_auth_cookies(response)
+

@@ -210,6 +210,33 @@ class Shop(BaseModel, SoftDeleteModel):
             slug = f"{base}-{n}"
         return slug
 
+    def delete(self, using=None, keep_parents=False):
+        """
+        Soft-delete shop and archive all its products.
+        Preserves all orders, receipts, transactions, and customer histories for legal and fraud audits.
+        """
+        from django.utils import timezone
+        now = timezone.now()
+        self.deleted_at = now
+        self.status = self.Status.CLOSED
+
+        # Release the slug with tombstone so the owner or others can reuse the name if desired
+        timestamp = int(now.timestamp())
+        if "-archived-" not in self.slug:
+            self.slug = f"{self.slug}-archived-{timestamp}"[:140]
+
+        self.save(update_fields=["deleted_at", "status", "slug"])
+
+        # Soft-delete all products belonging to this shop
+        self.products.all().update(deleted_at=now, status="archived")
+
+        # Deactivate any active flash sales
+        try:
+            from products.models import FlashSale
+            FlashSale.objects.filter(shop=self).update(is_active=False)
+        except Exception:
+            pass
+
     @property
     def is_open(self) -> bool:
         return self.status == self.Status.ACTIVE

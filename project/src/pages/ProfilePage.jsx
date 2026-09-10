@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SEOHead from '../components/SEOHead'
 import { useUser } from '../context/UserContext'
+import { useNotification } from '../context/NotificationContext'
 import { authAPI } from '../services/api'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
@@ -602,6 +603,10 @@ function AddressesTab() {
 }
 
 function SecurityTab() {
+  const { user, deleteAccount } = useUser()
+  const { toast } = useNotification()
+  const navigate = useNavigate()
+
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -615,6 +620,29 @@ function SecurityTab() {
   const [show2FAModal, setShow2FAModal] = useState(false)
   const [twoFACode, setTwoFACode] = useState('')
   const [twoFASuccess, setTwoFASuccess] = useState(false)
+
+  // Danger Zone / Account Deletion State
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteReason, setDeleteReason] = useState('No longer need the platform')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  const handleDeleteAccountSubmit = async (e) => {
+    e.preventDefault()
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteAccount({ password: deletePassword, reason: deleteReason })
+      setShowDeleteModal(false)
+      toast('Your account has been deleted.')
+      navigate('/')
+    } catch (err) {
+      setDeleteError(err.response?.data?.detail || 'Failed to delete account. Please verify your password.')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault()
@@ -759,6 +787,106 @@ function SecurityTab() {
           )}
         </div>
       </div>
+
+      {/* Danger Zone */}
+      <div className="pt-8 border-t border-error-100 dark:border-error-900/40">
+        <h3 className="text-xl font-bold text-error-600 dark:text-error-400 mb-2 flex items-center gap-2">
+          <span>⚠️</span> Danger Zone
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-xl">
+          Permanently delete your account. This will immediately deactivate your profile, close active sessions, and delist all stores you manage. This action cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          className="px-5 py-2.5 bg-error-50 dark:bg-error-950/40 hover:bg-error-100 dark:hover:bg-error-900/60 text-error-600 dark:text-error-400 rounded-xl transition-colors font-semibold text-sm border border-error-200 dark:border-error-800 flex items-center gap-2"
+        >
+          <span>🗑️</span> Delete Account
+        </button>
+      </div>
+
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl border border-error-200 dark:border-error-800"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-error-100 dark:bg-error-900/40 text-error-600 dark:text-error-400 flex items-center justify-center text-2xl mb-4">
+                ⚠️
+              </div>
+              <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Delete Account Permanently?</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                You are about to delete <span className="font-semibold text-gray-800 dark:text-gray-200">{user?.email}</span>. You will be signed out immediately and will not be able to log in again.
+              </p>
+
+              {deleteError && (
+                <div className="mb-4 p-3 rounded-xl bg-error-50 dark:bg-error-900/30 border border-error-200 dark:border-error-800 text-error-700 dark:text-error-300 text-xs font-medium">
+                  {deleteError}
+                </div>
+              )}
+
+              <form onSubmit={handleDeleteAccountSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Reason for leaving (optional)
+                  </label>
+                  <select
+                    value={deleteReason}
+                    onChange={e => setDeleteReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-error-500"
+                  >
+                    <option value="No longer need the platform">No longer need the platform</option>
+                    <option value="Privacy concerns">Privacy concerns</option>
+                    <option value="Found an alternative">Found an alternative</option>
+                    <option value="Temporary break">Temporary break</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Confirm your current password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={deletePassword}
+                    onChange={e => setDeletePassword(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-error-500 dark:text-white text-sm"
+                  />
+                  <span className="text-[11px] text-gray-400 mt-1 block">Required to authorize account deletion.</span>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteModal(false)
+                      setDeleteError('')
+                      setDeletePassword('')
+                    }}
+                    className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={deleting}
+                    className="px-5 py-2.5 bg-error-600 hover:bg-error-700 text-white rounded-xl font-semibold text-xs shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {deleting ? 'Deleting Account…' : 'Permanently Delete'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* 2FA Setup Modal */}
       <AnimatePresence>

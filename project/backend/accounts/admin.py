@@ -8,16 +8,17 @@ from .models import Address, BuyerProfile, User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("email",)
-    list_display = ("email", "role", "is_active", "is_staff", "is_email_verified", "created_at")
-    list_filter = ("role", "is_active", "is_staff", "is_email_verified")
-    search_fields = ("email", "username", "phone")
-    readonly_fields = ("public_id", "created_at", "updated_at", "last_login", "date_joined")
+    list_display = ("email", "role", "is_active", "deleted_at", "is_staff", "is_email_verified", "created_at")
+    list_filter = ("role", "is_active", "is_staff", "is_email_verified", "deleted_at")
+    search_fields = ("email", "username", "phone", "deletion_reason")
+    readonly_fields = ("public_id", "created_at", "updated_at", "last_login", "date_joined", "deleted_at", "deletion_reason")
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (_("Personal info"), {"fields": ("username", "first_name", "last_name", "phone", "avatar")}),
         (_("Role & status"), {"fields": ("role", "is_email_verified", "accepts_marketing")}),
         (_("Permissions"), {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (_("Legal & Audit Retention"), {"fields": ("deleted_at", "deletion_reason")}),
         (_("Identifiers"), {"fields": ("public_id",)}),
         (_("Important dates"), {"fields": ("last_login", "date_joined", "created_at", "updated_at")}),
     )

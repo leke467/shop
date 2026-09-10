@@ -73,6 +73,13 @@ export function UserProvider({ children }) {
     return data
   }, [])
 
+  const deleteAccount = useCallback(async (data) => {
+    const res = await authAPI.deleteAccount(data)
+    localStorage.removeItem('access_token')
+    setUser(null)
+    return res
+  }, [])
+
   const value = {
     user,
     loading,
@@ -83,6 +90,7 @@ export function UserProvider({ children }) {
     googleLogin,
     register,
     logout,
+    deleteAccount,
     refreshProfile,
   }
 
