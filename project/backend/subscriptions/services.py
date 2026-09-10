@@ -598,12 +598,6 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
     if not payment and payment_ref.isdigit():
         payment = Payment.objects.filter(pk=int(payment_ref)).first()
 
-    if not payment:
-        # Check if user has an active pending subscription payment
-        payment = Payment.objects.filter(
-            status=Payment.Status.PENDING,
-            metadata__purpose="subscription"
-        ).order_by("-created_at").first()
 
     if not payment:
         raise SubscriptionError("Payment record not found for this reference.")
@@ -702,10 +696,6 @@ def verify_and_activate_subscription(payment_ref: str, provider: str = "") -> di
             except Exception as e:
                 logger.warning("Monnify subscription verify failed: %s", e)
 
-    # In local development DEBUG mode only, allow sandbox bypass if running local tests
-    if not verified_paid and django_settings.DEBUG:
-        logger.info("DEBUG mode: activating sandbox subscription test.")
-        verified_paid = True
 
     if not verified_paid:
         raise SubscriptionError("Payment has not been confirmed by the payment gateway.")
