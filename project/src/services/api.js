@@ -568,6 +568,7 @@ export const productReviewAPI = {
 // ── Referral System ──────────────────────────────────────────
 export const referralAPI = {
   myStats: () => api.get('/referrals/me/').then(r => r.data),
+  validateCode: (code) => api.get('/referrals/validate/', { params: { code } }).then(r => r.data),
   trackClick: (code) => api.post('/referrals/click/', { code }).then(r => r.data),
   setCustomCode: (custom_code) => api.post('/referrals/custom-code/', { custom_code }).then(r => r.data),
 }

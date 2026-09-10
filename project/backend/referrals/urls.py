@@ -7,10 +7,12 @@ from referrals.views import (
     ReferralCustomCodeView,
     ReferralMyStatsView,
     ReferralTrackClickView,
+    ReferralValidateCodeView,
 )
 
 urlpatterns = [
     path("me/", ReferralMyStatsView.as_view(), name="referral-me"),
+    path("validate/", ReferralValidateCodeView.as_view(), name="referral-validate"),
     path("click/", ReferralTrackClickView.as_view(), name="referral-click"),
     path("custom-code/", ReferralCustomCodeView.as_view(), name="referral-custom-code"),
 ]

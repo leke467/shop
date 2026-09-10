@@ -42,6 +42,7 @@ import { NotificationProvider } from './context/NotificationContext'
 import { ThemeProvider } from './context/ThemeContext'
 
 import MessagesPage from './pages/MessagesPage'
+import ReferralTracker from './components/ReferralTracker'
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
           <ShopProvider>
           <CartProvider>
           <WishlistProvider>
+            <ReferralTracker />
             <AnimatePresence mode="wait">
               <Routes>
               <Route path="/" element={<MainLayout />}>

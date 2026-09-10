@@ -10,17 +10,21 @@ from .models import Address, BuyerProfile, User
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    role = serializers.CharField(required=False, default=User.Roles.BUYER)
     referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ("email", "password", "first_name", "last_name", "username", "referral_code")
+        fields = ("email", "password", "first_name", "last_name", "username", "role", "referral_code")
         extra_kwargs = {
             "first_name": {"required": True},
             "last_name": {"required": True},
         }
 
     def create(self, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+
         ref_code_str = validated_data.pop("referral_code", "").strip()
         user = User.objects.create_user(**validated_data)
 
@@ -29,18 +33,21 @@ class RegisterSerializer(serializers.ModelSerializer):
                 from referrals.models import Referral, ReferralCode
                 ref_obj = ReferralCode.objects.select_related("user").get(code__iexact=ref_code_str)
                 if ref_obj.user != user:
-                    Referral.objects.create(
-                        referrer=ref_obj.user,
+                    Referral.objects.get_or_create(
                         referred_user=user,
-                        referral_code=ref_obj,
+                        defaults={
+                            "referrer": ref_obj.user,
+                            "referral_code": ref_obj,
+                        },
                     )
                     if user.role == User.Roles.SELLER:
                         ref_obj.total_referred_sellers += 1
                     else:
                         ref_obj.total_referred_buyers += 1
                     ref_obj.save(update_fields=["total_referred_sellers", "total_referred_buyers", "updated_at"])
-            except Exception:
-                pass
+                    logger.info("Linked user %s to referrer %s via code %s", user.email, ref_obj.user.email, ref_obj.code)
+            except Exception as exc:
+                logger.warning("Could not link referral code %s for user %s: %s", ref_code_str, user.email, exc)
 
         return user
 

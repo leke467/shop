@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
+import { referralAPI } from '../services/api'
 import Logo from '../components/Logo'
 import GoogleLoginButton from '../components/GoogleLoginButton'
 
@@ -13,6 +14,7 @@ export default function SignUpPage() {
   const defaultRole = redirectUrl.startsWith('/create-shop') ? 'seller' : 'buyer'
   const [step, setStep] = useState(1)
   const [showReferralInput, setShowReferralInput] = useState(false)
+  const [referralValidation, setReferralValidation] = useState(null)
 
   const referralFromUrl = searchParams.get('ref') || searchParams.get('referral') || ''
 
@@ -31,6 +33,46 @@ export default function SignUpPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Validate referral code whenever it changes
+  useEffect(() => {
+    const code = (form.referral_code || '').trim().toUpperCase()
+    if (!code) {
+      setReferralValidation(null)
+      return
+    }
+
+    if (code.length < 4) {
+      setReferralValidation({ valid: false, detail: 'Code too short' })
+      return
+    }
+
+    let isMounted = true
+    const timer = setTimeout(async () => {
+      try {
+        const res = await referralAPI.validateCode(code)
+        if (isMounted) {
+          setReferralValidation({
+            valid: true,
+            code: res.code,
+            referrer_name: res.referrer_name,
+          })
+        }
+      } catch {
+        if (isMounted) {
+          setReferralValidation({
+            valid: false,
+            detail: 'Referral code not found',
+          })
+        }
+      }
+    }, 400)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [form.referral_code])
 
   const update = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
@@ -248,15 +290,39 @@ export default function SignUpPage() {
                 {/* Referral Code (Auto-captured or manual entry) */}
                 <div className="pt-1">
                   {form.referral_code ? (
-                    <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between text-xs text-purple-700">
+                    <div className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                      referralValidation?.valid
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : referralValidation?.valid === false
+                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                        : 'bg-purple-50 border-purple-200 text-purple-700'
+                    }`}>
                       <div className="flex items-center gap-2 font-medium">
                         <span>🎁</span>
-                        <span>Referral Partner: <strong className="font-mono">{form.referral_code}</strong></span>
+                        <div>
+                          <div>
+                            Referral Partner: <strong className="font-mono">{form.referral_code}</strong>
+                          </div>
+                          {referralValidation?.valid && (
+                            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
+                              ✓ Invited by {referralValidation.referrer_name}
+                            </p>
+                          )}
+                          {referralValidation?.valid === false && (
+                            <p className="text-[11px] text-amber-600 mt-0.5">
+                              ⚠ {referralValidation.detail || 'Code not found'}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => update('referral_code', '')}
-                        className="text-purple-400 hover:text-red-500 font-bold px-1"
+                        onClick={() => {
+                          update('referral_code', '')
+                          setReferralValidation(null)
+                          localStorage.removeItem('pending_referral_code')
+                        }}
+                        className="text-gray-400 hover:text-red-500 font-bold px-2 py-1"
                         title="Remove code"
                       >
                         ✕
@@ -286,7 +352,12 @@ export default function SignUpPage() {
                             />
                             <button
                               type="button"
-                              onClick={() => setShowReferralInput(false)}
+                              onClick={() => {
+                                setShowReferralInput(false)
+                                update('referral_code', '')
+                                setReferralValidation(null)
+                                localStorage.removeItem('pending_referral_code')
+                              }}
                               className="text-xs text-gray-400 hover:text-gray-600 px-2"
                             >
                               Cancel

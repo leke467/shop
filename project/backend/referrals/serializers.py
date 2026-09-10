@@ -60,12 +60,35 @@ class ReferralEarningSerializer(serializers.ModelSerializer):
         return obj.referred_user.email if obj.referred_user else "Anonymous"
 
 
+class ReferredUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.CharField()
+    masked_email = serializers.CharField()
+    role = serializers.CharField()
+    role_display = serializers.CharField()
+    shop_name = serializers.CharField(allow_null=True, required=False)
+    active_plan = serializers.CharField(allow_null=True, required=False)
+    registered_at = serializers.DateTimeField()
+    has_paid = serializers.BooleanField()
+    status = serializers.CharField()
+    status_label = serializers.CharField()
+    status_detail = serializers.CharField()
+    total_earned = serializers.DecimalField(max_digits=12, decimal_places=2)
+    earnings_count = serializers.IntegerField()
+
+
 class ReferralStatsSerializer(serializers.Serializer):
     code = serializers.CharField()
     referral_url = serializers.CharField()
     total_clicks = serializers.IntegerField()
     total_referred_sellers = serializers.IntegerField()
     total_referred_buyers = serializers.IntegerField()
+    total_referred = serializers.IntegerField()
+    total_paid_count = serializers.IntegerField()
+    total_pending_count = serializers.IntegerField()
     total_earnings = serializers.DecimalField(max_digits=12, decimal_places=2)
     wallet_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+    referred_users = ReferredUserSerializer(many=True)
     earnings_history = ReferralEarningSerializer(many=True)
+
