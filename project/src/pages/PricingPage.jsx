@@ -130,41 +130,13 @@ export default function PricingPage() {
         return
       }
 
-      // Monnify (Moniepoint) inline popup flow
-      if ((provider === 'monnify' || res.provider === 'monnify') && window.MonnifySDK) {
-        const reference = res.reference || res.payment_reference
-        window.MonnifySDK.initialize({
-          amount: Number(res.final_price || res.amount || plan.monthly_price),
-          currency: 'NGN',
-          currencyCode: 'NGN',
-          customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
-          customerFullName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
-          customerEmail: user?.email,
-          paymentReference: reference,
-          reference: reference,
-          paymentDescription: `Subscription upgrade to ${plan.name}`,
-          contractCode: res.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
-          apiKey: res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
-          isTestMode: (res.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
-          onComplete: function(response) {
-            setUpgrading(plan.code)
-            subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
-              .then(() => {
-                navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
-              })
-              .catch(() => {
-                navigate(`/subscription?paymentReference=${encodeURIComponent(reference)}`)
-              })
-          },
-          onClose: function(data) {
-            setUpgrading(null)
-          }
-        })
-        setUpgrading(null)
-        return
-      } else if ((provider === 'monnify' || res.provider === 'monnify') && res.checkout_url) {
-        window.location.href = res.checkout_url
-        return
+      // Monnify (Moniepoint) checkout flow
+      if (provider === 'monnify' || res.provider === 'monnify') {
+        const redirectUrl = res.checkout_url || res.authorization_url
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+          return
+        }
       }
 
       // Paystack inline popup flow

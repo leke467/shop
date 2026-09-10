@@ -289,39 +289,10 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
       // Monnify (Moniepoint) inline popup flow
       if (result.payment && result.payment.provider === 'monnify') {
         const monnifyData = result.payment
-        const reference = monnifyData.payment_reference || monnifyData.reference
-
-        if (window.MonnifySDK) {
-          window.MonnifySDK.initialize({
-            amount: Number(monnifyData.amount || result.order?.grand_total || grandTotal),
-            currency: 'NGN',
-            currencyCode: 'NGN',
-            customerName: checkoutForm.full_name || user?.email || 'Customer',
-            customerEmail: checkoutForm.email || user?.email,
-            paymentReference: reference,
-            paymentDescription: `Order ${result.order?.public_id || ''}`,
-            contractCode: monnifyData.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
-            apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
-            isTestMode: (monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
-            onComplete: function(response) {
-              setCheckoutLoading(true)
-              orderAPI.verifyMonnify(reference)
-                .then(() => {
-                  refreshCart()
-                  navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
-                })
-                .catch((verifyErr) => {
-                  setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
-                  setCheckoutLoading(false)
-                })
-            },
-            onClose: function(data) {
-              setCheckoutError('Monnify payment popup closed. Order reserved — you can retry payment or check your orders.')
-              setCheckoutLoading(false)
-            }
-          })
-        } else if (monnifyData.checkout_url) {
-          window.location.href = monnifyData.checkout_url
+        const redirectUrl = monnifyData.checkout_url || monnifyData.authorization_url
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+          return
         }
       } else if (result.payment && result.payment.provider === 'paystack') {
         const paystackData = result.payment

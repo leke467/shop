@@ -203,46 +203,12 @@ export default function ObsidianCheckout({ shop, shopSlug }) {
 
       const amountToPay = Number(result.payment?.amount || result.order?.grand_total || grandTotal)
 
-      // Handle Moniepoint (Monnify) inline popup flow
+      // Handle Moniepoint (Monnify) flow
       if (result.payment && (result.payment.provider === 'monnify' || form.provider === 'monnify')) {
         const monnifyData = result.payment || {}
-        const reference = monnifyData.payment_reference || monnifyData.reference
-
-        if (window.MonnifySDK) {
-          window.MonnifySDK.initialize({
-            amount: amountToPay,
-            currency: 'NGN',
-            customerName: form.full_name || user?.email || 'Customer',
-            customerEmail: form.email || user?.email,
-            paymentReference: reference,
-            paymentDescription: `Order ${result.order?.public_id || ''}`,
-            contractCode: monnifyData.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
-            apiKey: monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
-            isTestMode: (monnifyData.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
-            onComplete: function() {
-              setLoading(true)
-              orderAPI.verifyMonnify(reference)
-                .then(() => {
-                  clearCart && clearCart()
-                  const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
-                  const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-                  setOrderComplete({ ...orderData, reference, delivery_code: deliveryCode })
-                })
-                .catch(() => {
-                  const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
-                  const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-                  setOrderComplete({ ...orderData, delivery_code: deliveryCode })
-                })
-                .finally(() => setLoading(false))
-            },
-            onClose: function() {
-              setError('Moniepoint payment popup closed. Order created — you can complete payment anytime.')
-              setLoading(false)
-            }
-          })
-          return
-        } else if (monnifyData.checkout_url) {
-          window.location.href = monnifyData.checkout_url
+        const redirectUrl = monnifyData.checkout_url || monnifyData.authorization_url
+        if (redirectUrl) {
+          window.location.href = redirectUrl
           return
         }
       }

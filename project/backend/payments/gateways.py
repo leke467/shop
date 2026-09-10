@@ -421,11 +421,12 @@ class MonnifyGateway(PaymentGateway):
         full_name = kwargs.get("full_name", "Customer")
 
         frontend_url = getattr(settings, "FRONTEND_URL", "https://multishopng.com").rstrip("/")
+        default_redirect = f"{frontend_url}/orders" if (metadata and metadata.get("order_id")) else f"{frontend_url}/subscription"
         redirect_url = (
             kwargs.get("redirect_url")
             or kwargs.get("callback_url")
             or (metadata.get("callback_url") if metadata else "")
-            or f"{frontend_url}/subscription"
+            or default_redirect
         )
 
         try:

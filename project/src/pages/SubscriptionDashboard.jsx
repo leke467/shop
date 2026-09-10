@@ -88,36 +88,12 @@ export default function SubscriptionDashboard() {
         setCouponInput('')
         subscriptionAPI.current().then(setData)
         subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
-      } else if (upRes.provider === 'monnify' && window.MonnifySDK) {
-        const reference = upRes.reference || upRes.payment_reference
-        window.MonnifySDK.initialize({
-          amount: Number(upRes.final_price || upRes.amount || targetPlan.monthly_price),
-          currency: 'NGN',
-          currencyCode: 'NGN',
-          customerName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
-          customerFullName: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.email || 'Subscriber'),
-          customerEmail: user?.email,
-          paymentReference: reference,
-          reference: reference,
-          paymentDescription: `Subscription upgrade to ${targetPlan.name}`,
-          contractCode: upRes.contractCode || import.meta.env.VITE_MONNIFY_CONTRACT_CODE || '8757701677',
-          apiKey: upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST_VUWB9NSTSF',
-          isTestMode: (upRes.apiKey || import.meta.env.VITE_MONNIFY_API_KEY || 'MK_TEST').startsWith('MK_TEST'),
-          onComplete: function(response) {
-            subscriptionAPI.verifyPayment({ paymentReference: reference, provider: 'monnify' })
-              .then((verifyRes) => {
-                setPaymentNotice(verifyRes)
-                subscriptionAPI.current().then(setData)
-                subscriptionAPI.mine().then(m => setHistory(Array.isArray(m) ? m : (m?.results || [])))
-              })
-              .catch(() => {
-                subscriptionAPI.current().then(setData)
-              })
-          },
-          onClose: function(data) {
-            // popup closed
-          },
-        })
+      } else if (upRes.provider === 'monnify') {
+        const redirectUrl = upRes.checkout_url || upRes.authorization_url
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+          return
+        }
       } else if (upRes.provider === 'paystack' && window.PaystackPop && (upRes.access_code || upRes.reference)) {
         const reference = upRes.reference || upRes.payment_reference
         const handler = window.PaystackPop.setup({
