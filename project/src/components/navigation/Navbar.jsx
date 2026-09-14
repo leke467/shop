@@ -460,15 +460,13 @@ export default function Navbar() {
                 <div className="space-y-1">
                   <p className="px-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Account & Shop</p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {isSeller && (
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-100/70 transition-colors"
-                      >
-                        <span className="text-base">📊</span> Vendor Dashboard
-                      </Link>
-                    )}
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-100/70 transition-colors"
+                    >
+                      <span className="text-base">📊</span> Vendor Dashboard
+                    </Link>
                     <Link
                       to="/orders"
                       onClick={() => setMobileOpen(false)}

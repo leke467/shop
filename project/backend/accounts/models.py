@@ -104,7 +104,12 @@ class User(AbstractUser):
 
     @property
     def is_seller(self) -> bool:
-        return self.role in (self.Roles.SELLER, self.Roles.ADMIN)
+        if self.role in (self.Roles.SELLER, self.Roles.ADMIN):
+            return True
+        try:
+            return self.shops.filter(deleted_at__isnull=True).exists()
+        except Exception:
+            return False
 
     @property
     def is_buyer(self) -> bool:

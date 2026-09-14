@@ -240,6 +240,11 @@ class ShopCreateUpdateSerializer(serializers.ModelSerializer):
             position=0,
             config={"title": shop.name, "subtitle": shop.tagline},
         )
+        # Promote user role to seller if they were a buyer
+        if user.role == "buyer":
+            user.role = "seller"
+            user.save(update_fields=["role"])
+
         return shop
 
     def update(self, instance, validated_data):

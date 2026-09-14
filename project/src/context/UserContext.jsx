@@ -89,7 +89,7 @@ export function UserProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
-    isSeller: user?.role === 'seller' || user?.role === 'admin',
+    isSeller: user?.role === 'seller' || user?.role === 'admin' || !!user?.is_seller || !!user?.has_shop,
     login,
     googleLogin,
     register,

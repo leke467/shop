@@ -54,14 +54,23 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    is_seller = serializers.BooleanField(read_only=True)
+    has_shop = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
             "public_id", "email", "username", "first_name", "last_name",
             "role", "phone", "avatar", "is_email_verified",
-            "accepts_marketing", "created_at",
+            "accepts_marketing", "created_at", "is_seller", "has_shop",
         )
-        read_only_fields = ("public_id", "email", "role", "is_email_verified", "created_at")
+        read_only_fields = ("public_id", "email", "role", "is_email_verified", "created_at", "is_seller", "has_shop")
+
+    def get_has_shop(self, obj) -> bool:
+        try:
+            return obj.shops.filter(deleted_at__isnull=True).exists()
+        except Exception:
+            return False
 
 
 class BuyerProfileSerializer(serializers.ModelSerializer):

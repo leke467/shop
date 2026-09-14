@@ -103,6 +103,7 @@ class Command(BaseCommand):
                         "username": username,
                         "first_name": random.choice(SHOP_ADJECTIVES),
                         "last_name": random.choice(SHOP_NOUNS),
+                        "role": User.Roles.SELLER,
                         "is_active": True,
                     }
                 )
