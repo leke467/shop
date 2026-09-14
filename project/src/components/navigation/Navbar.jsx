@@ -196,10 +196,10 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
-            {/* Dark Mode Toggle */}
+            {/* Dark Mode Toggle (Desktop) */}
             <button
               onClick={toggleDarkMode}
-              className={`p-1.5 sm:p-2 rounded-xl transition-all hover:scale-105 active:scale-95 shrink-0 ${
+              className={`hidden md:flex p-1.5 sm:p-2 rounded-xl transition-all hover:scale-105 active:scale-95 shrink-0 ${
                 isScrolled || !isHome ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/10 text-white'
               }`}
               title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -215,10 +215,10 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Wishlist */}
+            {/* Wishlist (Desktop) */}
             <Link 
               to="/wishlist" 
-              className={`relative p-2 rounded-xl transition-all ${
+              className={`hidden md:flex relative p-2 rounded-xl transition-all ${
                 isScrolled || !isHome ? 'hover:bg-gray-100/60' : 'hover:bg-white/10'
               }`}
               title="My Wishlist"
@@ -233,7 +233,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Cart */}
+            {/* Cart (Desktop & Mobile) */}
             <Link 
               to="/cart" 
               className={`relative p-2 rounded-xl transition-all ${
@@ -251,11 +251,11 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Messages */}
+            {/* Messages (Desktop, and Mobile if unread) */}
             {isAuthenticated && (
               <Link 
                 to="/messages" 
-                className={`relative p-2 rounded-xl transition-all ${
+                className={`${unreadMessages > 0 ? 'relative' : 'hidden md:flex relative'} p-2 rounded-xl transition-all ${
                   isScrolled || !isHome ? 'hover:bg-gray-100/60' : 'hover:bg-white/10'
                 }`}
                 title="Messages"
@@ -271,9 +271,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* User menu */}
+            {/* Desktop User Menu (>= md) */}
             {isAuthenticated ? (
-              <div className="relative" ref={menuRef}>
+              <div className="relative hidden md:block" ref={menuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-all ${
@@ -295,7 +295,7 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden py-2"
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden py-2 z-50"
                     >
                       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.first_name} {user?.last_name}</p>
@@ -349,77 +349,258 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Mobile hamburger */}
-            <button className="md:hidden p-2 rounded-xl hover:bg-gray-100/50 transition-colors" onClick={() => setMobileOpen(!mobileOpen)}>
-              <svg className={`w-6 h-6 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+            {/* Mobile Unified Menu Trigger (< md) */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className={`md:hidden p-1.5 rounded-xl transition-colors flex items-center justify-center ${
+                isScrolled || !isHome ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/10 text-white'
+              }`}
+              aria-label="Toggle menu"
+            >
+              {isAuthenticated ? (
+                <div className="relative flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold shadow-xs">
+                    {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-xs">
+                    {mobileOpen ? (
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <svg className={`w-6 h-6 ${isScrolled || !isHome ? 'text-gray-700' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Unified Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200/50 dark:border-gray-800 overflow-hidden shadow-xl"
+            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200/50 dark:border-gray-800 shadow-2xl max-h-[85vh] overflow-y-auto"
           >
-            <div className="px-6 py-4 space-y-1">
-              <Link to="/" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">Home</Link>
-              <Link to="/explore/products" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">Explore</Link>
-              <Link to="/blog" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">📰 Blog & Guides</Link>
-              <Link to="/pricing" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">💳 Pricing</Link>
-              <Link to="/referral-program" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">🎁 Referral Program</Link>
-              
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1">
-                <Link to="/wishlist" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">
-                  ❤️ Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
-                </Link>
-                <Link to="/cart" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">
-                  🛒 Cart {itemCount > 0 && `(${itemCount})`}
-                </Link>
-                {isAuthenticated && <Link to="/orders" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">🛍️ My Orders</Link>}
-                {isSeller && <Link to="/dashboard" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">📊 Dashboard</Link>}
-                {isAdmin && <Link to="/admin" className="block px-4 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">🛡️ Admin</Link>}
-              </div>
+            <div className="px-5 py-4 space-y-4">
+              {/* User Profile Card at Top (when authenticated) */}
+              {isAuthenticated ? (
+                <div className="p-3.5 bg-gradient-to-r from-primary-50/80 via-primary-50/40 to-accent-50/40 dark:from-gray-800 dark:to-gray-800/60 rounded-2xl border border-primary-100 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-base font-bold shadow-sm shrink-0">
+                      {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {user?.first_name ? `${user?.first_name} ${user?.last_name || ''}` : 'My Account'}
+                        </h4>
+                        {isSeller && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            Vendor
+                          </span>
+                        )}
+                        {isAdmin && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => setMobileOpen(false)}
+                      className="px-2.5 py-1.5 text-xs font-semibold text-primary-700 bg-white dark:bg-gray-800 dark:text-primary-300 rounded-xl shadow-xs border border-primary-200/60 dark:border-gray-700 hover:bg-primary-50 transition-colors shrink-0"
+                    >
+                      Profile
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gradient-to-r from-primary-50/50 to-secondary-50/50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl border border-primary-100/60 dark:border-gray-700 text-center space-y-2.5">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Welcome to MultiShop</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Discover top brands or launch your own shop</p>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="py-2 px-3 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xs text-center"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMobileOpen(false)}
+                      className="py-2 px-3 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-primary-600 to-secondary-600 shadow-xs text-center"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
+                </div>
+              )}
 
-              {/* Theme toggle on mobile */}
-              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between px-4 py-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</span>
-                <button
-                  onClick={toggleDarkMode}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-xs font-semibold text-gray-800 dark:text-gray-200"
-                >
-                  <span>{darkMode ? '🌙 Dark' : '☀️ Light'}</span>
-                </button>
-              </div>
-
+              {/* Account & Shop Actions (when authenticated) */}
               {isAuthenticated && (
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
-                  <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 rounded-xl text-base font-medium text-error-600 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors">
-                    🚪 Sign out
+                <div className="space-y-1">
+                  <p className="px-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Account & Shop</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {isSeller && (
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-100/70 transition-colors"
+                      >
+                        <span className="text-base">📊</span> Vendor Dashboard
+                      </Link>
+                    )}
+                    <Link
+                      to="/orders"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <span className="text-base">🛍️</span> My Orders
+                    </Link>
+                    <Link
+                      to="/wishlist"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">❤️</span> Wishlist
+                      </div>
+                      {wishlistCount > 0 && (
+                        <span className="text-[10px] font-bold bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 px-1.5 py-0.5 rounded-full">
+                          {wishlistCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
+                      to="/cart"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">🛒</span> Cart
+                      </div>
+                      {itemCount > 0 && (
+                        <span className="text-[10px] font-bold bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300 px-1.5 py-0.5 rounded-full">
+                          {itemCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
+                      to="/messages"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">💬</span> Messages
+                      </div>
+                      {unreadMessages > 0 && (
+                        <span className="text-[10px] font-bold bg-error-500 text-white px-1.5 py-0.5 rounded-full">
+                          {unreadMessages}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
+                      to="/create-shop"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <span className="text-base">🏪</span> Create Shop
+                    </Link>
+                    <Link
+                      to="/referrals"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <span className="text-base">🎁</span> Refer & Earn
+                    </Link>
+                    <Link
+                      to="/subscription"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <span className="text-base">💳</span> Subscription
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-950/20 hover:bg-indigo-100 transition-colors col-span-2"
+                      >
+                        <span className="text-base">🛡️</span> Admin Panel
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Marketplace Links */}
+              <div className="space-y-1 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <p className="px-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Marketplace</p>
+                <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span>🏠</span> Home
+                </Link>
+                <Link to="/explore/products" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span>🔍</span> Explore Products
+                </Link>
+                <Link to="/explore/shops" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span>🏪</span> Explore Shops
+                </Link>
+                <Link to="/blog" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span>📰</span> Blog & Guides
+                </Link>
+                <Link to="/pricing" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <span>💳</span> Pricing Plans
+                </Link>
+              </div>
+
+              {/* Theme Switcher & Logout */}
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🌓</span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Theme</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleDarkMode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-xs"
+                  >
+                    <span>{darkMode ? '🌙 Dark' : '☀️ Light'}</span>
                   </button>
                 </div>
-              )}
 
-              {!isAuthenticated && (
-                <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-                  <Link to="/login" className="block w-full text-center py-2.5 rounded-xl text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 font-semibold transition-colors">
-                    Sign in
-                  </Link>
-                  <Link to="/signup" className="block w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-md shadow-primary-500/20 hover:opacity-95 transition-all">
-                    Get started
-                  </Link>
-                </div>
-              )}
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false)
+                      handleLogout()
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-error-600 bg-error-50 dark:bg-error-950/20 hover:bg-error-100 border border-error-200/60 dark:border-error-800 transition-colors"
+                  >
+                    <span>🚪</span> Sign Out
+                  </button>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

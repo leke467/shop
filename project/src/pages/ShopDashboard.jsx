@@ -1570,33 +1570,35 @@ export default function ShopDashboard() {
                     {wallet?.transactions?.length === 0 ? (
                       <div className="p-8 text-center text-sm text-gray-400">No transactions recorded yet</div>
                     ) : (
-                      <table className="w-full">
-                        <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                          <tr>
-                            <th className="text-left px-6 py-3">Date</th>
-                            <th className="text-left px-6 py-3">Description</th>
-                            <th className="text-left px-6 py-3">Reference</th>
-                            <th className="text-right px-6 py-3">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-sm">
-                          {wallet?.transactions?.map((tx, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-6 py-4 text-xs text-gray-400">{new Date(tx.created_at).toLocaleString()}</td>
-                              <td className="px-6 py-4">
-                                <span className="font-semibold text-gray-900">{tx.kind_display}</span>
-                                {tx.notes && <p className="text-[10px] text-gray-400 mt-0.5">{tx.notes}</p>}
-                              </td>
-                              <td className="px-6 py-4 text-xs text-gray-500 font-mono">{tx.reference || '-'}</td>
-                              <td className={`px-6 py-4 text-right font-bold ${
-                                tx.kind === 'escrow_release' || tx.kind === 'adjustment' ? 'text-success-600' : 'text-error-600'
-                              }`}>
-                                {tx.kind === 'escrow_release' || tx.kind === 'adjustment' ? '+' : '-'}₦{Number(tx.amount).toLocaleString()}
-                              </td>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                            <tr>
+                              <th className="text-left px-6 py-3">Date</th>
+                              <th className="text-left px-6 py-3">Description</th>
+                              <th className="text-left px-6 py-3">Reference</th>
+                              <th className="text-right px-6 py-3">Amount</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-sm">
+                            {wallet?.transactions?.map((tx, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4 text-xs text-gray-400">{new Date(tx.created_at).toLocaleString()}</td>
+                                <td className="px-6 py-4">
+                                  <span className="font-semibold text-gray-900">{tx.kind_display}</span>
+                                  {tx.notes && <p className="text-[10px] text-gray-400 mt-0.5">{tx.notes}</p>}
+                                </td>
+                                <td className="px-6 py-4 text-xs text-gray-500 font-mono">{tx.reference || '-'}</td>
+                                <td className={`px-6 py-4 text-right font-bold ${
+                                  tx.kind === 'escrow_release' || tx.kind === 'adjustment' ? 'text-success-600' : 'text-error-600'
+                                }`}>
+                                  {tx.kind === 'escrow_release' || tx.kind === 'adjustment' ? '+' : '-'}₦{Number(tx.amount).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
 
@@ -1608,7 +1610,8 @@ export default function ShopDashboard() {
                     {(!Array.isArray(payouts) || payouts.length === 0) ? (
                       <div className="p-8 text-center text-sm text-gray-400">No payouts requested yet</div>
                     ) : (
-                      <table className="w-full">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
                         <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                           <tr>
                             <th className="text-left px-6 py-3">Date</th>
@@ -1630,6 +1633,7 @@ export default function ShopDashboard() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     )}
                   </div>
 
@@ -1726,7 +1730,115 @@ export default function ShopDashboard() {
                       </button>
                     </div>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                  {/* Mobile Products List (< md) */}
+                  <div className="md:hidden space-y-3">
+                    {products.map(p => {
+                      const rawImg = p.primary_image || p.image || p.images?.[0]?.thumbnail || p.images?.[0]?.image || (typeof p.images?.[0] === 'string' ? p.images[0] : null);
+                      const imgSrc = rawImg ? getImageUrl(rawImg, p.name) : getProductPlaceholderUrl(p.name);
+                      const stockQty = p.inventory_quantity ?? 100;
+                      return (
+                        <div key={p.slug || p.public_id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-3">
+                          {/* Image, Name & Price */}
+                          <div className="flex items-start gap-3">
+                            <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100">
+                              <img
+                                src={imgSrc}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => handleImageError(e, 'product', p.name)}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{p.name}</h4>
+                              <p className="font-bold text-gray-900 text-base mt-1">₦{Number(p.base_price || 0).toLocaleString()}</p>
+                            </div>
+                          </div>
+
+                          {/* Chips: Stock, Visibility, Status */}
+                          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-50">
+                            {/* Stock badge */}
+                            <span className={`text-[11px] px-2.5 py-1 rounded-full font-semibold ${
+                              stockQty <= 0 
+                                ? 'bg-red-100 text-red-700' 
+                                : stockQty <= 10 
+                                  ? 'bg-amber-100 text-amber-700' 
+                                  : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {stockQty <= 0 ? '0 (Out of stock)' : `${stockQty} in stock`}
+                            </span>
+
+                            {/* Visibility toggle chip */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductVisibility(p)}
+                              title="Click to toggle between Marketplace & Store and Store Only"
+                              className={`group inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                                p.is_marketplace_visible !== false
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                              }`}
+                            >
+                              <span>{p.is_marketplace_visible !== false ? '🌐' : '🏪'}</span>
+                              <span>{p.is_marketplace_visible !== false ? 'Marketplace & Store' : 'Store Only'}</span>
+                              <span className="text-[9px] text-gray-400">⇄</span>
+                            </button>
+
+                            {/* Status toggle chip */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductStatus(p)}
+                              title="Click to toggle between Active and Draft"
+                              className={`group inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                                p.status === 'active'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${p.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                              <span className="capitalize">{p.status || 'draft'}</span>
+                              <span className="text-[9px] text-gray-400">⇄</span>
+                            </button>
+                          </div>
+
+                          {/* Action Buttons: 4-Column Touch Grid */}
+                          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-gray-100">
+                            <button
+                              onClick={() => {
+                                setRestockProduct(p)
+                                setRestockAmount(10)
+                                setRestockMode('add')
+                              }}
+                              className="py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center justify-center gap-0.5"
+                            >
+                              <span>+</span> Restock
+                            </button>
+                            <Link
+                              to={`/product/${p.slug || p.public_id}`}
+                              target="_blank"
+                              className="py-2 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors flex items-center justify-center"
+                            >
+                              View
+                            </Link>
+                            <button
+                              onClick={() => handleEditProduct(p)}
+                              className="py-2 text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-xl transition-colors flex items-center justify-center"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(p)}
+                              className="py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors flex items-center justify-center"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Products Table (>= md) */}
+                  <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-x-auto shadow-sm">
                     <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>

@@ -413,7 +413,7 @@ CELERY_BEAT_SCHEDULE = {
 # CORS / CSRF
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
 )
 CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", True)
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -422,10 +422,12 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.netlify\.app$",
     r"^https://.*\.railway\.app$",
     r"^https://.*\.multishopng\.com$",
+    r"^http://localhost:[0-9]+$",
+    r"^http://127\.0\.0\.1:[0-9]+$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
+    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,https://multishopng.com,https://www.multishopng.com,https://shop-production-8258.up.railway.app"
 )
 
 
