@@ -569,7 +569,7 @@ def confirm_pending_payment(payment: Payment, *, verified_by=None) -> None:
     # Emails
     try:
         from core.emails import send_order_placed_buyer_email, send_order_placed_seller_email
-        order_groups = list(order.groups.all())
+        order_groups = list(order.groups.select_related("shop__owner").prefetch_related("items").all())
         send_order_placed_buyer_email(order, order_groups)
         for group in order_groups:
             send_order_placed_seller_email(group)

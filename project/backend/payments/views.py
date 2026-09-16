@@ -139,15 +139,16 @@ class CheckoutView(APIView):
             )
             response_data["payment"] = instructions
 
-        # --- Emails: Order Confirmation (buyer) + New Order Alert (seller) ---
-        try:
-            from core.emails import send_order_placed_buyer_email, send_order_placed_seller_email
-            order_groups = list(order.groups.select_related("shop__owner").prefetch_related("items").all())
-            send_order_placed_buyer_email(order, order_groups)
-            for group in order_groups:
-                send_order_placed_seller_email(group)
-        except Exception as email_err:
-            logger.warning("Checkout email dispatch error (non-blocking): %s", email_err)
+        # For out-of-band payments (bank transfer), send transfer instructions ONLY to the buyer.
+        # Paid order confirmation (buyer) & new order alert (seller) emails are strictly sent
+        # when payment is verified and confirmed via confirm_pending_payment().
+        instructions = getattr(order, "_payment_instructions", None)
+        if instructions and instructions.get("provider") == "bank_transfer":
+            try:
+                from core.emails import send_bank_transfer_instructions_buyer_email
+                send_bank_transfer_instructions_buyer_email(order, instructions)
+            except Exception as email_err:
+                logger.warning("Bank transfer instruction email error (non-blocking): %s", email_err)
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -645,20 +646,11 @@ class MonnifyVerifyView(APIView):
         gateway = get_gateway("monnify")
         token = gateway._get_access_token()
         if not token:
-            # Cannot reach Monnify API — trust the SDK callback and confirm.
-            logger.warning(
-                "Monnify verify: could not get access token for ref=%s — "
-                "trusting SDK onComplete and confirming payment.", reference
+            logger.error("Monnify verify: could not obtain access token for ref=%s", reference)
+            return Response(
+                {"detail": "Unable to verify payment with Monnify gateway at this time. Please try again or wait for webhook."},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
-            try:
-                confirm_pending_payment(payment, verified_by="monnify_verify_sdk_trust")
-            except CheckoutError as e:
-                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({
-                "detail": "Payment confirmed (SDK verified).",
-                "status": "captured",
-                "order": OrderSerializer(payment.order).data,
-            })
 
         from django.conf import settings as django_settings
         base_url = django_settings.PAYMENTS["MONNIFY"]["BASE_URL"].rstrip("/")
@@ -740,27 +732,15 @@ class MonnifyVerifyView(APIView):
                 "order": OrderSerializer(payment.order).data,
             })
 
-        # Monnify API still shows PENDING after retries.
-        # The SDK called onComplete which means the user DID complete payment.
-        # Trust the SDK callback — the webhook will also fire as a safety net
-        # to double-confirm. This prevents orders from being stuck as "unpaid"
-        # when money has already left the buyer's account.
+        # Monnify API shows PENDING or failed — never confirm an unverified payment
         logger.warning(
-            "Monnify verify: API still shows status=%s after retries for ref=%s. "
-            "Trusting SDK onComplete and confirming payment. "
-            "Webhook will double-confirm.",
-            payment_status, reference,
+            "Monnify verify: Payment ref=%s status=%s not confirmed by gateway",
+            reference, payment_status,
         )
-        try:
-            confirm_pending_payment(payment, verified_by="monnify_verify_sdk_trust")
-        except CheckoutError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         return Response({
-            "detail": "Payment confirmed.",
-            "status": "captured",
-            "order": OrderSerializer(payment.order).data,
-        })
+            "detail": f"Payment not yet completed. Monnify status: {payment_status}",
+            "status": payment_status.lower(),
+        }, status=status.HTTP_402_PAYMENT_REQUIRED)
 
 
 # ---------------------------------------------------------------------------

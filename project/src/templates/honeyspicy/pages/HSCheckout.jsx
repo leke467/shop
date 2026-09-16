@@ -78,6 +78,14 @@ export default function HSCheckout({ shop, shopSlug }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderComplete, setOrderComplete] = useState(null)
+  const [copiedKey, setCopiedKey] = useState(null)
+
+  const copyToClipboard = (text, key) => {
+    if (!text) return
+    navigator.clipboard?.writeText(String(text))
+    setCopiedKey(key)
+    setTimeout(() => setCopiedKey(null), 1800)
+  }
 
   // Load gateway settings
   useEffect(() => {
@@ -225,44 +233,55 @@ export default function HSCheckout({ shop, shopSlug }) {
         if (redirectUrl) {
           window.location.href = redirectUrl
           return
+        } else {
+          setError('Unable to load Monnify checkout URL. Please try again or select another payment method.')
+          setLoading(false)
+          return
         }
       }
 
       // Handle Paystack inline popup
-      if (result.payment && result.payment.provider === 'paystack') {
-        const paystackData = result.payment
+      if (result.payment && (result.payment.provider === 'paystack' || form.provider === 'paystack')) {
+        const paystackData = result.payment || {}
         const accessCode = paystackData.access_code
-        const reference = paystackData.reference
+        const reference = paystackData.payment_reference || paystackData.reference
 
         if (window.PaystackPop && (accessCode || reference)) {
           const handler = window.PaystackPop.setup({
-            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
+            key: paystackData.public_key || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
             email: form.email || user?.email,
             amount: Math.round(amountToPay * 100),
             ref: reference,
             access_code: accessCode,
             onSuccess: async (transaction) => {
+              setLoading(true)
               try {
-                await orderAPI.verifyPaystack(reference || transaction.reference)
+                const verifyRef = reference || transaction.reference
+                await orderAPI.verifyPaystack(verifyRef)
                 clearCart && clearCart()
                 const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
                 const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-                setOrderComplete({ ...orderData, reference: reference || transaction.reference, delivery_code: deliveryCode })
+                setOrderComplete({ ...orderData, reference: verifyRef, delivery_code: deliveryCode })
               } catch (err) {
-                setError('Payment placed. Verifying with bank...')
-                const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
-                const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-                setOrderComplete({ ...orderData, delivery_code: deliveryCode })
+                const errMsg = err?.response?.data?.detail || 'Payment verification failed with the gateway. If you were debited, please contact support with reference ' + (reference || transaction.reference)
+                setError(errMsg)
               } finally {
                 setLoading(false)
               }
             },
             onClose: () => {
-              setError('Payment window closed. Order created — you can complete payment anytime.')
+              setError('Payment window closed before completing payment.')
               setLoading(false)
             }
           })
           handler.openIframe()
+          return
+        } else if (paystackData.authorization_url) {
+          window.location.href = paystackData.authorization_url
+          return
+        } else {
+          setError('Unable to load Paystack payment gateway. Please choose another payment method.')
+          setLoading(false)
           return
         }
       }
@@ -273,11 +292,20 @@ export default function HSCheckout({ shop, shopSlug }) {
         return
       }
 
-      // Bank Transfer / Direct Order Complete
-      clearCart && clearCart()
-      const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
-      const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-      setOrderComplete({ ...orderData, delivery_code: deliveryCode })
+      // Bank Transfer
+      if (form.provider === 'bank_transfer' || (result.payment && result.payment.provider === 'bank_transfer')) {
+        clearCart && clearCart()
+        const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
+        setOrderComplete({
+          ...orderData,
+          is_bank_transfer: true,
+          bank_payment: result.payment || {},
+        })
+        return
+      }
+
+      // Fallback: If payment is unconfirmed, do not mark complete
+      setError('Payment initiation incomplete. Please try again or contact support.')
     } catch (err) {
       console.error('Checkout failed:', err)
       const data = err?.response?.data
@@ -302,16 +330,81 @@ export default function HSCheckout({ shop, shopSlug }) {
   const shopHomeUrl = baseSlug ? `/shop/${baseSlug}` : '/'
 
   if (orderComplete) {
+    const isBank = Boolean(orderComplete.is_bank_transfer)
+    const bankData = orderComplete.bank_payment || {}
+
     return (
       <HSPageTransition>
         <main className="hs-menu-page" style={{ padding: '6rem 1rem' }}>
           <div className="hs-container" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="hs-menu-item" style={{ padding: '3rem 2rem' }}>
-              <span style={{ fontSize: '4rem', display: 'block', marginBottom: '1rem' }}>🎉</span>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--hs-color-text, #2B1F0C)', marginBottom: '0.5rem' }}>Order Placed Successfully!</h2>
-              <p style={{ color: '#666', marginBottom: '1.5rem' }}>Thank you for ordering from <strong>{shop?.name || 'our shop'}</strong>!</p>
+              <span style={{ fontSize: '4rem', display: 'block', marginBottom: '1rem' }}>{isBank ? '⏳' : '🎉'}</span>
+              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--hs-color-text, #2B1F0C)', marginBottom: '0.5rem' }}>
+                {isBank ? 'Order Placed — Awaiting Transfer' : 'Order Placed Successfully!'}
+              </h2>
+              <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                {isBank
+                  ? <span>Your order for <strong>{shop?.name || 'our shop'}</strong> has been registered. Please transfer the payment to confirm your order.</span>
+                  : <span>Thank you for ordering from <strong>{shop?.name || 'our shop'}</strong>!</span>}
+              </p>
 
-              {orderComplete.delivery_code && (
+              {isBank && (
+                <div style={{ background: '#FFF8E7', border: '1.5px solid #F5D485', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #F0D080', paddingBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#8A5D11', textTransform: 'uppercase' }}>Amount to Pay</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2B1F0C' }}>
+                      ₦{Number(bankData.amount || orderComplete.grand_total || grandTotal).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.9rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#777' }}>Bank:</span>
+                      <strong style={{ color: '#2B1F0C' }}>{bankData.bank_name || 'Bank'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#777' }}>Account Number:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <strong style={{ color: '#2B1F0C', fontFamily: 'monospace', fontSize: '1.1rem' }}>{bankData.account_number}</strong>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(bankData.account_number, 'acct')}
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: '#fff', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer' }}
+                        >
+                          {copiedKey === 'acct' ? '✓ Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                    {bankData.account_name && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#777' }}>Account Name:</span>
+                        <strong style={{ color: '#2B1F0C' }}>{bankData.account_name}</strong>
+                      </div>
+                    )}
+                    {bankData.reference && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#777' }}>Payment Reference:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <strong style={{ color: '#B47B1C', fontFamily: 'monospace', fontWeight: 800 }}>{bankData.reference}</strong>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(bankData.reference, 'ref')}
+                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: '#fff', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer' }}
+                          >
+                            {copiedKey === 'ref' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #F0D080', fontSize: '0.8rem', color: '#8A5D11', lineHeight: 1.4 }}>
+                    ⚠️ <strong>Notice:</strong> Please quote reference <strong>{bankData.reference}</strong> in your transfer description. The seller will prepare and deliver your order once payment is verified by our admins. Your delivery confirmation code will be issued upon payment confirmation.
+                  </div>
+                </div>
+              )}
+
+              {!isBank && orderComplete.delivery_code && (
                 <div style={{ background: '#FFF8E7', border: '2px dashed #E5A43B', borderRadius: 16, padding: '1.25rem', marginBottom: '1.5rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#B47B1C', textTransform: 'uppercase', letterSpacing: 1 }}>Delivery Confirmation Code</span>
                   <div style={{ fontSize: '2.25rem', fontWeight: 900, color: '#2B1F0C', letterSpacing: 4, marginTop: '0.25rem' }}>

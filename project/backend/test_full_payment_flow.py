@@ -36,8 +36,11 @@ shop, _ = Shop.objects.get_or_create(
         "owner": seller,
         "commission_rate": Decimal("10.00"),
         "currency": "NGN",
+        "status": "active",
     }
 )
+shop.status = "active"
+shop.save()
 DeliveryZone.objects.get_or_create(shop=shop, state="Lagos", defaults={"fee": Decimal("1500.00"), "is_active": True})
 
 # 2. Setup Product & Inventory
@@ -160,10 +163,12 @@ print(f"Step 8: Vendor Dashboard after payment -> Orders visible: {vendor_order_
 assert str(order.public_id) in vendor_order_ids_paid, "Paid order MUST be visible to vendor!"
 print("   PASS: Vendor now sees the paid order in dashboard.")
 
-# 10. Check Buyer Delivery Code (Now visible)
+# 10. Check Buyer Delivery Code (Visible once shipped)
+group.status = OrderGroup.FulfilmentStatus.SHIPPED
+group.save()
 resp_code_paid = view_code(req_code, public_id=str(order.public_id))
 revealed_code_paid = resp_code_paid.data["codes"][0]["delivery_code"]
-print(f"Step 9: Buyer Delivery code after payment: '{revealed_code_paid}'")
+print(f"Step 9: Buyer Delivery code after shipped: '{revealed_code_paid}'")
 assert len(revealed_code_paid) == 6, "Delivery code should be 6 digits"
 print(f"   PASS: Buyer can view delivery code: {revealed_code_paid}")
 

@@ -552,3 +552,92 @@ def send_dispute_opened_email(order_group, reason):
     except Exception as e:
         logger.error("Failed to send dispute email: %s", e)
 
+
+def send_bank_transfer_instructions_buyer_email(order, instructions):
+    """
+    Send bank transfer payment instructions to the buyer.
+    Informs buyer that the order is pending payment verification before fulfillment.
+    """
+    buyer_name = (
+        getattr(order, "shipping_full_name", None)
+        or (order.user.first_name if order.user else "")
+        or "Valued Customer"
+    )
+    buyer_email = (
+        getattr(order, "shipping_email", None)
+        or (order.user.email if order.user else "")
+    )
+    if not buyer_email:
+        return
+
+    bank_name = instructions.get("bank_name", "Designated Bank")
+    account_number = instructions.get("account_number", "")
+    account_name = instructions.get("account_name", "")
+    amount = instructions.get("amount", str(order.grand_total))
+    ref = instructions.get("reference", str(order.public_id))
+
+    subject = f"⏳ Bank Transfer Instructions: Order #{order.public_id} — MultiShop"
+
+    try:
+        amount_num = float(amount)
+        formatted_amount = f"₦{amount_num:,.2f}"
+    except (ValueError, TypeError):
+        formatted_amount = f"₦{amount}"
+
+    text_content = f"""Hello {buyer_name},
+
+Thank you for placing order #{order.public_id} on MultiShop.
+
+To complete your order, please transfer the exact amount to the account below:
+
+Bank: {bank_name}
+Account Number: {account_number}
+Account Name: {account_name}
+Amount: {formatted_amount}
+Payment Reference: {ref}
+
+IMPORTANT: Your order is pending payment verification. Once your bank transfer is verified by our team, your order will be confirmed and the store will prepare and dispatch your items.
+
+The MultiShop Team"""
+
+    html_content = f"""
+    <div style="font-family:'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;color:#1E293B;">
+        <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:24px;text-align:center;color:#FFFFFF;">
+            <h1 style="margin:0;font-size:22px;font-weight:800;">Awaiting Bank Transfer ⏳</h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#94A3B8;">Order #{order.public_id}</p>
+        </div>
+        <div style="padding:24px;">
+            <p style="font-size:14px;color:#475569;margin-top:0;">Hello <strong>{buyer_name}</strong>,</p>
+            <p style="font-size:14px;color:#475569;">Thank you for placing order <strong>#{order.public_id}</strong> on MultiShop. Please complete your bank transfer using the details below:</p>
+
+            <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:12px;padding:20px;margin:20px 0;">
+                <div style="margin-bottom:8px;font-size:13px;color:#64748B;">Bank Name:</div>
+                <div style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:12px;">{bank_name}</div>
+                <div style="margin-bottom:8px;font-size:13px;color:#64748B;">Account Number:</div>
+                <div style="font-size:22px;font-weight:900;letter-spacing:1px;color:#2563EB;margin-bottom:12px;font-family:monospace;">{account_number}</div>
+                <div style="margin-bottom:8px;font-size:13px;color:#64748B;">Account Name:</div>
+                <div style="font-size:15px;font-weight:600;color:#0F172A;margin-bottom:12px;">{account_name}</div>
+                <div style="margin-bottom:8px;font-size:13px;color:#64748B;">Amount to Pay:</div>
+                <div style="font-size:20px;font-weight:800;color:#059669;margin-bottom:12px;">{formatted_amount}</div>
+                <div style="margin-bottom:4px;font-size:13px;color:#64748B;">Payment Reference:</div>
+                <div style="font-size:14px;font-weight:600;color:#0F172A;">{ref}</div>
+            </div>
+
+            <div style="background:#FEF3C7;border:1px solid #FDE68A;padding:14px;border-radius:10px;font-size:13px;color:#92400E;line-height:1.5;">
+                ⚠️ <strong>Important:</strong> Your order is pending verification. The seller will package and ship your order as soon as payment is confirmed by our administrators.
+            </div>
+        </div>
+    </div>
+    """
+
+    try:
+        EmailService.send_raw_email(
+            subject=subject,
+            text_content=text_content,
+            recipient_list=[buyer_email],
+            html_content=html_content,
+            from_email=DEFAULT_FROM_EMAIL,
+        )
+    except Exception as e:
+        logger.error("Failed to send bank transfer instructions email: %s", e)
+

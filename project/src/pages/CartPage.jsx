@@ -287,21 +287,25 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
       })
 
       // Monnify (Moniepoint) inline popup flow
-      if (result.payment && result.payment.provider === 'monnify') {
-        const monnifyData = result.payment
+      if (result.payment && (result.payment.provider === 'monnify' || checkoutForm.provider === 'monnify')) {
+        const monnifyData = result.payment || {}
         const redirectUrl = monnifyData.checkout_url || monnifyData.authorization_url
         if (redirectUrl) {
           window.location.href = redirectUrl
           return
+        } else {
+          setCheckoutError('Unable to load Monnify payment gateway. Please try again or select another payment method.')
+          setCheckoutLoading(false)
+          return
         }
-      } else if (result.payment && result.payment.provider === 'paystack') {
-        const paystackData = result.payment
+      } else if (result.payment && (result.payment.provider === 'paystack' || checkoutForm.provider === 'paystack')) {
+        const paystackData = result.payment || {}
         const accessCode = paystackData.access_code
-        const reference = paystackData.reference
+        const reference = paystackData.payment_reference || paystackData.reference
 
         if (window.PaystackPop && (accessCode || reference)) {
           const handler = window.PaystackPop.setup({
-            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
+            key: paystackData.public_key || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
             email: checkoutForm.email || user?.email,
             amount: Math.round(Number(paystackData.amount || result.order?.grand_total || grandTotal) * 100),
             ref: reference,
@@ -315,13 +319,13 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
                 navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
 
               } catch (verifyErr) {
-                setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification pending. Check your orders page.')
+                setCheckoutError(verifyErr.response?.data?.detail || 'Payment verification failed with the gateway. If you were debited, please contact support.')
               } finally {
                 setCheckoutLoading(false)
               }
             },
             onClose: () => {
-              setCheckoutError('Payment popup closed. Order reserved — you can retry payment or check your orders.')
+              setCheckoutError('Payment popup closed before payment was completed.')
               setCheckoutLoading(false)
             },
           })
@@ -331,17 +335,29 @@ export default function CartPage({ shop, shopSlug, isStorefrontCheckout = false 
           // Fallback redirect if popup JS isn't loaded
           window.location.href = paystackData.authorization_url
           return
+        } else {
+          setCheckoutError('Unable to load Paystack payment gateway. Please try another payment method.')
+          setCheckoutLoading(false)
+          return
         }
       }
 
       // Bank transfer returns instructions instead of a captured payment —
       // show the account details + reference in place of navigating away.
-      if (result.payment && result.payment.provider === 'bank_transfer') {
+      if (result.payment && (result.payment.provider === 'bank_transfer' || checkoutForm.provider === 'bank_transfer')) {
         setTransferInstructions({ ...result.payment, orderId: result.order?.public_id })
         setTransferStatus(result.payment.status)
         return
       }
-      navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
+
+      // If synchronous capture (e.g. Stripe captured) succeeded:
+      if (result.order?.status === 'confirmed' || result.payment?.status === 'captured') {
+        refreshCart()
+        navigate(successRoute, { state: { orderSuccess: true, orderId: result.order?.public_id, deliveryCode: result.delivery_code || result.order?.delivery_code } })
+        return
+      }
+
+      setCheckoutError('Payment initiation incomplete. Please try again or contact support.')
     } catch (err) {
       setCheckoutError(err.response?.data?.detail || 'Checkout failed. Please try again.')
     } finally {

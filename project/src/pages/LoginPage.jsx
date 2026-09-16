@@ -71,7 +71,7 @@ export default function LoginPage() {
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Welcome back to<br />
               <span className="bg-gradient-to-r from-white to-accent-200 bg-clip-text text-transparent">
-                the Marketplace
+                MultiShop
               </span>
             </h1>
             <p className="text-lg text-white/80 max-w-md leading-relaxed">

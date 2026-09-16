@@ -90,6 +90,14 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderComplete, setOrderComplete] = useState(null)
+  const [copiedKey, setCopiedKey] = useState(null)
+
+  const copyToClipboard = (text, key) => {
+    if (!text) return
+    navigator.clipboard?.writeText(String(text))
+    setCopiedKey(key)
+    setTimeout(() => setCopiedKey(null), 1800)
+  }
 
   // Load gateway settings
   useEffect(() => {
@@ -257,6 +265,10 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
         if (redirectUrl) {
           window.location.href = redirectUrl
           return
+        } else {
+          setError('Unable to load Monnify checkout. Please try again or select another payment method.')
+          setLoading(false)
+          return
         }
       }
 
@@ -281,23 +293,43 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
                   const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
                   setOrderComplete({ ...orderData, reference: response.reference, delivery_code: deliveryCode })
                 })
+                .catch((err) => {
+                  const errMsg = err?.response?.data?.detail || 'Payment verification failed with the bank. If you were debited, please contact support with reference ' + response.reference
+                  setError(errMsg)
+                })
                 .finally(() => setLoading(false))
             },
             onClose: function() {
-              setError('Paystack payment cancelled.')
+              setError('Paystack payment window was closed before completing payment.')
               setLoading(false)
             }
           })
           handler.openIframe()
           return
+        } else if (paystackData.authorization_url) {
+          window.location.href = paystackData.authorization_url
+          return
+        } else {
+          setError('Unable to load Paystack payment gateway. Please choose another payment method.')
+          setLoading(false)
+          return
         }
       }
 
-      // Bank transfer or fallback
-      clearCart && clearCart()
-      const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
-      const deliveryCode = result.delivery_code || result.order?.delivery_code || result.order_codes?.[0]?.delivery_code || orderData.delivery_code
-      setOrderComplete({ ...orderData, delivery_code: deliveryCode })
+      // Bank transfer
+      if (form.provider === 'bank_transfer' || (result.payment && result.payment.provider === 'bank_transfer')) {
+        clearCart && clearCart()
+        const orderData = result.order || { public_id: result.order_id || 'SUCCESS' }
+        setOrderComplete({
+          ...orderData,
+          is_bank_transfer: true,
+          bank_payment: result.payment || {},
+        })
+        return
+      }
+
+      // Fallback: If payment is unconfirmed, do not mark complete
+      setError('Payment initiation incomplete. Please try again or contact support.')
     } catch (err) {
       console.error('Checkout failed:', err)
       const data = err?.response?.data
@@ -320,14 +352,79 @@ export default function TemplateCheckoutView({ shop, shopSlug, theme = 'default'
 
   // Completed order view
   if (orderComplete) {
+    const isBank = Boolean(orderComplete.is_bank_transfer)
+    const bankData = orderComplete.bank_payment || {}
+
     return (
       <div className="py-20 px-4 max-w-xl mx-auto text-center">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 sm:p-10 rounded-3xl border border-gray-100 shadow-xl space-y-6">
-          <span className="text-6xl block">🎉</span>
-          <h2 className="text-3xl font-extrabold text-gray-900">Order Placed Successfully!</h2>
-          <p className="text-gray-600">Thank you for ordering directly from <strong>{shop?.name || 'our shop'}</strong>.</p>
+          <span className="text-6xl block">{isBank ? '⏳' : '🎉'}</span>
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            {isBank ? 'Order Placed — Awaiting Transfer' : 'Order Placed Successfully!'}
+          </h2>
+          <p className="text-gray-600">
+            {isBank
+              ? <span>Your order with <strong>{shop?.name || 'our shop'}</strong> has been registered. Please complete your bank transfer using the details below.</span>
+              : <span>Thank you for ordering directly from <strong>{shop?.name || 'our shop'}</strong>.</span>}
+          </p>
 
-          {orderComplete.delivery_code && (
+          {isBank && (
+            <div className="p-6 rounded-2xl bg-amber-50/70 border border-amber-200 text-left space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-amber-200">
+                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Amount to Transfer</span>
+                <span className="text-2xl font-black text-gray-900">
+                  ₦{Number(bankData.amount || orderComplete.grand_total || grandTotal).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Bank Name:</span>
+                  <span className="font-bold text-gray-900">{bankData.bank_name || 'Bank'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Account Number:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-base font-bold text-gray-900">{bankData.account_number}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(bankData.account_number, 'acct')}
+                      className="px-2 py-0.5 text-xs bg-white border border-gray-200 rounded-md hover:bg-gray-50 font-medium"
+                    >
+                      {copiedKey === 'acct' ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                {bankData.account_name && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Account Name:</span>
+                    <span className="font-semibold text-gray-900">{bankData.account_name}</span>
+                  </div>
+                )}
+                {bankData.reference && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Payment Reference:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-amber-700">{bankData.reference}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(bankData.reference, 'ref')}
+                        className="px-2 py-0.5 text-xs bg-white border border-gray-200 rounded-md hover:bg-gray-50 font-medium"
+                      >
+                        {copiedKey === 'ref' ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-amber-200 text-xs text-amber-800 leading-relaxed">
+                ⚠️ <strong>Important:</strong> Please include reference <strong>{bankData.reference}</strong> in your transfer narration. The vendor will process and fulfill your order once your payment is confirmed by our administrators. Delivery confirmation code will be provided after verification.
+              </div>
+            </div>
+          )}
+
+          {!isBank && orderComplete.delivery_code && (
             <div className="p-6 rounded-2xl bg-amber-50 border-2 border-dashed border-amber-300">
               <span className="text-xs font-bold text-amber-800 uppercase tracking-widest block mb-1">Delivery Confirmation Code</span>
               <div className="text-4xl font-black text-gray-900 font-mono tracking-widest">{orderComplete.delivery_code}</div>
